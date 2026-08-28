@@ -296,7 +296,7 @@ export interface CommanderStatusProps {
 export default function CommanderStatus({
   snapshot: controlled,
   stateUrl = "/api/state",
-  eventsUrl = "/api/events",
+  eventsUrl = "/api/stream",
   pollMs = DEFAULT_POLL_MS,
   occupants,
   onCheckIn,

@@ -135,7 +135,7 @@ const SUBSYSTEM_NODES: SubsystemNode[] = [
       "Client Support": "Browsers, Kiosks, First Responder Tablets",
     },
     endpoints: [
-      { method: "GET", path: "/api/events", description: "Persistent SSE stream for real-time muster state sync", authLevel: "Public" },
+      { method: "GET", path: "/api/stream", description: "Persistent SSE stream for real-time muster state sync", authLevel: "Public" },
     ],
     spec: {
       protocols: ["Server-Sent Events (SSE)", "HTTP Keep-Alive"],

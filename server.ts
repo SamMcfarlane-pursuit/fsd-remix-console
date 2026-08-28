@@ -419,7 +419,7 @@ function notifySseClients() {
   });
 }
 
-app.get("/api/events", (req, res) => {
+app.get(["/api/stream", "/api/sse"], (req, res) => {
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache");
   res.setHeader("Connection", "keep-alive");

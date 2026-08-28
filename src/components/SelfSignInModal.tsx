@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import QRCode from "qrcode";
 import { Occupant, QuadrantId } from "../types";
 import { syncOccupantToFirestore } from "../lib/firebase";
+import { DigitalSignaturePad } from "./DigitalSignaturePad";
 
 interface SelfSignInModalProps {
   isOpen: boolean;
@@ -29,6 +30,8 @@ export const SelfSignInModal: React.FC<SelfSignInModalProps> = ({
   const [quadrant, setQuadrant] = useState<QuadrantId>("NW");
   const [desk, setDesk] = useState("");
   const [presenceAction, setPresenceAction] = useState<"enter" | "leave" | "muster">(defaultAction);
+  const [signatureData, setSignatureData] = useState<string | null>(null);
+  const [signatureType, setSignatureType] = useState<"drawn" | "typed">("drawn");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [directNotifyMsg, setDirectNotifyMsg] = useState<string | null>(null);
@@ -81,7 +84,7 @@ export const SelfSignInModal: React.FC<SelfSignInModalProps> = ({
           localStorage.setItem("muster_registered_name", existingUser.name);
           if (existingUser.phone) localStorage.setItem("muster_registered_phone", existingUser.phone);
         } catch (e) {}
-        setDirectNotifyMsg(`⚡ DIRECT SIGN-IN VERIFIED! Welcome back ${existingUser.name} (${existingUser.id}). You are recorded as PRESENT on Floor 07.`);
+        setDirectNotifyMsg(`⚡ Direct Sign-In Verified! Welcome back ${existingUser.name} (${existingUser.id}). You are recorded as PRESENT & ACCOUNTED on Floor 07.`);
         onSuccess();
       } else {
         setErrorMsg(data.error || "Could not sign in existing user.");
@@ -136,6 +139,8 @@ export const SelfSignInModal: React.FC<SelfSignInModalProps> = ({
           desk: desk.trim() || undefined,
           action: presenceAction === "leave" ? "leave" : "enter",
           status: presenceAction === "muster" ? "safe" : undefined,
+          signature_data: signatureData,
+          signature_type: signatureType,
           locationCategory:
             presenceAction === "leave"
               ? "offsite"
@@ -499,11 +504,22 @@ export const SelfSignInModal: React.FC<SelfSignInModalProps> = ({
               </div>
             </div>
 
+            {/* Digital Signature Pad */}
+            <div className="pt-1">
+              <DigitalSignaturePad
+                defaultName={name}
+                onSignatureChange={(sigData, sigType) => {
+                  setSignatureData(sigData);
+                  setSignatureType(sigType);
+                }}
+              />
+            </div>
+
             {/* Submit Button */}
             <div className="pt-3 border-t border-[#B8D8F8] flex flex-col sm:flex-row gap-2">
               <button
                 type="submit"
-                disabled={isSubmitting}
+                disabled={isSubmitting || !name.trim() || !phone.trim()}
                 className="flex-1 min-h-[44px] bg-[#005DAA] hover:bg-[#004A88] disabled:bg-slate-300 text-white rounded-xl text-xs font-black uppercase tracking-wider transition cursor-pointer shadow-xs flex items-center justify-center gap-1.5"
               >
                 <span>{isSubmitting ? "Allocating..." : "✓ Complete Sign-In & Get Badge"}</span>

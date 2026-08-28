@@ -32,6 +32,15 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
 
   const [selectedUserId, setSelectedUserId] = useState<string>(() => {
     try {
+      if (typeof window !== "undefined") {
+        const params = new URLSearchParams(window.location.search);
+        const urlId = params.get("id") || params.get("badge") || params.get("user") || params.get("occupantId");
+        if (urlId) {
+          const clean = urlId.replace(/CONED-BADGE-/i, "").split("-")[0];
+          const matched = occupants.find((o) => o.id.toLowerCase() === urlId.toLowerCase() || o.id.toLowerCase() === clean.toLowerCase());
+          if (matched) return matched.id;
+        }
+      }
       const stored = localStorage.getItem("muster_registered_occupant_id");
       if (stored && occupants.some((o) => o.id === stored)) return stored;
     } catch {}
@@ -41,11 +50,27 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
   const currentUser = occupants.find((o) => o.id === selectedUserId) || occupants[0];
 
   // Screen state:
-  // If user has signed in before (savedOccupantId exists in roster), show 'confirmed' pass screen.
-  // If newcomer, show 'newcomer-signin' form.
-  const [viewState, setViewState] = useState<"newcomer-signin" | "confirmed">(
-    savedOccupantId ? "confirmed" : "newcomer-signin"
-  );
+  // If returning user (savedOccupantId or recognized URL param exists in roster), show 'confirmed' pass screen.
+  // If newcomer / unregistered, show 'newcomer-signin' form.
+  const [viewState, setViewState] = useState<"newcomer-signin" | "confirmed">(() => {
+    try {
+      if (typeof window !== "undefined") {
+        const params = new URLSearchParams(window.location.search);
+        const urlId = params.get("id") || params.get("badge") || params.get("user") || params.get("occupantId");
+        if (urlId && occupants.some((o) => o.id.toLowerCase() === urlId.toLowerCase())) {
+          return "confirmed";
+        }
+        if (params.get("new") === "1" || params.get("register") === "1") {
+          return "newcomer-signin";
+        }
+      }
+      const stored = localStorage.getItem("muster_registered_occupant_id");
+      if (stored && occupants.some((o) => o.id === stored)) {
+        return "confirmed";
+      }
+    } catch {}
+    return "newcomer-signin";
+  });
 
   // User type: Employee vs Visitor
   const [userType, setUserType] = useState<"employee" | "visitor">("employee");
@@ -100,7 +125,7 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
         } catch (e) {}
         setViewState("confirmed");
         setActionSubmittedMsg(
-          `⚡ DIRECT SIGN-IN VERIFIED! Welcome back ${existingUser.name} (${existingUser.id}). You are recorded as PRESENT & ACCOUNTED on Floor 07.`
+          `⚡ Direct Sign-In Verified! Welcome back ${existingUser.name} (${existingUser.id}). You are recorded as PRESENT & ACCOUNTED on Floor 07.`
         );
         setTimeout(() => setActionSubmittedMsg(null), 8000);
       } else {
@@ -113,11 +138,15 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
     }
   };
 
-  // Check URL query param for QR token on mount
+  // Check URL query param for QR token, badge ID, or name on mount
   useEffect(() => {
     try {
       const params = new URLSearchParams(window.location.search);
       const token = params.get("token");
+      const urlId = params.get("id") || params.get("badge") || params.get("user") || params.get("occupantId");
+      const urlPhone = params.get("phone");
+      const urlName = params.get("name");
+
       if (token) {
         setEventToken(token);
         setViewState("newcomer-signin");
@@ -132,9 +161,38 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
             }
           })
           .catch((e) => console.warn("Failed to resolve event token:", e));
+      } else if (urlId) {
+        const clean = urlId.replace(/CONED-BADGE-/i, "").split("-")[0];
+        const matched = occupants.find((o) => o.id.toLowerCase() === urlId.toLowerCase() || o.id.toLowerCase() === clean.toLowerCase());
+        if (matched) {
+          setSelectedUserId(matched.id);
+          setSavedOccupantId(matched.id);
+          setViewState("confirmed");
+        }
+      } else if (urlPhone) {
+        const cleanDigits = urlPhone.replace(/\D/g, "");
+        const matched = occupants.find((o) => o.phone && o.phone.replace(/\D/g, "") === cleanDigits);
+        if (matched) {
+          setSelectedUserId(matched.id);
+          setSavedOccupantId(matched.id);
+          setViewState("confirmed");
+        } else {
+          setSignPhone(urlPhone);
+          setViewState("newcomer-signin");
+        }
+      } else if (urlName) {
+        const matched = occupants.find((o) => o.name.toLowerCase() === urlName.toLowerCase());
+        if (matched) {
+          setSelectedUserId(matched.id);
+          setSavedOccupantId(matched.id);
+          setViewState("confirmed");
+        } else {
+          setSignName(urlName);
+          setViewState("newcomer-signin");
+        }
       }
     } catch {}
-  }, []);
+  }, [occupants]);
 
   // Sync role & company when userType changes
   const handleSelectUserType = (type: "employee" | "visitor") => {
@@ -203,7 +261,7 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
         .then((res) => {
           if (res.ok) {
             setActionSubmittedMsg(
-              `⚡ AUTOMATICALLY ACCOUNTED FOR! QR code scan verified. ${currentUser.name} (${currentUser.id}) marked as PRESENT & ACCOUNTED on Floor 07.`
+              `⚡ Direct Sign-In Verified! Welcome back ${currentUser.name} (${currentUser.id}). You are recorded as PRESENT & ACCOUNTED on Floor 07.`
             );
             setTimeout(() => setActionSubmittedMsg(null), 8000);
           }

@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import QRCode from "qrcode";
 import { Occupant, StatusSnapshot } from "../../types";
 import { SelfSignInModal } from "../SelfSignInModal";
+import { QRCameraScanner } from "../QRCameraScanner";
 
 interface Step1ScanProps {
   snapshot: StatusSnapshot | null;
@@ -34,9 +35,6 @@ export const Step1Scan: React.FC<Step1ScanProps> = ({
   const [isSelfSignInModalOpen, setIsSelfSignInModalOpen] = useState<boolean>(false);
   const [selfSignInInitialName, setSelfSignInInitialName] = useState<string>("");
 
-  const videoRef = useRef<HTMLVideoElement | null>(null);
-  const streamRef = useRef<MediaStream | null>(null);
-
   // Generate QR Code URL
   useEffect(() => {
     const origin = typeof window !== "undefined" ? window.location.origin : "";
@@ -56,75 +54,73 @@ export const Step1Scan: React.FC<Step1ScanProps> = ({
         (o) =>
           o.name.toLowerCase().includes(badgeInput.toLowerCase()) ||
           o.id.toLowerCase().includes(badgeInput.toLowerCase()) ||
+          (o.phone && o.phone.replace(/\D/g, "").includes(badgeInput.replace(/\D/g, ""))) ||
           o.desk?.toLowerCase().includes(badgeInput.toLowerCase()) ||
           o.company?.toLowerCase().includes(badgeInput.toLowerCase())
       ).slice(0, 5)
     : [];
 
-  const handleManualScan = async (occupantIdToUse?: string) => {
-    const targetId = occupantIdToUse || selectedOccupantId || (filteredOccupants.length > 0 ? filteredOccupants[0].id : "");
-    if (!targetId) {
-      setScanMessage({ type: "error", text: "Please select or type an occupant name / badge ID" });
+  const handleManualScan = async (occupantIdToUse?: string, action: "enter" | "leave" | "muster" = "enter") => {
+    const rawTarget = occupantIdToUse || selectedOccupantId || (filteredOccupants.length > 0 ? filteredOccupants[0].id : badgeInput.trim());
+    if (!rawTarget) {
+      setScanMessage({ type: "error", text: "Please enter or scan an occupant name, phone, or badge ID." });
       return;
     }
 
-    const occ = occupants.find((o) => o.id === targetId);
+    let target = rawTarget.trim();
+    // Parse badge prefix if present
+    const badgeMatch = target.match(/CONED-BADGE-(OCC-\d+|VIS-\d+|[A-Za-z0-9_-]+)/i);
+    if (badgeMatch && badgeMatch[1]) {
+      target = badgeMatch[1];
+    }
+
+    const occ = occupants.find(
+      (o) =>
+        o.id.toLowerCase() === target.toLowerCase() ||
+        o.name.toLowerCase() === target.toLowerCase() ||
+        (target.length >= 4 && o.name.toLowerCase().includes(target.toLowerCase())) ||
+        (target.replace(/\D/g, "").length >= 7 && o.phone && o.phone.replace(/\D/g, "") === target.replace(/\D/g, ""))
+    );
+
     if (!occ) {
-      setScanMessage({ type: "error", text: `Badge ID ${targetId} not found in facility database.` });
+      setScanMessage({
+        type: "error",
+        text: `⚠️ '${rawTarget}' is not registered in the Floor 07 database.`,
+      });
+      setSelfSignInInitialName(rawTarget);
       return;
     }
 
     try {
-      await onCheckIn(
-        occ.id,
-        "safe",
-        "qr-entrance-scanner",
-        `Physical Floor 07 entrance badge scan at ${new Date().toLocaleTimeString()}`,
-        "inside-building"
-      );
-      setScanMessage({
-        type: "success",
-        text: `✓ Successfully verified entrance badge for ${occ.name} (${occ.quadrant} Floor 07).`,
-      });
+      if (action === "leave") {
+        await fetch("/api/occupant/presence", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ occupantId: occ.id, action: "leave" }),
+        });
+        setScanMessage({
+          type: "success",
+          text: `🚪 Badged Out: ${occ.name} (${occ.id}) recorded as LEFT BUILDING (Off-Site).`,
+        });
+      } else {
+        await onCheckIn(
+          occ.id,
+          "safe",
+          "qr-entrance-scanner",
+          `Physical Floor 07 entrance badge scan at ${new Date().toLocaleTimeString()}`,
+          action === "muster" ? "outside-assembly" : "inside-building"
+        );
+        setScanMessage({
+          type: "success",
+          text: `⚡ Direct Sign-In Verified! Welcome back ${occ.name} (${occ.id}). You are recorded as PRESENT & ACCOUNTED on Floor 07.`,
+        });
+      }
       setBadgeInput("");
       setSelectedOccupantId("");
     } catch {
       setScanMessage({ type: "error", text: "Failed to submit badge scan. Please try again." });
     }
   };
-
-  // Camera toggle
-  const toggleCamera = async () => {
-    if (isCameraActive) {
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach((track) => track.stop());
-        streamRef.current = null;
-      }
-      setIsCameraActive(false);
-    } else {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: "environment" },
-        });
-        streamRef.current = stream;
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-        }
-        setIsCameraActive(true);
-      } catch {
-        alert("Camera access was not granted or is unavailable in this environment.");
-      }
-    }
-  };
-
-  // Clean up camera on unmount
-  useEffect(() => {
-    return () => {
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach((track) => track.stop());
-      }
-    };
-  }, []);
 
   const inBuildingCount = occupants.filter((o) => !o.badgedOut && !o.offSiteToday).length;
 
@@ -288,23 +284,27 @@ export const Step1Scan: React.FC<Step1ScanProps> = ({
 
               {/* Suggestions Dropdown */}
               {filteredOccupants.length > 0 && (
-                <div className="bg-white border border-[#CBDCEE] rounded-xl shadow-lg overflow-hidden divide-y divide-slate-100 max-h-48 overflow-y-auto">
+                <div className="bg-white border border-[#CBDCEE] rounded-xl shadow-lg overflow-hidden divide-y divide-slate-100 max-h-56 overflow-y-auto">
                   {filteredOccupants.map((occ) => (
-                    <button
+                    <div
                       key={occ.id}
-                      onClick={() => handleManualScan(occ.id)}
-                      className="w-full text-left px-4 py-2.5 hover:bg-[#EBF3FB] transition flex items-center justify-between text-xs cursor-pointer"
+                      className="px-4 py-2.5 hover:bg-[#EBF3FB] transition flex items-center justify-between text-xs"
                     >
                       <div>
-                        <div className="font-bold text-[#0F2537]">{occ.name}</div>
+                        <div className="font-black text-[#0F2537]">{occ.name} <span className="font-mono text-[10px] text-[#005DAA] font-bold">({occ.id})</span></div>
                         <div className="text-[11px] text-[#64748B]">
-                          {occ.role} · {occ.quadrant} Quadrant · Desk: {occ.desk || "07-Floor"}
+                          {occ.role} · Sector {occ.quadrant} · Desk: {occ.desk || "07-Floor"} · Phone: {occ.phone || "On File"}
                         </div>
                       </div>
-                      <span className="px-2.5 py-1 bg-[#005DAA] text-white rounded-lg font-bold text-[10px]">
-                        Verify Badge →
-                      </span>
-                    </button>
+                      <button
+                        type="button"
+                        onClick={() => handleManualScan(occ.id, "enter")}
+                        className="px-3 py-1.5 bg-[#005DAA] hover:bg-[#004884] text-white rounded-lg font-black text-[11px] cursor-pointer shadow-xs transition flex items-center gap-1 shrink-0"
+                      >
+                        <span>⚡</span>
+                        <span>Direct Sign-In</span>
+                      </button>
+                    </div>
                   ))}
                 </div>
               )}
@@ -363,28 +363,31 @@ export const Step1Scan: React.FC<Step1ScanProps> = ({
               <div className="flex items-center gap-2">
                 <span className="text-xl">📷</span>
                 <div>
-                  <h4 className="text-sm font-bold text-[#0F2537]">Camera Scanner Station</h4>
-                  <p className="text-xs text-[#64748B]">Use tablet or laptop camera to scan physical badges</p>
+                  <h4 className="text-sm font-bold text-[#0F2537]">Live Optical Camera Scanner</h4>
+                  <p className="text-xs text-[#64748B]">Scan physical employee badges or QR codes in real-time</p>
                 </div>
               </div>
               <button
-                onClick={toggleCamera}
+                onClick={() => setIsCameraActive(!isCameraActive)}
                 className={`px-3 py-1.5 rounded-xl font-bold text-xs transition cursor-pointer ${
                   isCameraActive
                     ? "bg-red-100 text-red-700 border border-red-300"
                     : "bg-[#005DAA] text-white hover:bg-[#004884]"
                 }`}
               >
-                {isCameraActive ? "Stop Camera ✕" : "Activate Camera"}
+                {isCameraActive ? "Close Scanner ✕" : "Activate Optical Scanner"}
               </button>
             </div>
 
             {isCameraActive && (
-              <div className="rounded-xl overflow-hidden bg-black aspect-video relative flex items-center justify-center border border-slate-700">
-                <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover" />
-                <div className="absolute inset-0 border-2 border-[#00A3E0] border-dashed rounded-lg m-12 pointer-events-none animate-pulse flex items-center justify-center text-white/70 text-xs font-mono">
-                  Align QR Badge Inside Reticle
-                </div>
+              <div className="animate-fadeIn">
+                <QRCameraScanner
+                  stationName="Floor 07 Main Entrance Kiosk"
+                  onScanSuccess={(decodedText, action) => {
+                    handleManualScan(decodedText, action);
+                  }}
+                  onClose={() => setIsCameraActive(false)}
+                />
               </div>
             )}
           </div>
@@ -400,7 +403,7 @@ export const Step1Scan: React.FC<Step1ScanProps> = ({
         onSuccess={() => {
           setScanMessage({
             type: "success",
-            text: `✓ Sign-in successfully registered & allocated to Floor 07 roster.`,
+            text: `⚡ Sign-In Registered & Accounted! Floor 07 life-safety roster and live sector map updated.`,
           });
         }}
       />
