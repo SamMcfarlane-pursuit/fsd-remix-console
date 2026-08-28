@@ -1,0 +1,55 @@
+{
+  "entities": {
+    "Occupant": {
+      "collection": "occupants",
+      "fields": {
+        "id": "string",
+        "name": "string",
+        "phone": "string",
+        "role": "string",
+        "company": "string",
+        "quadrant": "string",
+        "status": "string",
+        "locationCategory": "string",
+        "lastLocation": "string",
+        "lastBadgeTime": "string",
+        "notes": "string",
+        "checkInMethod": "string",
+        "updatedAt": "string"
+      }
+    },
+    "LedgerEntry": {
+      "collection": "ledger_entries",
+      "fields": {
+        "id": "string",
+        "eventType": "string",
+        "timestamp": "string",
+        "hash": "string",
+        "prevHash": "string",
+        "details": "map"
+      }
+    },
+    "SystemState": {
+      "collection": "system_state",
+      "fields": {
+        "mode": "string",
+        "hazardType": "string",
+        "drillName": "string",
+        "alarmActive": "boolean",
+        "emergencyBannerText": "string",
+        "updatedAt": "string"
+      }
+    },
+    "BroadcastLog": {
+      "collection": "broadcast_logs",
+      "fields": {
+        "id": "string",
+        "timestamp": "string",
+        "channels": "array",
+        "target": "string",
+        "message": "string",
+        "initiatedBy": "string"
+      }
+    }
+  }
+}

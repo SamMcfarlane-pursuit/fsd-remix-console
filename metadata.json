@@ -1,0 +1,11 @@
+{
+  "name": "Remix MusterCommand - FSD Commander Console",
+  "description": "Emergency muster and floor evacuation status console with hash-chained ledger audit trail, natural language red list queries, and AI-drafted incident narratives.",
+  "requestFramePermissions": [
+    "microphone",
+    "camera"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

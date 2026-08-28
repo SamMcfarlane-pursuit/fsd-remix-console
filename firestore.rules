@@ -1,0 +1,24 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Allow read/write for emergency life-safety muster management
+    match /occupants/{occupantId} {
+      allow read, write: if true;
+    }
+    match /ledger_entries/{entryId} {
+      allow read, write: if true;
+    }
+    match /system_state/{docId} {
+      allow read, write: if true;
+    }
+    match /broadcast_logs/{logId} {
+      allow read, write: if true;
+    }
+    match /chat_messages/{msgId} {
+      allow read, write: if true;
+    }
+    match /{document=**} {
+      allow read, write: if true;
+    }
+  }
+}
