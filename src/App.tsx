@@ -12,6 +12,7 @@ import { SelfSignInModal } from "./components/SelfSignInModal";
 import BuildingStatusReportModal from "./components/BuildingStatusReportModal";
 import DeclareIncidentModal from "./components/DeclareIncidentModal";
 import EmergencyAlertModal from "./components/EmergencyAlertModal";
+import { NavigationGuideModal } from "./components/NavigationGuideModal";
 import { AuthUser, EmergencyAlertPayload, LocationCategory, OccupantStatus, StatusSnapshot } from "./types";
 import { validateGeofence, LocationMetadata, FLOOR_07_CONSTRAINTS } from "./lib/geofence";
 import { appendLedgerEntry } from "./lib/ledger";
@@ -55,6 +56,7 @@ export default function App() {
   const [isDeclareIncidentModalOpen, setIsDeclareIncidentModalOpen] = useState(false);
   const [isSignInPosterOpen, setIsSignInPosterOpen] = useState(false);
   const [isSelfSignInOpen, setIsSelfSignInOpen] = useState(false);
+  const [isGuideModalOpen, setIsGuideModalOpen] = useState(false);
 
   // Check URL query parameters on initial load (e.g. ?mode=signin or mobile scan)
   useEffect(() => {
@@ -466,7 +468,17 @@ export default function App() {
         </div>
 
         {/* Header Right Actions */}
-        <div className="flex items-center gap-2.5 sm:gap-3 shrink-0">
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+          {/* Navigation & Directory Guide Button */}
+          <button
+            onClick={() => setIsGuideModalOpen(true)}
+            className="rounded-xl bg-sky-500/20 hover:bg-sky-500/30 border border-sky-400/40 px-3 py-2 min-h-[38px] text-xs font-black text-sky-200 transition cursor-pointer flex items-center gap-1.5 shadow-xs"
+            title="Open Platform Navigation Guide & Step Legend"
+          >
+            <span>🧭</span>
+            <span className="hidden md:inline">Directory &amp; Guide</span>
+          </button>
+
           {/* Status Report Quick Modal */}
           <button
             onClick={() => setIsStatusReportModalOpen(true)}
@@ -474,22 +486,41 @@ export default function App() {
             title="View Building Status & Stairwell Report"
           >
             <span>📋</span>
-            <span className="hidden md:inline">Report</span>
+            <span className="hidden lg:inline">Report</span>
           </button>
 
-          {/* Occupant Mobile View Switcher */}
-          <button
-            onClick={() => setViewMode(viewMode === "admin" ? "occupant" : "admin")}
-            className="rounded-xl bg-[#EBF5FB] hover:bg-[#D6EAF8] text-[#005DAA] border border-white/30 px-3 py-2 min-h-[38px] text-xs font-black transition cursor-pointer flex items-center gap-1.5"
-            title="Switch between Commander 5-Step Deck and Occupant Mobile View"
-          >
-            <span>{viewMode === "admin" ? "📱 Occupant View" : "🛡️ Commander Console"}</span>
-          </button>
+          {/* Role & Mode Switcher Pill */}
+          <div className="flex items-center bg-[#07192C] p-1 rounded-xl border border-[#1E3A60]">
+            <button
+              onClick={() => setViewMode("admin")}
+              className={`px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-black uppercase tracking-wider transition cursor-pointer flex items-center gap-1.5 ${
+                viewMode === "admin"
+                  ? "bg-[#005DAA] text-white shadow-sm"
+                  : "text-slate-400 hover:text-white"
+              }`}
+              title="Switch to 5-Step FSD Commander Deck"
+            >
+              <span>🛡️</span>
+              <span className="hidden sm:inline">Commander Deck</span>
+            </button>
+            <button
+              onClick={() => setViewMode("occupant")}
+              className={`px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-black uppercase tracking-wider transition cursor-pointer flex items-center gap-1.5 ${
+                viewMode === "occupant"
+                  ? "bg-emerald-600 text-white shadow-sm"
+                  : "text-slate-400 hover:text-white"
+              }`}
+              title="Switch to Mobile Occupant Portal (Turnstile Pass & Muster)"
+            >
+              <span>📱</span>
+              <span className="hidden sm:inline">Occupant Portal</span>
+            </button>
+          </div>
 
-          <div className="h-6 w-[1px] bg-white/20" />
+          <div className="h-6 w-[1px] bg-white/20 hidden sm:block" />
 
           {/* Accounted Counter */}
-          <div className="text-right">
+          <div className="text-right hidden sm:block">
             <div className="text-[9px] uppercase text-[#829AB8] font-bold tracking-widest">Accounted</div>
             <div className="text-sm sm:text-base font-mono font-bold leading-none text-[#38BDF8]">
               {snapshot?.accounted || 0}
@@ -661,6 +692,18 @@ export default function App() {
           setCurrentStep(2);
           refreshState();
         }}
+      />
+
+      <NavigationGuideModal
+        isOpen={isGuideModalOpen}
+        onClose={() => setIsGuideModalOpen(false)}
+        onSelectViewMode={(mode) => setViewMode(mode)}
+        onSelectStep={(step) => {
+          setCurrentStep(step);
+          setViewMode("admin");
+        }}
+        currentStep={currentStep}
+        currentMode={viewMode}
       />
     </div>
   );

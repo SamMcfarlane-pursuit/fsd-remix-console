@@ -637,7 +637,7 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
           <div>
             <span className="font-black text-[#005DAA] text-sm">Floor 07 Digital QR Attendance</span>
             <p className="text-[11px] text-[#475569] font-medium">
-              Con Edison · 4 Irving Place · QR Presence & Muster
+              Con Edison · 4 Irving Place · QR Presence &amp; Muster
             </p>
           </div>
         </div>
@@ -652,6 +652,25 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
             <span>FSD Deck</span>
           </button>
         )}
+      </div>
+
+      {/* 3-Action Quick Intent Legend */}
+      <div className="grid grid-cols-3 gap-2 text-center text-[10px] font-bold">
+        <div className="bg-white p-2 rounded-xl border border-emerald-200 text-emerald-800 flex flex-col items-center gap-0.5 shadow-2xs">
+          <span className="text-sm">🟢</span>
+          <span>1. Enter Building</span>
+          <span className="text-[9px] text-slate-500 font-normal">Floor 07 Turnstile</span>
+        </div>
+        <div className="bg-white p-2 rounded-xl border border-amber-200 text-amber-800 flex flex-col items-center gap-0.5 shadow-2xs">
+          <span className="text-sm">⚪</span>
+          <span>2. Leave Building</span>
+          <span className="text-[9px] text-slate-500 font-normal">Badge Out (Off-site)</span>
+        </div>
+        <div className="bg-white p-2 rounded-xl border border-sky-200 text-sky-800 flex flex-col items-center gap-0.5 shadow-2xs">
+          <span className="text-sm">🚨</span>
+          <span>3. Muster Check-In</span>
+          <span className="text-[9px] text-slate-500 font-normal">Assembly Pt A / B</span>
+        </div>
       </div>
 
       {/* Offline Status & Sync Queue HUD */}
