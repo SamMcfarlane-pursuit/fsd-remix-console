@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import jsQR from "jsqr";
+import { parseQRData } from "../lib/qr";
 
 interface QRCameraScannerProps {
   onScanSuccess: (decodedText: string, action: "enter" | "leave" | "muster") => void;
@@ -143,24 +144,12 @@ export const QRCameraScanner: React.FC<QRCameraScannerProps> = ({
             });
 
             if (code && code.data && code.data.trim()) {
-              let text = code.data.trim();
-              // Parse URL or badge payload if applicable
-              try {
-                if (text.startsWith("http://") || text.startsWith("https://")) {
-                  const parsedUrl = new URL(text);
-                  const paramId = parsedUrl.searchParams.get("id") || parsedUrl.searchParams.get("badge") || parsedUrl.searchParams.get("token");
-                  if (paramId) text = paramId;
-                }
-              } catch {}
-
-              const badgeMatch = text.match(/CONED-BADGE-(OCC-\d+|VIS-\d+|[A-Za-z0-9_-]+)/i);
-              if (badgeMatch && badgeMatch[1]) {
-                text = badgeMatch[1];
-              }
+              const parsed = parseQRData(code.data.trim());
+              const textToSend = parsed.occupantId || parsed.badgeCode || parsed.token || parsed.stationName || code.data.trim();
 
               playBeep();
               setIsProcessing(true);
-              onScanSuccess(text, presenceAction);
+              onScanSuccess(textToSend, presenceAction);
               setTimeout(() => {
                 setIsProcessing(false);
               }, 1800);

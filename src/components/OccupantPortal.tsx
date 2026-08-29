@@ -4,6 +4,7 @@ import { Occupant, OccupantStatus, StatusSnapshot, QuadrantId } from "../types";
 import { QRCameraScanner } from "./QRCameraScanner";
 import { DigitalSignaturePad } from "./DigitalSignaturePad";
 import { getDeviceGeolocation, validateGeofence, FLOOR_07_CONSTRAINTS } from "../lib/geofence";
+import { parseQRData, generateOccupantBadgePayload } from "../lib/qr";
 
 interface OccupantPortalProps {
   snapshot: StatusSnapshot | null;
@@ -138,7 +139,7 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
     }
   };
 
-  // Check URL query param for QR token, badge ID, or name on mount
+  // Check URL query param for QR token, badge ID, station, or name on mount
   useEffect(() => {
     try {
       const params = new URLSearchParams(window.location.search);
@@ -146,6 +147,29 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
       const urlId = params.get("id") || params.get("badge") || params.get("user") || params.get("occupantId");
       const urlPhone = params.get("phone");
       const urlName = params.get("name");
+      const stationParam = params.get("station");
+      const locParam = params.get("loc") as "inside-building" | "outside-assembly" | "offsite" | null;
+
+      if (stationParam) {
+        let stationReadable = stationParam;
+        if (stationParam === "AssemblyPointA") stationReadable = "Assembly Point A (Park Plaza)";
+        if (stationParam === "AssemblyPointB") stationReadable = "Assembly Point B (Courtyard)";
+        if (stationParam === "Floor07Kiosk") stationReadable = "Floor 07 Main Entrance Kiosk";
+
+        setSelectedAssembly(stationReadable);
+        if (currentUser) {
+          onCheckIn(
+            currentUser.id,
+            "safe",
+            "qr-station-poster-scan",
+            `Scanned station QR poster: ${stationReadable}`,
+            locParam || (stationParam.includes("Floor") ? "inside-building" : "outside-assembly"),
+            stationReadable
+          );
+          setActionSubmittedMsg(`✅ Scanned QR Poster! Verified SAFE at ${stationReadable}. Transmitted to Console.`);
+          setTimeout(() => setActionSubmittedMsg(null), 7000);
+        }
+      }
 
       if (token) {
         setEventToken(token);
@@ -239,7 +263,7 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
   // Generate QR code for current user
   useEffect(() => {
     if (currentUser) {
-      const payload = `CONED-BADGE-${currentUser.id}-${currentUser.quadrant}`;
+      const payload = generateOccupantBadgePayload(currentUser.id, currentUser.quadrant);
       QRCode.toDataURL(payload, {
         width: 280,
         margin: 1.5,
@@ -376,15 +400,9 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
       return;
     }
 
-    let station = "Assembly Point A (Park Plaza)";
-    let loc: "inside-building" | "outside-assembly" = "outside-assembly";
-
-    if (decoded.includes("AssemblyPointB") || decoded.includes("assembly-b") || decoded.toLowerCase().includes("courtyard")) {
-      station = "Assembly Point B (Courtyard)";
-    } else if (decoded.includes("Floor07Kiosk") || decoded.includes("kiosk") || decoded.toLowerCase().includes("inside")) {
-      loc = "inside-building";
-      station = "Floor 07 Main Entrance";
-    }
+    const parsed = parseQRData(decoded);
+    const station = parsed.stationName || "Assembly Point A (Park Plaza)";
+    const loc = parsed.locationCategory || (station.includes("Floor") || station.includes("Kiosk") ? "inside-building" : "outside-assembly");
 
     onCheckIn(
       currentUser.id,
@@ -395,7 +413,7 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
       loc === "outside-assembly" ? station : undefined
     );
 
-    setActionSubmittedMsg(`✅ Scanned QR Code! Verified at ${station}.`);
+    setActionSubmittedMsg(`✅ Scanned QR Code! Verified SAFE at ${station}. Transmitted to Console.`);
     setTimeout(() => setActionSubmittedMsg(null), 6000);
   };
 

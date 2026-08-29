@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import QRCode from "qrcode";
 import { Occupant } from "../types";
+import { generateOccupantBadgePayload, generateStationPosterPayload, parseQRData } from "../lib/qr";
 
 interface QRBadgeGeneratorProps {
   occupants: Occupant[];
@@ -25,18 +26,17 @@ export const QRBadgeGenerator: React.FC<QRBadgeGeneratorProps> = ({
   const selectedOccupant = occupants.find((o) => o.id === selectedOccupantId) || occupants[0];
 
   // Base app URL for mobile scanner deep link
-  const originUrl = typeof window !== "undefined" ? window.location.origin : "https://coned-muster.local";
+  const originUrl = typeof window !== "undefined" ? window.location.origin : "http://localhost:3000";
 
   // Generate Station QR Code
   useEffect(() => {
-    let payload = "";
-    if (selectedStation === "assembly-a") {
-      payload = `${originUrl}/?station=AssemblyPointA&loc=outside-assembly`;
-    } else if (selectedStation === "assembly-b") {
-      payload = `${originUrl}/?station=AssemblyPointB&loc=outside-assembly`;
-    } else {
-      payload = `${originUrl}/?station=Floor07Kiosk&loc=inside-building`;
+    let stationId = "AssemblyPointA";
+    if (selectedStation === "assembly-b") {
+      stationId = "AssemblyPointB";
+    } else if (selectedStation === "kiosk-l7") {
+      stationId = "Floor07Kiosk";
     }
+    const payload = generateStationPosterPayload(stationId, originUrl);
 
     QRCode.toDataURL(payload, {
       width: 320,
@@ -54,7 +54,7 @@ export const QRBadgeGenerator: React.FC<QRBadgeGeneratorProps> = ({
   // Generate Individual Occupant QR Code
   useEffect(() => {
     if (!selectedOccupant) return;
-    const payload = `CONED-BADGE-${selectedOccupant.id}-${selectedOccupant.quadrant}`;
+    const payload = generateOccupantBadgePayload(selectedOccupant.id, selectedOccupant.quadrant, originUrl);
     QRCode.toDataURL(payload, {
       width: 260,
       margin: 1.5,
@@ -66,13 +66,13 @@ export const QRBadgeGenerator: React.FC<QRBadgeGeneratorProps> = ({
     }).then((url) => {
       setOccupantQrDataUrl(url);
     }).catch(console.error);
-  }, [selectedOccupant]);
+  }, [selectedOccupant, originUrl]);
 
   // Pre-generate batch QRs for first 24 occupants for the sheet view
   useEffect(() => {
     const subset = occupants.slice(0, 24);
     const promises = subset.map((occ) => {
-      const payload = `CONED-BADGE-${occ.id}-${occ.quadrant}`;
+      const payload = generateOccupantBadgePayload(occ.id, occ.quadrant, originUrl);
       return QRCode.toDataURL(payload, { width: 140, margin: 1 })
         .then((url) => ({ id: occ.id, url }))
         .catch(() => ({ id: occ.id, url: "" }));
@@ -85,7 +85,7 @@ export const QRBadgeGenerator: React.FC<QRBadgeGeneratorProps> = ({
       });
       setBatchQrMap(map);
     });
-  }, [occupants]);
+  }, [occupants, originUrl]);
 
   const filteredOccupants = occupants.filter((o) => {
     if (filterRole !== "ALL" && o.role !== filterRole) return false;

@@ -3,6 +3,7 @@ import QRCode from "qrcode";
 import { Occupant, QuadrantId } from "../types";
 import { syncOccupantToFirestore } from "../lib/firebase";
 import { DigitalSignaturePad } from "./DigitalSignaturePad";
+import { generateOccupantBadgePayload, parseQRData } from "../lib/qr";
 
 interface SelfSignInModalProps {
   isOpen: boolean;
@@ -98,7 +99,7 @@ export const SelfSignInModal: React.FC<SelfSignInModalProps> = ({
 
   useEffect(() => {
     if (allocatedOccupant) {
-      const payload = `CONED-BADGE-${allocatedOccupant.id}-${allocatedOccupant.quadrant}`;
+      const payload = generateOccupantBadgePayload(allocatedOccupant.id, allocatedOccupant.quadrant);
       QRCode.toDataURL(payload, {
         width: 240,
         margin: 1.5,

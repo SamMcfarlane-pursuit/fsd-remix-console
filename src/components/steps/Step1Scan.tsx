@@ -3,6 +3,7 @@ import QRCode from "qrcode";
 import { Occupant, StatusSnapshot } from "../../types";
 import { SelfSignInModal } from "../SelfSignInModal";
 import { QRCameraScanner } from "../QRCameraScanner";
+import { parseQRData } from "../../lib/qr";
 
 interface Step1ScanProps {
   snapshot: StatusSnapshot | null;
@@ -67,27 +68,24 @@ export const Step1Scan: React.FC<Step1ScanProps> = ({
       return;
     }
 
-    let target = rawTarget.trim();
-    // Parse badge prefix if present
-    const badgeMatch = target.match(/CONED-BADGE-(OCC-\d+|VIS-\d+|[A-Za-z0-9_-]+)/i);
-    if (badgeMatch && badgeMatch[1]) {
-      target = badgeMatch[1];
-    }
+    const parsed = parseQRData(rawTarget);
+    const target = (parsed.occupantId || parsed.phone || parsed.name || rawTarget).trim();
 
-    const occ = occupants.find(
-      (o) =>
-        o.id.toLowerCase() === target.toLowerCase() ||
-        o.name.toLowerCase() === target.toLowerCase() ||
-        (target.length >= 4 && o.name.toLowerCase().includes(target.toLowerCase())) ||
-        (target.replace(/\D/g, "").length >= 7 && o.phone && o.phone.replace(/\D/g, "") === target.replace(/\D/g, ""))
-    );
+    const occ = occupants.find((o) => {
+      if (parsed.occupantId && o.id.toLowerCase() === parsed.occupantId.toLowerCase()) return true;
+      if (o.id.toLowerCase() === target.toLowerCase()) return true;
+      if (o.name.toLowerCase() === target.toLowerCase()) return true;
+      if (target.length >= 4 && o.name.toLowerCase().includes(target.toLowerCase())) return true;
+      if (target.replace(/\D/g, "").length >= 7 && o.phone && o.phone.replace(/\D/g, "") === target.replace(/\D/g, "")) return true;
+      return false;
+    });
 
     if (!occ) {
       setScanMessage({
         type: "error",
         text: `⚠️ '${rawTarget}' is not registered in the Floor 07 database.`,
       });
-      setSelfSignInInitialName(rawTarget);
+      setSelfSignInInitialName(parsed.name || rawTarget);
       return;
     }
 

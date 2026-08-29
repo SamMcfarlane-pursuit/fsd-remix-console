@@ -3,6 +3,7 @@ import QRCode from "qrcode";
 import { Occupant, QuadrantId } from "../types";
 import { QRCameraScanner } from "./QRCameraScanner";
 import { QRBadgeGenerator } from "./QRBadgeGenerator";
+import { generateOccupantBadgePayload, parseQRData } from "../lib/qr";
 
 interface CheckInKioskStationProps {
   occupants: Occupant[];
@@ -92,7 +93,7 @@ export const CheckInKioskStation: React.FC<CheckInKioskStationProps> = ({
   // Generate QR code data URL when selected badge changes
   useEffect(() => {
     if (selectedBadgeOccupant) {
-      const payload = `CONED-BADGE-${selectedBadgeOccupant.id}-${selectedBadgeOccupant.quadrant}`;
+      const payload = generateOccupantBadgePayload(selectedBadgeOccupant.id, selectedBadgeOccupant.quadrant);
       QRCode.toDataURL(payload, {
         width: 240,
         margin: 1.5,
@@ -106,7 +107,7 @@ export const CheckInKioskStation: React.FC<CheckInKioskStationProps> = ({
   // Generate QR code data URL for newly registered occupant
   useEffect(() => {
     if (registeredOccupant) {
-      const payload = `CONED-BADGE-${registeredOccupant.id}-${registeredOccupant.quadrant}`;
+      const payload = generateOccupantBadgePayload(registeredOccupant.id, registeredOccupant.quadrant);
       QRCode.toDataURL(payload, {
         width: 260,
         margin: 1.5,
@@ -122,11 +123,8 @@ export const CheckInKioskStation: React.FC<CheckInKioskStationProps> = ({
     const raw = codeToScan || scanInput;
     if (!raw.trim()) return;
 
-    let cleanCode = raw.trim();
-    const match = cleanCode.match(/CONED-BADGE-(OCC-\d+|VIS-\d+|[A-Za-z0-9_-]+)/i);
-    if (match && match[1]) {
-      cleanCode = match[1];
-    }
+    const parsed = parseQRData(raw);
+    const cleanCode = parsed.occupantId || parsed.phone || parsed.name || raw.trim();
 
     setScanning(true);
     try {
