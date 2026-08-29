@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import jsQR from "jsqr";
 import { parseQRData } from "../lib/qr";
+import { triggerHaptic } from "../lib/haptics";
 
 interface QRCameraScannerProps {
   onScanSuccess: (decodedText: string, action: "enter" | "leave" | "muster") => void;
@@ -29,8 +30,9 @@ export const QRCameraScanner: React.FC<QRCameraScannerProps> = ({
   const streamRef = useRef<MediaStream | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  // Play audio chime on successful scan
+  // Play audio chime and trigger mobile vibration on successful scan
   const playBeep = () => {
+    triggerHaptic(presenceAction === "leave" ? "warning" : "success");
     try {
       const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
       if (AudioContextClass) {

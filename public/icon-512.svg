@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#003B70"/>
+      <stop offset="100%" stop-color="#07192C"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38BDF8"/>
+      <stop offset="100%" stop-color="#005DAA"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <!-- ConEd Shield & Life Safety Ring -->
+  <circle cx="256" cy="256" r="180" fill="none" stroke="url(#accent)" stroke-width="18" stroke-dasharray="8 12"/>
+  <circle cx="256" cy="256" r="140" fill="#0B1D35" stroke="#38BDF8" stroke-width="6"/>
+  <!-- Floor 07 Badge Marker -->
+  <path d="M256 140 L340 185 L340 280 C340 340 256 385 256 385 C256 385 172 340 172 280 L172 185 Z" fill="url(#accent)" stroke="#FFFFFF" stroke-width="6"/>
+  <text x="256" y="275" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="76" font-weight="900" fill="#FFFFFF" text-anchor="middle">07</text>
+  <text x="256" y="325" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="20" font-weight="800" fill="#E0F2FE" letter-spacing="4" text-anchor="middle">MUSTER</text>
+</svg>

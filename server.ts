@@ -6,6 +6,7 @@ import { createServer as createViteServer } from "vite";
 import { GoogleGenAI, Type } from "@google/genai";
 import QRCode from "qrcode";
 import { Pool } from "pg";
+import { initializeDatabase } from "./serverDb";
 import {
   QuadrantId,
   Occupant,
@@ -2554,6 +2555,8 @@ app.post("/api/ledger/seal", (req, res) => {
 /* ------------------------------------------------------------------ */
 
 async function startServer() {
+  await initializeDatabase();
+
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
       server: { middlewareMode: true },

@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: mustercommand_app
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - DATABASE_URL=postgres://coned_admin:LifeSafety2026!@postgres:5432/mustercommand_db
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - muster_network
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: mustercommand_postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: coned_admin
+      POSTGRES_PASSWORD: LifeSafety2026!
+      POSTGRES_DB: mustercommand_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./db/schema.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U coned_admin -d mustercommand_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - muster_network
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  muster_network:
+    driver: bridge

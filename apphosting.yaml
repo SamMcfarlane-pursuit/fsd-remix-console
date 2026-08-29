@@ -1,0 +1,21 @@
+# Settings for Firebase App Hosting / Google Cloud Run
+service: mustercommand-app
+runtime: nodejs20
+
+env:
+  - variable: NODE_ENV
+    value: production
+  - variable: PORT
+    value: 8080
+
+build:
+  commands:
+    - npm ci
+    - npm run build
+
+runConfig:
+  minInstances: 1
+  maxInstances: 10
+  concurrency: 80
+  cpu: 1
+  memoryMiB: 1024

@@ -1,0 +1,26 @@
+{
+  "name": "Con Edison MusterCommand · Floor 07 Life-Safety",
+  "short_name": "MusterCommand",
+  "description": "Life-safety accountability, digital turnstile ingress, and emergency evacuation console for Con Edison 4 Irving Place Floor 07.",
+  "start_url": "/?mode=signin",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0B172B",
+  "theme_color": "#003B70",
+  "categories": ["utilities", "business", "safety"],
+  "icons": [
+    {
+      "src": "/icon-192.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

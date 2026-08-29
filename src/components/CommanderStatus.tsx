@@ -10,6 +10,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState, ReactNode } f
 import { Occupant, QuadrantId, QuadrantStat, StatusSnapshot } from "../types";
 import BuildingPersonFinderModal from "./BuildingPersonFinderModal";
 import { getOfflineQueue, syncOfflineQueue } from "../lib/offlineQueue";
+import { requestScreenWakeLock, releaseScreenWakeLock } from "../lib/haptics";
 
 const QUADRANT_IDS: QuadrantId[] = ["NW", "NE", "SW", "SE"];
 const QUADRANT_LABELS: Record<QuadrantId, string> = {
@@ -359,10 +360,14 @@ export default function CommanderStatus({
     window.addEventListener("offline", handleOffline);
     window.addEventListener("muster-offline-queue-changed", handleQueueChange);
 
+    // Keep commander screen awake during emergency life-safety operations
+    requestScreenWakeLock();
+
     return () => {
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
       window.removeEventListener("muster-offline-queue-changed", handleQueueChange);
+      releaseScreenWakeLock();
     };
   }, [onRefreshState, internal]);
 
