@@ -4,6 +4,7 @@ import { Occupant, StatusSnapshot } from "../../types";
 import { SelfSignInModal } from "../SelfSignInModal";
 import { QRCameraScanner } from "../QRCameraScanner";
 import { parseQRData } from "../../lib/qr";
+import { queueOfflineAction } from "../../lib/offlineQueue";
 
 interface Step1ScanProps {
   snapshot: StatusSnapshot | null;
@@ -91,27 +92,49 @@ export const Step1Scan: React.FC<Step1ScanProps> = ({
 
     try {
       if (action === "leave") {
-        await fetch("/api/occupant/presence", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ occupantId: occ.id, action: "leave" }),
-        });
-        setScanMessage({
-          type: "success",
-          text: `🚪 Badged Out: ${occ.name} (${occ.id}) recorded as LEFT BUILDING (Off-Site).`,
-        });
+        try {
+          await fetch("/api/occupant/presence", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ occupantId: occ.id, action: "leave" }),
+          });
+          setScanMessage({
+            type: "success",
+            text: `🚪 Badged Out: ${occ.name} (${occ.id}) recorded as LEFT BUILDING (Off-Site).`,
+          });
+        } catch {
+          queueOfflineAction("presence-toggle", { occupantId: occ.id, action: "leave" });
+          setScanMessage({
+            type: "success",
+            text: `🟠 Recorded Offline: ${occ.name} (${occ.id}) badged out locally and queued for sync.`,
+          });
+        }
       } else {
-        await onCheckIn(
-          occ.id,
-          "safe",
-          "qr-entrance-scanner",
-          `Physical Floor 07 entrance badge scan at ${new Date().toLocaleTimeString()}`,
-          action === "muster" ? "outside-assembly" : "inside-building"
-        );
-        setScanMessage({
-          type: "success",
-          text: `⚡ Direct Sign-In Verified! Welcome back ${occ.name} (${occ.id}). You are recorded as PRESENT & ACCOUNTED on Floor 07.`,
-        });
+        try {
+          await onCheckIn(
+            occ.id,
+            "safe",
+            "qr-entrance-scanner",
+            `Physical Floor 07 entrance badge scan at ${new Date().toLocaleTimeString()}`,
+            action === "muster" ? "outside-assembly" : "inside-building"
+          );
+          setScanMessage({
+            type: "success",
+            text: `⚡ Direct Sign-In Verified! Welcome back ${occ.name} (${occ.id}). You are recorded as PRESENT & ACCOUNTED on Floor 07.`,
+          });
+        } catch {
+          queueOfflineAction("check-in", {
+            occupantId: occ.id,
+            status: "safe",
+            via: "qr-entrance-scanner",
+            notes: `Physical Floor 07 entrance badge scan (offline queue)`,
+            locationCategory: action === "muster" ? "outside-assembly" : "inside-building",
+          });
+          setScanMessage({
+            type: "success",
+            text: `🟠 Recorded Offline: ${occ.name} (${occ.id}) marked as PRESENT & queued for auto-sync.`,
+          });
+        }
       }
       setBadgeInput("");
       setSelectedOccupantId("");

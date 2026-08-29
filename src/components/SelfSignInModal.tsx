@@ -4,6 +4,7 @@ import { Occupant, QuadrantId } from "../types";
 import { syncOccupantToFirestore } from "../lib/firebase";
 import { DigitalSignaturePad } from "./DigitalSignaturePad";
 import { generateOccupantBadgePayload, parseQRData } from "../lib/qr";
+import { queueOfflineAction, createOfflineOccupant } from "../lib/offlineQueue";
 
 interface SelfSignInModalProps {
   isOpen: boolean;
@@ -127,32 +128,54 @@ export const SelfSignInModal: React.FC<SelfSignInModalProps> = ({
     setIsSubmitting(true);
     setErrorMsg(null);
 
+    const payload = {
+      name: name.trim(),
+      phone: phone.trim(),
+      company: company.trim() || "Con Edison",
+      role,
+      quadrant,
+      desk: desk.trim() || undefined,
+      action: presenceAction === "leave" ? "leave" : "enter",
+      status: presenceAction === "muster" ? "safe" : undefined,
+      signature_data: signatureData,
+      signature_type: signatureType,
+      locationCategory:
+        presenceAction === "leave"
+          ? "offsite"
+          : presenceAction === "muster"
+          ? "outside-assembly"
+          : "inside-building",
+    };
+
     try {
-      const res = await fetch("/api/occupant/sign-in-register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      let data: any = null;
+      try {
+        const res = await fetch("/api/occupant/sign-in-register", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        if (res.ok) {
+          data = await res.json();
+        } else {
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData.error || `Server returned ${res.status}`);
+        }
+      } catch (networkErr) {
+        console.warn("Network error during modal sign in, queuing offline action:", networkErr);
+        const offlineOcc = createOfflineOccupant({
           name: name.trim(),
           phone: phone.trim(),
-          company: company.trim() || "Con Edison",
-          role,
           quadrant,
-          desk: desk.trim() || undefined,
-          action: presenceAction === "leave" ? "leave" : "enter",
-          status: presenceAction === "muster" ? "safe" : undefined,
-          signature_data: signatureData,
-          signature_type: signatureType,
-          locationCategory:
-            presenceAction === "leave"
-              ? "offsite"
-              : presenceAction === "muster"
-              ? "outside-assembly"
-              : "inside-building",
-        }),
-      });
+          role,
+          company: company.trim() || "Con Edison",
+          desk: desk.trim() || `07-${quadrant}-Workstation`,
+        });
+        queueOfflineAction("occupant-sign-in", payload);
+        data = { occupant: offlineOcc, isOffline: true };
+      }
 
-      const data = await res.json();
-      if (res.ok && data.occupant) {
+      if (data && data.occupant) {
         setAllocatedOccupant(data.occupant);
         syncOccupantToFirestore(data.occupant);
         try {
@@ -164,7 +187,7 @@ export const SelfSignInModal: React.FC<SelfSignInModalProps> = ({
         }
         onSuccess();
       } else {
-        setErrorMsg(data.error || "Failed to sign in. Please check your details.");
+        setErrorMsg("Failed to sign in. Please check your details.");
       }
     } catch (err: any) {
       setErrorMsg(err.message || "Network error submitting sign-in.");

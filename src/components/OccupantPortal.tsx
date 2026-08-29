@@ -5,6 +5,14 @@ import { QRCameraScanner } from "./QRCameraScanner";
 import { DigitalSignaturePad } from "./DigitalSignaturePad";
 import { getDeviceGeolocation, validateGeofence, FLOOR_07_CONSTRAINTS } from "../lib/geofence";
 import { parseQRData, generateOccupantBadgePayload } from "../lib/qr";
+import {
+  queueOfflineAction,
+  createOfflineOccupant,
+  cacheRosterLocally,
+  getCachedRoster,
+  getOfflineQueue,
+  syncOfflineQueue,
+} from "../lib/offlineQueue";
 
 interface OccupantPortalProps {
   snapshot: StatusSnapshot | null;
@@ -66,7 +74,7 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
         }
       }
       const stored = localStorage.getItem("muster_registered_occupant_id");
-      if (stored && occupants.some((o) => o.id === stored)) {
+      if (stored && (occupants.some((o) => o.id === stored) || stored.startsWith("OCC-OFF-"))) {
         return "confirmed";
       }
     } catch {}
@@ -75,6 +83,11 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
 
   // User type: Employee vs Visitor
   const [userType, setUserType] = useState<"employee" | "visitor">("employee");
+
+  // Offline status & pending actions queue
+  const [isOnline, setIsOnline] = useState<boolean>(typeof navigator !== "undefined" ? navigator.onLine : true);
+  const [offlinePendingCount, setOfflinePendingCount] = useState<number>(getOfflineQueue().length);
+  const [isSyncingOffline, setIsSyncingOffline] = useState<boolean>(false);
 
   // Form fields for Sign-In
   const [signName, setSignName] = useState("");
@@ -92,6 +105,59 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
   const [eventToken, setEventToken] = useState<string | null>(null);
   const [eventDetails, setEventDetails] = useState<{ name: string; date: string } | null>(null);
 
+  // Cache active roster whenever occupants update
+  useEffect(() => {
+    if (occupants && occupants.length > 0) {
+      cacheRosterLocally(occupants);
+    }
+  }, [occupants]);
+
+  // Online / Offline listeners & auto-sync
+  useEffect(() => {
+    const handleOnline = async () => {
+      setIsOnline(true);
+      const queue = getOfflineQueue();
+      if (queue.length > 0) {
+        setIsSyncingOffline(true);
+        const result = await syncOfflineQueue();
+        setIsSyncingOffline(false);
+        setOfflinePendingCount(getOfflineQueue().length);
+        if (result.syncedCount > 0) {
+          setActionSubmittedMsg(`🟢 Reconnected! Successfully synchronized ${result.syncedCount} queued attendance actions.`);
+          setTimeout(() => setActionSubmittedMsg(null), 6000);
+        }
+      }
+    };
+    const handleOffline = () => {
+      setIsOnline(false);
+    };
+    const handleQueueChange = () => {
+      setOfflinePendingCount(getOfflineQueue().length);
+    };
+
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+    window.addEventListener("muster-offline-queue-changed", handleQueueChange);
+
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+      window.removeEventListener("muster-offline-queue-changed", handleQueueChange);
+    };
+  }, []);
+
+  // Manual Sync trigger
+  const handleManualSyncNow = async () => {
+    setIsSyncingOffline(true);
+    const result = await syncOfflineQueue();
+    setIsSyncingOffline(false);
+    setOfflinePendingCount(getOfflineQueue().length);
+    if (result.syncedCount > 0) {
+      setActionSubmittedMsg(`🟢 Synchronized ${result.syncedCount} queued attendance records with Floor 07 console!`);
+      setTimeout(() => setActionSubmittedMsg(null), 6000);
+    }
+  };
+
   // Check if current name/phone matches someone already in database
   const matchingExistingUser = (signName.trim().length >= 2 || signPhone.trim().length >= 4)
     ? occupants.find(
@@ -103,35 +169,45 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
       )
     : null;
 
-  // Direct Sign-In for recognized user in database
+  // Direct Sign-In for recognized user in database (with offline resilience)
   const handleDirectSignInExisting = async (existingUser: Occupant) => {
     setIsSubmitting(true);
     setErrorMessage(null);
     try {
-      const res = await fetch("/api/occupant/presence", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      let isOfflineSaved = false;
+      try {
+        const res = await fetch("/api/occupant/presence", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            occupantId: existingUser.id,
+            action: signAction === "leave" ? "leave" : "enter",
+          }),
+        });
+        if (!res.ok) throw new Error("Presence endpoint returned error");
+      } catch (networkErr) {
+        console.warn("Network error during direct sign in, queuing offline action:", networkErr);
+        queueOfflineAction("presence-toggle", {
           occupantId: existingUser.id,
           action: signAction === "leave" ? "leave" : "enter",
-        }),
-      });
-      if (res.ok) {
-        setSelectedUserId(existingUser.id);
-        setSavedOccupantId(existingUser.id);
-        try {
-          localStorage.setItem("muster_registered_occupant_id", existingUser.id);
-          localStorage.setItem("muster_registered_name", existingUser.name);
-          if (existingUser.phone) localStorage.setItem("muster_registered_phone", existingUser.phone);
-        } catch (e) {}
-        setViewState("confirmed");
-        setActionSubmittedMsg(
-          `⚡ Direct Sign-In Verified! Welcome back ${existingUser.name} (${existingUser.id}). You are recorded as PRESENT & ACCOUNTED on Floor 07.`
-        );
-        setTimeout(() => setActionSubmittedMsg(null), 8000);
-      } else {
-        setErrorMessage("Could not complete direct sign in.");
+        });
+        isOfflineSaved = true;
       }
+
+      setSelectedUserId(existingUser.id);
+      setSavedOccupantId(existingUser.id);
+      try {
+        localStorage.setItem("muster_registered_occupant_id", existingUser.id);
+        localStorage.setItem("muster_registered_name", existingUser.name);
+        if (existingUser.phone) localStorage.setItem("muster_registered_phone", existingUser.phone);
+      } catch (e) {}
+      setViewState("confirmed");
+      setActionSubmittedMsg(
+        isOfflineSaved
+          ? `🟠 Offline Mode Active: Welcome back ${existingUser.name} (${existingUser.id}). Recorded locally and queued for automatic console sync upon reconnection.`
+          : `⚡ Direct Sign-In Verified! Welcome back ${existingUser.name} (${existingUser.id}). You are recorded as PRESENT & ACCOUNTED on Floor 07.`
+      );
+      setTimeout(() => setActionSubmittedMsg(null), 8000);
     } catch (err: any) {
       setErrorMessage(err.message || "Network error performing direct sign in.");
     } finally {
@@ -335,14 +411,37 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
             signature_type: signatureType,
           };
 
-      const res = await fetch(endpoint, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
+      let data: any = null;
+      let isOfflineSaved = false;
 
-      const data = await res.json();
-      if (res.ok && data.occupant) {
+      try {
+        const res = await fetch(endpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        if (res.ok) {
+          data = await res.json();
+        } else {
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData.error || `Server responded with ${res.status}`);
+        }
+      } catch (networkErr) {
+        console.warn("Network offline during registration, creating local offline pass:", networkErr);
+        const offlineOccupant = createOfflineOccupant({
+          name: signName.trim(),
+          phone: signPhone.trim(),
+          quadrant: signQuad,
+          role: signRole,
+          company: signCompany.trim() || (userType === "employee" ? "Con Edison" : "Visitor"),
+          desk: `07-${signQuad}-Workstation`,
+        });
+        queueOfflineAction(eventToken ? "visitor-register" : "occupant-sign-in", payload);
+        data = { occupant: offlineOccupant };
+        isOfflineSaved = true;
+      }
+
+      if (data && data.occupant) {
         setSelectedUserId(data.occupant.id);
         setSavedOccupantId(data.occupant.id);
         try {
@@ -355,11 +454,13 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
 
         setViewState("confirmed");
         setActionSubmittedMsg(
-          `🎉 Registered & Accounted! Assigned ${data.occupant.id} for ${data.occupant.name}. Digital signature recorded and Floor 07 roster updated!`
+          isOfflineSaved
+            ? `🟠 Offline Mode Active: Pass ${data.occupant.id} allocated for ${data.occupant.name}. Registration and signature saved locally and queued for auto-sync.`
+            : `🎉 Registered & Accounted! Assigned ${data.occupant.id} for ${data.occupant.name}. Digital signature recorded and Floor 07 roster updated!`
         );
-        setTimeout(() => setActionSubmittedMsg(null), 7000);
+        setTimeout(() => setActionSubmittedMsg(null), 8000);
       } else {
-        setErrorMessage(data.error || "Could not complete sign in. Please try again.");
+        setErrorMessage("Could not complete sign in. Please try again.");
       }
     } catch (err: any) {
       setErrorMessage(err.message || "Network error. Please try again.");
@@ -372,19 +473,28 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
   const handleTogglePresence = async (action: "enter" | "leave") => {
     if (!currentUser) return;
     try {
-      const res = await fetch("/api/occupant/presence", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ occupantId: currentUser.id, action }),
-      });
-      if (res.ok) {
-        setActionSubmittedMsg(
-          action === "leave"
-            ? `🚪 Badged Out: ${currentUser.name} marked as LEFT BUILDING (Off-Site). Roster updated.`
-            : `🏢 Badged In: ${currentUser.name} verified as IN BUILDING (Floor 07). Roster updated.`
-        );
-        setTimeout(() => setActionSubmittedMsg(null), 5000);
+      let isOfflineSaved = false;
+      try {
+        const res = await fetch("/api/occupant/presence", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ occupantId: currentUser.id, action }),
+        });
+        if (!res.ok) throw new Error("Presence endpoint returned error");
+      } catch (err) {
+        console.warn("Network error during toggle presence, queuing offline:", err);
+        queueOfflineAction("presence-toggle", { occupantId: currentUser.id, action });
+        isOfflineSaved = true;
       }
+
+      setActionSubmittedMsg(
+        isOfflineSaved
+          ? `🟠 Offline: ${action === "leave" ? "Badge-out" : "Badge-in"} recorded locally and queued for sync.`
+          : action === "leave"
+          ? `🚪 Badged Out: ${currentUser.name} marked as LEFT BUILDING (Off-Site). Roster updated.`
+          : `🏢 Badged In: ${currentUser.name} verified as IN BUILDING (Floor 07). Roster updated.`
+      );
+      setTimeout(() => setActionSubmittedMsg(null), 5000);
     } catch (err) {
       console.warn("Toggle presence failed:", err);
     }
@@ -539,10 +649,40 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
             className="bg-[#003B70] hover:bg-[#005DAA] text-white px-3 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1.5 transition cursor-pointer shrink-0 shadow-xs"
           >
             <span>🛡️</span>
-            <span>Commander Deck</span>
+            <span>FSD Deck</span>
           </button>
         )}
       </div>
+
+      {/* Offline Status & Sync Queue HUD */}
+      {(!isOnline || offlinePendingCount > 0) && (
+        <div className={`p-3 rounded-xl border flex items-center justify-between gap-3 text-xs ${
+          !isOnline ? "bg-amber-500/10 border-amber-500/40 text-amber-900" : "bg-sky-500/10 border-sky-500/30 text-sky-900"
+        }`}>
+          <div className="flex items-center gap-2">
+            <span className={`w-2.5 h-2.5 rounded-full ${!isOnline ? "bg-amber-500 animate-pulse" : "bg-emerald-500"}`} />
+            <div>
+              <span className="font-bold">
+                {!isOnline ? "📡 OFFLINE RESILIENT MODE" : "🟢 ONLINE · PENDING LOCAL SYNC"}
+              </span>
+              <p className="text-[11px] opacity-80">
+                {offlinePendingCount > 0
+                  ? `${offlinePendingCount} attendance record(s) queued locally. Replays automatically when reconnected.`
+                  : "Operating from local cache. All sign-in passes & QR codes will work uninterrupted."}
+              </p>
+            </div>
+          </div>
+          {offlinePendingCount > 0 && isOnline && (
+            <button
+              onClick={handleManualSyncNow}
+              disabled={isSyncingOffline}
+              className="bg-[#005DAA] hover:bg-[#004A88] text-white px-3 py-1.5 rounded-lg font-bold text-xs shrink-0 cursor-pointer shadow-xs"
+            >
+              {isSyncingOffline ? "Syncing..." : "⚡ Sync Now"}
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Feedback Toast */}
       {actionSubmittedMsg && (

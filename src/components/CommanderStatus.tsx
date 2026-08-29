@@ -9,6 +9,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState, ReactNode } from "react";
 import { Occupant, QuadrantId, QuadrantStat, StatusSnapshot } from "../types";
 import BuildingPersonFinderModal from "./BuildingPersonFinderModal";
+import { getOfflineQueue, syncOfflineQueue } from "../lib/offlineQueue";
 
 const QUADRANT_IDS: QuadrantId[] = ["NW", "NE", "SW", "SE"];
 const QUADRANT_LABELS: Record<QuadrantId, string> = {
@@ -322,16 +323,64 @@ export default function CommanderStatus({
   const [isProcessingSweep, setIsProcessingSweep] = useState(false);
   const [sweepResultMsg, setSweepResultMsg] = useState<string | null>(null);
   const [isScalingRoster, setIsScalingRoster] = useState(false);
+  const [isOnline, setIsOnline] = useState<boolean>(typeof navigator !== "undefined" ? navigator.onLine : true);
+  const [offlinePendingCount, setOfflinePendingCount] = useState<number>(getOfflineQueue().length);
+  const [isSyncingOffline, setIsSyncingOffline] = useState<boolean>(false);
   const tab = activeTab || internalTab;
+
+  const isDesktop = useIsDesktop();
+  const internal = useMusterState(controlled ? "" : stateUrl, controlled ? undefined : eventsUrl, pollMs);
+  const s = controlled ?? internal.snapshot;
+
+  // Listen for online/offline events & offline queue updates
+  useEffect(() => {
+    const handleOnline = async () => {
+      setIsOnline(true);
+      const queue = getOfflineQueue();
+      if (queue.length > 0) {
+        setIsSyncingOffline(true);
+        const result = await syncOfflineQueue();
+        setIsSyncingOffline(false);
+        setOfflinePendingCount(getOfflineQueue().length);
+        if (result.syncedCount > 0) {
+          onRefreshState?.();
+          internal.retry?.();
+        }
+      }
+    };
+    const handleOffline = () => {
+      setIsOnline(false);
+    };
+    const handleQueueChange = () => {
+      setOfflinePendingCount(getOfflineQueue().length);
+    };
+
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+    window.addEventListener("muster-offline-queue-changed", handleQueueChange);
+
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+      window.removeEventListener("muster-offline-queue-changed", handleQueueChange);
+    };
+  }, [onRefreshState, internal]);
+
+  const handleManualSyncQueue = async () => {
+    setIsSyncingOffline(true);
+    const result = await syncOfflineQueue();
+    setIsSyncingOffline(false);
+    setOfflinePendingCount(getOfflineQueue().length);
+    if (result.syncedCount > 0) {
+      onRefreshState?.();
+      internal.retry?.();
+    }
+  };
 
   const setTab = (t: Tab) => {
     setInternalTab(t);
     onTabChange?.(t);
   };
-
-  const isDesktop = useIsDesktop();
-  const internal = useMusterState(controlled ? "" : stateUrl, controlled ? undefined : eventsUrl, pollMs);
-  const s = controlled ?? internal.snapshot;
 
   // Execute 1-Click Digital Round Sweep
   const handleExecuteSweep = async (quadrant?: string, sweepAll: boolean = false) => {
@@ -476,6 +525,34 @@ export default function CommanderStatus({
       {internal.isDemo && (
         <div className="bg-[#FF6B00] text-slate-950 text-center py-1 text-[10px] font-black uppercase tracking-[0.2em]" role="alert">
           Demo Mode — disconnected from live muster state
+        </div>
+      )}
+
+      {/* Offline Resilient Mesh Banner */}
+      {(!isOnline || offlinePendingCount > 0) && (
+        <div className="bg-[#0B172B] border-b border-amber-500/50 px-4 py-2 text-white flex items-center justify-between gap-3 text-xs shadow-md">
+          <div className="flex items-center gap-2.5">
+            <span className={`w-2.5 h-2.5 rounded-full ${!isOnline ? "bg-amber-400 animate-pulse" : "bg-emerald-400"}`} />
+            <div>
+              <span className="font-bold text-amber-300">
+                {!isOnline ? "📡 OFFLINE RESILIENT MODE" : "🟢 ONLINE · PENDING LOCAL SYNC"}
+              </span>
+              <span className="text-[#829AB8] ml-2 hidden sm:inline text-[11px]">
+                {offlinePendingCount > 0
+                  ? `${offlinePendingCount} local attendance mutation(s) queued. System will automatically synchronize with server.`
+                  : "All turnstile sign-ins, badge scans, and muster checks are active via local fallback cache."}
+              </span>
+            </div>
+          </div>
+          {offlinePendingCount > 0 && (
+            <button
+              onClick={handleManualSyncQueue}
+              disabled={isSyncingOffline}
+              className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-black px-3 py-1 rounded-lg text-xs transition cursor-pointer flex items-center gap-1.5 shrink-0"
+            >
+              <span>{isSyncingOffline ? "⚡ Syncing..." : "⚡ Sync Offline Queue"}</span>
+            </button>
+          )}
         </div>
       )}
 
