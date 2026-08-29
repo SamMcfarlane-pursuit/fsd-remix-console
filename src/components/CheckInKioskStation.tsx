@@ -3,7 +3,7 @@ import QRCode from "qrcode";
 import { Occupant, QuadrantId } from "../types";
 import { QRCameraScanner } from "./QRCameraScanner";
 import { QRBadgeGenerator } from "./QRBadgeGenerator";
-import { generateOccupantBadgePayload, parseQRData } from "../lib/qr";
+import { generateOccupantBadgePayload, parseQRData, getMobileNetworkOrigin } from "../lib/qr";
 
 interface CheckInKioskStationProps {
   occupants: Occupant[];
@@ -43,7 +43,8 @@ export const CheckInKioskStation: React.FC<CheckInKioskStationProps> = ({
 
   // Generate mobile sign-in QR code on load
   useEffect(() => {
-    const signInUrl = typeof window !== "undefined" ? `${window.location.origin}/?mode=signin` : "/?mode=signin";
+    const origin = getMobileNetworkOrigin();
+    const signInUrl = `${origin}/?mode=signin`;
     QRCode.toDataURL(signInUrl, {
       width: 220,
       margin: 1.5,

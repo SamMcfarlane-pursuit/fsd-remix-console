@@ -37,7 +37,11 @@ export default function App() {
           urlParams.get("mode") === "occupant" ||
           urlParams.get("scan") === "1" ||
           urlParams.get("scan") === "signin" ||
-          urlParams.get("qr") === "1"
+          urlParams.get("qr") === "1" ||
+          urlParams.get("station") ||
+          urlParams.get("id") ||
+          urlParams.get("badge") ||
+          urlParams.get("token")
         ) {
           return "occupant";
         }
@@ -62,7 +66,10 @@ export default function App() {
         urlParams.get("scan") === "1" ||
         urlParams.get("scan") === "signin" ||
         urlParams.get("token") ||
-        urlParams.get("qr") === "1"
+        urlParams.get("qr") === "1" ||
+        urlParams.get("station") ||
+        urlParams.get("id") ||
+        urlParams.get("badge")
       ) {
         setViewMode("occupant");
         if (!authUser) {

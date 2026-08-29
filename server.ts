@@ -1,6 +1,7 @@
 import express from "express";
 import path from "path";
 import crypto from "crypto";
+import os from "os";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI, Type } from "@google/genai";
 import QRCode from "qrcode";
@@ -1330,6 +1331,34 @@ app.get("/api/health", (req, res) => {
     incidentActive,
     mode: incidentMode,
     geminiConfigured: Boolean(process.env.GEMINI_API_KEY),
+  });
+});
+
+// Server Network & LAN Discovery Endpoint for Mobile Device Scanners
+app.get("/api/system/network-info", (req, res) => {
+  const ifaces = os.networkInterfaces();
+  const lanIps: string[] = [];
+  for (const name of Object.keys(ifaces)) {
+    for (const net of ifaces[name] || []) {
+      if (net.family === "IPv4" && !net.internal) {
+        lanIps.push(net.address);
+      }
+    }
+  }
+  const primaryIp = lanIps[0] || "127.0.0.1";
+  const protocol = req.headers["x-forwarded-proto"] || req.protocol || "http";
+  const hostHeader = req.headers.host || `localhost:${PORT}`;
+  const isLocalhost = hostHeader.includes("localhost") || hostHeader.includes("127.0.0.1");
+  const mobileOrigin = isLocalhost && lanIps.length > 0 ? `${protocol}://${primaryIp}:${PORT}` : `${protocol}://${hostHeader}`;
+
+  res.json({
+    ok: true,
+    lanIps,
+    primaryIp,
+    port: PORT,
+    currentHost: hostHeader,
+    isLocalhost,
+    mobileOrigin,
   });
 });
 

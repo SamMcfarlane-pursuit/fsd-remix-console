@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import QRCode from "qrcode";
 import { Occupant } from "../types";
-import { generateOccupantBadgePayload, generateStationPosterPayload, parseQRData } from "../lib/qr";
+import { generateOccupantBadgePayload, generateStationPosterPayload, parseQRData, getMobileNetworkOrigin } from "../lib/qr";
 
 interface QRBadgeGeneratorProps {
   occupants: Occupant[];
@@ -22,11 +22,16 @@ export const QRBadgeGenerator: React.FC<QRBadgeGeneratorProps> = ({
   const [occupantSearch, setOccupantSearch] = useState<string>("");
   const [filterRole, setFilterRole] = useState<string>("ALL");
   const [batchQrMap, setBatchQrMap] = useState<Record<string, string>>({});
+  const [originUrl, setOriginUrl] = useState<string>(getMobileNetworkOrigin());
+
+  useEffect(() => {
+    setOriginUrl(getMobileNetworkOrigin());
+    const handleOriginChange = () => setOriginUrl(getMobileNetworkOrigin());
+    window.addEventListener("muster-origin-changed", handleOriginChange);
+    return () => window.removeEventListener("muster-origin-changed", handleOriginChange);
+  }, []);
 
   const selectedOccupant = occupants.find((o) => o.id === selectedOccupantId) || occupants[0];
-
-  // Base app URL for mobile scanner deep link
-  const originUrl = typeof window !== "undefined" ? window.location.origin : "http://localhost:3000";
 
   // Generate Station QR Code
   useEffect(() => {

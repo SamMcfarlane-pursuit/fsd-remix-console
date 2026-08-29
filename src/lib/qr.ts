@@ -17,6 +17,73 @@ export interface ParsedQRResult {
   rawText: string;
 }
 
+// Cached mobile network origin (e.g., http://192.168.1.60:3000)
+let cachedMobileOrigin: string = "";
+
+/**
+ * Retrieve the reachable mobile origin for QR codes
+ * (replaces localhost with LAN IP so phone cameras can connect seamlessly)
+ */
+export function getMobileNetworkOrigin(): string {
+  if (typeof window !== "undefined") {
+    const custom = localStorage.getItem("muster_custom_network_origin");
+    if (custom) return custom;
+
+    const stored = localStorage.getItem("muster_mobile_network_origin");
+    if (stored) return stored;
+
+    const winOrigin = window.location.origin;
+    if (!winOrigin.includes("localhost") && !winOrigin.includes("127.0.0.1")) {
+      return winOrigin;
+    }
+  }
+  return cachedMobileOrigin || (typeof window !== "undefined" ? window.location.origin : "http://localhost:3000");
+}
+
+/**
+ * Set custom mobile network origin override (e.g. cloud tunnel or LAN IP)
+ */
+export function setCustomMobileOrigin(origin: string): void {
+  if (typeof window !== "undefined") {
+    if (origin.trim()) {
+      localStorage.setItem("muster_custom_network_origin", origin.trim());
+    } else {
+      localStorage.removeItem("muster_custom_network_origin");
+    }
+    window.dispatchEvent(new CustomEvent("muster-origin-changed", { detail: { origin } }));
+  }
+}
+
+/**
+ * Query backend to discover server's local LAN IPv4 address
+ */
+export async function discoverMobileOrigin(): Promise<string> {
+  try {
+    const res = await fetch("/api/system/network-info");
+    if (res.ok) {
+      const data = await res.json();
+      if (data.mobileOrigin) {
+        cachedMobileOrigin = data.mobileOrigin;
+        if (typeof window !== "undefined") {
+          localStorage.setItem("muster_mobile_network_origin", data.mobileOrigin);
+          window.dispatchEvent(new CustomEvent("muster-origin-changed", { detail: { origin: data.mobileOrigin } }));
+        }
+        return data.mobileOrigin;
+      }
+    }
+  } catch (e) {
+    console.warn("Could not discover mobile network origin:", e);
+  }
+  return getMobileNetworkOrigin();
+}
+
+/**
+ * Auto-discover on module load in browser
+ */
+if (typeof window !== "undefined") {
+  discoverMobileOrigin().catch(() => {});
+}
+
 /**
  * Generate standard Turnstile Badge QR payload that is both
  * (1) directly decodable by optical kiosk hardware (extracts OCC-xxx / CONED-BADGE-xxx)
@@ -27,7 +94,7 @@ export function generateOccupantBadgePayload(
   quadrant: string = "NW",
   originUrl?: string
 ): string {
-  const origin = originUrl || (typeof window !== "undefined" ? window.location.origin : "");
+  const origin = originUrl || getMobileNetworkOrigin();
   if (origin) {
     return `${origin}/?mode=signin&id=${occupantId}&badge=CONED-BADGE-${occupantId}-${quadrant}&quad=${quadrant}`;
   }
@@ -41,7 +108,7 @@ export function generateStationPosterPayload(
   station: "AssemblyPointA" | "AssemblyPointB" | "Floor07Kiosk" | string,
   originUrl?: string
 ): string {
-  const origin = originUrl || (typeof window !== "undefined" ? window.location.origin : "");
+  const origin = originUrl || getMobileNetworkOrigin();
   const loc = station.includes("Floor") || station.includes("Kiosk") ? "inside-building" : "outside-assembly";
   return `${origin}/?station=${encodeURIComponent(station)}&loc=${loc}&scan=1`;
 }

@@ -27,6 +27,7 @@ export const QRCameraScanner: React.FC<QRCameraScannerProps> = ({
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const animationFrameId = useRef<number | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   // Play audio chime on successful scan
   const playBeep = () => {
@@ -51,9 +52,49 @@ export const QRCameraScanner: React.FC<QRCameraScannerProps> = ({
     }
   };
 
+  // Handle Photo Capture / QR Image File Upload Fallback
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext("2d");
+        if (ctx) {
+          ctx.drawImage(img, 0, 0);
+          try {
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const code = jsQR(imageData.data, imageData.width, imageData.height, {
+              inversionAttempts: "attemptBoth",
+            });
+            if (code && code.data && code.data.trim()) {
+              const parsed = parseQRData(code.data.trim());
+              const textToSend = parsed.occupantId || parsed.badgeCode || parsed.token || parsed.stationName || code.data.trim();
+              playBeep();
+              setIsProcessing(true);
+              onScanSuccess(textToSend, presenceAction);
+              setTimeout(() => setIsProcessing(false), 1800);
+            } else {
+              setCameraError("⚠️ Could not detect a valid QR code in the uploaded photo. Please try a clearer photo or enter your badge/phone below.");
+            }
+          } catch (err: any) {
+            setCameraError("Failed to decode image. Please enter your badge/phone manually.");
+          }
+        }
+      };
+      img.src = event.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+  };
+
   // Enumerate video devices
   useEffect(() => {
-    if (navigator.mediaDevices && navigator.mediaDevices.enumerateDevices) {
+    if (typeof navigator !== "undefined" && navigator.mediaDevices && navigator.mediaDevices.enumerateDevices) {
       navigator.mediaDevices.enumerateDevices().then((devices) => {
         const videoDevices = devices.filter((d) => d.kind === "videoinput");
         setAvailableCameras(videoDevices);
@@ -71,6 +112,12 @@ export const QRCameraScanner: React.FC<QRCameraScannerProps> = ({
   const startCamera = async () => {
     setCameraError(null);
     try {
+      if (typeof navigator === "undefined" || !navigator.mediaDevices || typeof navigator.mediaDevices.getUserMedia !== "function") {
+        setCameraError("Live camera streaming requires HTTPS or Localhost. Use the 📸 Snap / Upload Photo of QR button below.");
+        setCameraActive(false);
+        return;
+      }
+
       if (streamRef.current) {
         streamRef.current.getTracks().forEach((track) => track.stop());
       }
@@ -94,8 +141,8 @@ export const QRCameraScanner: React.FC<QRCameraScannerProps> = ({
       console.warn("Camera start failed:", err);
       setCameraError(
         err.name === "NotAllowedError" || err.name === "PermissionDeniedError"
-          ? "Camera permission was denied. Please allow camera access or use the manual badge input below."
-          : `Camera could not be started: ${err.message || "Device not found"}. Use manual badge sign-in.`
+          ? "Camera permission was denied. Tap '📸 Take Photo of QR' or enter badge/phone below."
+          : `Camera stream unavailable (${err.name || "Permission/Protocol"}). Tap '📸 Take Photo of QR' below.`
       );
       setCameraActive(false);
     }
@@ -248,17 +295,28 @@ export const QRCameraScanner: React.FC<QRCameraScannerProps> = ({
 
         {/* Camera Off / Error State */}
         {!cameraActive && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center p-4 text-center space-y-3 bg-[#0A1A2E]/90 z-10">
+          <div className="absolute inset-0 flex flex-col items-center justify-center p-4 text-center space-y-3 bg-[#0A1A2E]/95 z-10">
             <span className="text-3xl">📷</span>
-            <div className="text-xs font-bold text-slate-300 max-w-xs">
+            <div className="text-xs font-bold text-slate-300 max-w-xs leading-relaxed">
               {cameraError || "Initializing camera stream..."}
             </div>
-            <button
-              onClick={startCamera}
-              className="px-4 py-2 bg-[#005DAA] text-white rounded-lg text-xs font-bold hover:bg-[#004A88] transition cursor-pointer"
-            >
-              🔄 Retry Camera Stream
-            </button>
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black uppercase tracking-wider transition cursor-pointer flex items-center gap-1.5 shadow-md"
+              >
+                <span>📸</span>
+                <span>Take / Upload Photo of QR</span>
+              </button>
+              <button
+                type="button"
+                onClick={startCamera}
+                className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-bold transition cursor-pointer"
+              >
+                🔄 Retry Live Stream
+              </button>
+            </div>
           </div>
         )}
 
@@ -314,6 +372,30 @@ export const QRCameraScanner: React.FC<QRCameraScannerProps> = ({
           </div>
         )}
       </div>
+
+      {/* Hidden File Input for Native Camera Snapshot or QR Photo Upload */}
+      <input
+        type="file"
+        ref={fileInputRef}
+        accept="image/*"
+        capture="environment"
+        onChange={handleImageUpload}
+        className="hidden"
+      />
+
+      {/* Photo Capture Alternative Trigger */}
+      {cameraActive && (
+        <div className="flex items-center justify-between gap-2 text-xs">
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="flex-1 py-2 px-3 bg-[#0F2537] hover:bg-[#1E3A60] text-sky-400 border border-[#1E3A60] rounded-xl font-bold transition cursor-pointer flex items-center justify-center gap-1.5"
+          >
+            <span>📸</span>
+            <span>Snap / Upload Photo of QR Code</span>
+          </button>
+        </div>
+      )}
 
       {/* Manual Input Fallback */}
       <form onSubmit={handleManualSubmit} className="space-y-2">

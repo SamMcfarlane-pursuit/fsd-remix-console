@@ -3,7 +3,7 @@ import QRCode from "qrcode";
 import { Occupant, StatusSnapshot } from "../../types";
 import { SelfSignInModal } from "../SelfSignInModal";
 import { QRCameraScanner } from "../QRCameraScanner";
-import { parseQRData } from "../../lib/qr";
+import { parseQRData, getMobileNetworkOrigin, setCustomMobileOrigin, discoverMobileOrigin } from "../../lib/qr";
 import { queueOfflineAction } from "../../lib/offlineQueue";
 
 interface Step1ScanProps {
@@ -14,8 +14,9 @@ interface Step1ScanProps {
     status: any,
     via?: string,
     notes?: string,
-    locationCategory?: any
-  ) => Promise<void>;
+    locationCategory?: "inside-building" | "outside-assembly" | "offsite",
+    assemblyPoint?: string
+  ) => void;
   onProceedNext: () => void;
   onOpenSelfSignIn: () => void;
   onOpenQRPoster: () => void;
@@ -36,11 +37,27 @@ export const Step1Scan: React.FC<Step1ScanProps> = ({
   const [isCameraActive, setIsCameraActive] = useState<boolean>(false);
   const [isSelfSignInModalOpen, setIsSelfSignInModalOpen] = useState<boolean>(false);
   const [selfSignInInitialName, setSelfSignInInitialName] = useState<string>("");
+  const [mobileOrigin, setMobileOrigin] = useState<string>(getMobileNetworkOrigin());
+  const [isEditingOrigin, setIsEditingOrigin] = useState<boolean>(false);
+  const [customOriginInput, setCustomOriginInput] = useState<string>("");
 
-  // Generate QR Code URL
+  // Generate QR Code URL with mobile reachable origin
   useEffect(() => {
-    const origin = typeof window !== "undefined" ? window.location.origin : "";
-    const scanUrl = `${origin}?mode=signin&scan=1`;
+    discoverMobileOrigin().then((origin) => {
+      setMobileOrigin(origin);
+    });
+
+    const handleOriginChange = () => {
+      setMobileOrigin(getMobileNetworkOrigin());
+    };
+    window.addEventListener("muster-origin-changed", handleOriginChange);
+    return () => {
+      window.removeEventListener("muster-origin-changed", handleOriginChange);
+    };
+  }, []);
+
+  useEffect(() => {
+    const scanUrl = `${mobileOrigin}/?mode=signin&scan=1`;
     QRCode.toDataURL(scanUrl, {
       width: 320,
       margin: 2,
@@ -48,7 +65,7 @@ export const Step1Scan: React.FC<Step1ScanProps> = ({
     })
       .then((url) => setQrDataUrl(url))
       .catch((err) => console.error("QR Code generation error:", err));
-  }, []);
+  }, [mobileOrigin]);
 
   // Filter occupants matching search
   const filteredOccupants = badgeInput.trim()
@@ -220,7 +237,7 @@ export const Step1Scan: React.FC<Step1ScanProps> = ({
           </div>
 
           {/* QR Code Container */}
-          <div className="p-4 bg-white rounded-2xl border-2 border-dashed border-[#005DAA]/40 shadow-inner flex flex-col items-center">
+          <div className="p-4 bg-white rounded-2xl border-2 border-dashed border-[#005DAA]/40 shadow-inner flex flex-col items-center w-full">
             {qrDataUrl ? (
               <img
                 src={qrDataUrl}
@@ -236,6 +253,67 @@ export const Step1Scan: React.FC<Step1ScanProps> = ({
             <p className="text-[11px] font-mono text-[#003B70] font-semibold mt-2">
               SCAN WITH ANY SMARTPHONE CAMERA
             </p>
+
+            {/* Mobile Reachable Network Address Strip */}
+            <div className="mt-3 w-full bg-[#F0F6FC] p-2.5 rounded-xl border border-[#CBDCEE] text-left">
+              <div className="flex items-center justify-between text-[10px] font-mono font-bold text-[#475569]">
+                <span className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <span>MOBILE WI-FI / NETWORK URL</span>
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsEditingOrigin(!isEditingOrigin);
+                    setCustomOriginInput(mobileOrigin);
+                  }}
+                  className="text-[#005DAA] hover:underline cursor-pointer"
+                >
+                  {isEditingOrigin ? "Cancel" : "Edit IP"}
+                </button>
+              </div>
+
+              {!isEditingOrigin ? (
+                <div className="mt-1 flex items-center justify-between gap-1">
+                  <span className="font-mono text-xs font-bold text-[#0F2537] truncate select-all">
+                    {mobileOrigin}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (navigator.clipboard) {
+                        navigator.clipboard.writeText(`${mobileOrigin}/?mode=signin&scan=1`);
+                        alert("Copied mobile sign-in URL to clipboard!");
+                      }
+                    }}
+                    className="text-[10px] bg-white border border-[#CBDCEE] px-2 py-0.5 rounded text-[#005DAA] font-bold hover:bg-[#EBF3FB] transition cursor-pointer"
+                  >
+                    Copy URL
+                  </button>
+                </div>
+              ) : (
+                <div className="mt-1.5 flex gap-1.5">
+                  <input
+                    type="text"
+                    value={customOriginInput}
+                    onChange={(e) => setCustomOriginInput(e.target.value)}
+                    placeholder="e.g. http://192.168.1.60:3000"
+                    className="flex-1 px-2 py-1 bg-white border border-[#005DAA] rounded text-xs font-mono"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCustomMobileOrigin(customOriginInput.trim());
+                      setMobileOrigin(getMobileNetworkOrigin());
+                      setIsEditingOrigin(false);
+                    }}
+                    className="px-2.5 py-1 bg-[#005DAA] text-white rounded text-xs font-bold hover:bg-[#004884] cursor-pointer"
+                  >
+                    Save
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="w-full space-y-2 text-xs">
