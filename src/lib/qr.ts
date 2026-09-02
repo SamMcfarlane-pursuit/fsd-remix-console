@@ -62,13 +62,14 @@ export async function discoverMobileOrigin(): Promise<string> {
     const res = await fetch("/api/system/network-info");
     if (res.ok) {
       const data = await res.json();
-      if (data.mobileOrigin) {
-        cachedMobileOrigin = data.mobileOrigin;
+      const originToUse = data.publicTunnelUrl || data.mobileOrigin;
+      if (originToUse) {
+        cachedMobileOrigin = originToUse;
         if (typeof window !== "undefined") {
-          localStorage.setItem("muster_mobile_network_origin", data.mobileOrigin);
-          window.dispatchEvent(new CustomEvent("muster-origin-changed", { detail: { origin: data.mobileOrigin } }));
+          localStorage.setItem("muster_mobile_network_origin", originToUse);
+          window.dispatchEvent(new CustomEvent("muster-origin-changed", { detail: { origin: originToUse } }));
         }
-        return data.mobileOrigin;
+        return originToUse;
       }
     }
   } catch (e) {

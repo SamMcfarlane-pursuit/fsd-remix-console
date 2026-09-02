@@ -2,6 +2,8 @@ import express from "express";
 import path from "path";
 import crypto from "crypto";
 import os from "os";
+import fs from "fs";
+import { spawn } from "child_process";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI, Type } from "@google/genai";
 import QRCode from "qrcode";
@@ -1365,47 +1367,97 @@ app.get("/api/system/network-info", (req, res) => {
 });
 
 // Dynamic Public Cellular Pathway (for phones outside building Wi-Fi)
-let activeTunnel: any = null;
+let activeTunnelChild: any = null;
 let activeTunnelUrl: string = "";
+
+async function launchPublicTunnel(): Promise<string> {
+  // First attempt: Cloudflare Quick Tunnel (zero interstitials, instant, universal phone reachability)
+  const cfBinary = fs.existsSync("./bin/cloudflared") ? "./bin/cloudflared" : "cloudflared";
+  try {
+    const url = await new Promise<string>((resolve, reject) => {
+      const child = spawn(cfBinary, ["tunnel", "--url", `http://localhost:${PORT}`]);
+      let resolved = false;
+
+      child.stderr.on("data", (data) => {
+        const text = data.toString();
+        const match = text.match(/https:\/\/[a-zA-Z0-9-]+\.trycloudflare\.com/);
+        if (match && !resolved) {
+          resolved = true;
+          activeTunnelChild = child;
+          activeTunnelUrl = match[0];
+          console.log(`🌐 Cloudflare Public Cellular Pathway Live: ${activeTunnelUrl}`);
+          resolve(match[0]);
+        }
+      });
+
+      child.on("close", () => {
+        activeTunnelChild = null;
+        activeTunnelUrl = "";
+      });
+
+      child.on("error", (err) => {
+        if (!resolved) {
+          reject(err);
+        }
+      });
+
+      setTimeout(() => {
+        if (!resolved) {
+          try { child.kill(); } catch {}
+          reject(new Error("Cloudflare tunnel handshake timed out"));
+        }
+      }, 10000);
+    });
+    return url;
+  } catch (cfErr) {
+    console.warn("Cloudflare tunnel attempt failed, trying localtunnel fallback:", cfErr);
+  }
+
+  // Fallback: Localtunnel
+  const localtunnel = (await import("localtunnel")).default;
+  const lt = await localtunnel({ port: PORT });
+  activeTunnelChild = {
+    kill: () => {
+      try { lt.close(); } catch {}
+    },
+  };
+  activeTunnelUrl = lt.url;
+  lt.on("close", () => {
+    activeTunnelChild = null;
+    activeTunnelUrl = "";
+  });
+  console.log(`🌐 Localtunnel Pathway Live: ${activeTunnelUrl}`);
+  return activeTunnelUrl;
+}
 
 app.get("/api/system/tunnel/status", (req, res) => {
   res.json({
     ok: true,
-    active: !!activeTunnel && !!activeTunnelUrl,
+    active: !!activeTunnelChild && !!activeTunnelUrl,
     url: activeTunnelUrl || null,
   });
 });
 
 app.post("/api/system/tunnel/start", async (req, res) => {
   try {
-    if (activeTunnel && activeTunnelUrl) {
-      return res.json({ ok: true, active: true, url: activeTunnelUrl, message: "Tunnel already running" });
+    if (activeTunnelChild && activeTunnelUrl) {
+      return res.json({ ok: true, active: true, url: activeTunnelUrl, message: "Tunnel already active" });
     }
-    const localtunnel = (await import("localtunnel")).default;
-    activeTunnel = await localtunnel({ port: PORT });
-    activeTunnelUrl = activeTunnel.url;
-    activeTunnel.on("close", () => {
-      activeTunnel = null;
-      activeTunnelUrl = "";
-    });
-    activeTunnel.on("error", (err: any) => {
-      console.warn("Tunnel runtime error:", err);
-      activeTunnel = null;
-      activeTunnelUrl = "";
-    });
-    console.log(`🌐 Public Cellular Pathway Active: ${activeTunnelUrl}`);
-    res.json({ ok: true, active: true, url: activeTunnelUrl });
+    const url = await launchPublicTunnel();
+    res.json({ ok: true, active: true, url });
   } catch (err: any) {
-    console.error("Failed to start tunnel:", err);
-    res.status(500).json({ ok: false, error: err.message || "Failed to start public tunnel" });
+    console.error("Failed to launch public tunnel:", err);
+    res.status(500).json({ ok: false, error: err.message || "Failed to launch public tunnel" });
   }
 });
 
 app.post("/api/system/tunnel/stop", (req, res) => {
   try {
-    if (activeTunnel) {
-      activeTunnel.close();
-      activeTunnel = null;
+    if (activeTunnelChild) {
+      if (typeof activeTunnelChild.kill === "function") {
+        activeTunnelChild.kill();
+      }
+      activeTunnelChild = null;
       activeTunnelUrl = "";
     }
     res.json({ ok: true, active: false });
@@ -2610,7 +2662,10 @@ async function startServer() {
 
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
-      server: { middlewareMode: true },
+      server: {
+        middlewareMode: true,
+        allowedHosts: true,
+      },
       appType: "spa",
     });
     app.use(vite.middlewares);
@@ -2624,6 +2679,10 @@ async function startServer() {
 
   app.listen(PORT, "0.0.0.0", () => {
     console.log(`MusterCommand server running on http://0.0.0.0:${PORT}`);
+    // Auto-launch Cloudflare quick tunnel for universal phone camera scanning
+    launchPublicTunnel().catch((err) => {
+      console.warn("Public tunnel auto-launch deferred to manual toggle:", err.message);
+    });
   });
 }
 
