@@ -13,6 +13,9 @@ import BuildingStatusReportModal from "./components/BuildingStatusReportModal";
 import DeclareIncidentModal from "./components/DeclareIncidentModal";
 import EmergencyAlertModal from "./components/EmergencyAlertModal";
 import { NavigationGuideModal } from "./components/NavigationGuideModal";
+import { PinModal } from "./components/PinModal";
+import { setAudioMuted, getAudioMuted } from "./lib/audioBroadcast";
+import { UserRole } from "./lib/authGuard";
 import { AuthUser, EmergencyAlertPayload, LocationCategory, OccupantStatus, StatusSnapshot } from "./types";
 import { validateGeofence, LocationMetadata, FLOOR_07_CONSTRAINTS } from "./lib/geofence";
 import { appendLedgerEntry } from "./lib/ledger";
@@ -57,6 +60,9 @@ export default function App() {
   const [isSignInPosterOpen, setIsSignInPosterOpen] = useState(false);
   const [isSelfSignInOpen, setIsSelfSignInOpen] = useState(false);
   const [isGuideModalOpen, setIsGuideModalOpen] = useState(false);
+  const [isMuted, setIsMuted] = useState<boolean>(() => getAudioMuted());
+  const [isPinModalOpen, setIsPinModalOpen] = useState<boolean>(false);
+  const [targetPinRole, setTargetPinRole] = useState<UserRole>("commander");
 
   // Check URL query parameters on initial load (e.g. ?mode=signin or mobile scan)
   useEffect(() => {
@@ -479,6 +485,24 @@ export default function App() {
             <span className="hidden md:inline">Directory &amp; Guide</span>
           </button>
 
+          {/* Audio Siren & Voice Broadcast Mute Toggle */}
+          <button
+            onClick={() => {
+              const next = !isMuted;
+              setIsMuted(next);
+              setAudioMuted(next);
+            }}
+            className={`rounded-xl border px-2.5 sm:px-3 py-2 min-h-[38px] text-xs font-black transition cursor-pointer flex items-center gap-1.5 shadow-xs ${
+              isMuted
+                ? "bg-amber-500/20 border-amber-400/50 text-amber-200"
+                : "bg-white/10 hover:bg-white/20 border-white/20 text-white"
+            }`}
+            title={isMuted ? "Siren & Voice Directives Muted (Click to Enable)" : "Audio Siren & Voice Active (Click to Mute)"}
+          >
+            <span>{isMuted ? "🔇" : "🔊"}</span>
+            <span className="hidden md:inline">{isMuted ? "Muted" : "Audio On"}</span>
+          </button>
+
           {/* Status Report Quick Modal */}
           <button
             onClick={() => setIsStatusReportModalOpen(true)}
@@ -492,13 +516,20 @@ export default function App() {
           {/* Role & Mode Switcher Pill */}
           <div className="flex items-center bg-[#07192C] p-1 rounded-xl border border-[#1E3A60]">
             <button
-              onClick={() => setViewMode("admin")}
+              onClick={() => {
+                if (viewMode === "occupant") {
+                  setTargetPinRole("commander");
+                  setIsPinModalOpen(true);
+                } else {
+                  setViewMode("admin");
+                }
+              }}
               className={`px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-black uppercase tracking-wider transition cursor-pointer flex items-center gap-1.5 ${
                 viewMode === "admin"
                   ? "bg-[#005DAA] text-white shadow-sm"
                   : "text-slate-400 hover:text-white"
               }`}
-              title="Switch to 5-Step FSD Commander Deck"
+              title="Switch to 5-Step FSD Commander Deck (Protected by 4-digit PIN)"
             >
               <span>🛡️</span>
               <span className="hidden sm:inline">Commander Deck</span>
@@ -704,6 +735,16 @@ export default function App() {
         }}
         currentStep={currentStep}
         currentMode={viewMode}
+      />
+
+      <PinModal
+        isOpen={isPinModalOpen}
+        targetRole={targetPinRole}
+        onSuccess={() => {
+          setIsPinModalOpen(false);
+          setViewMode("admin");
+        }}
+        onCancel={() => setIsPinModalOpen(false)}
       />
     </div>
   );

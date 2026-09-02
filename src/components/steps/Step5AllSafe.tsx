@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Occupant, OccupantStatus, StatusSnapshot } from "../../types";
+import { FDNYCertificateModal } from "../FDNYCertificateModal";
 
 interface Step5AllSafeProps {
   snapshot: StatusSnapshot | null;
@@ -45,6 +46,7 @@ export const Step5AllSafe: React.FC<Step5AllSafeProps> = ({
   const [sealedCertId, setSealedCertId] = useState<string>("");
   const [commanderSignature, setCommanderSignature] = useState<string>("");
   const [isSigningModalOpen, setIsSigningModalOpen] = useState<boolean>(false);
+  const [isCertModalOpen, setIsCertModalOpen] = useState<boolean>(false);
   const [isSubmittingSeal, setIsSubmittingSeal] = useState<boolean>(false);
   const [filterAttention, setFilterAttention] = useState<"ALL_UNACCOUNTED" | "NEED_HELP" | "MIA">(
     "ALL_UNACCOUNTED"
@@ -190,11 +192,11 @@ export const Step5AllSafe: React.FC<Step5AllSafeProps> = ({
 
           <div className="flex items-center gap-3 shrink-0">
             <button
-              onClick={() => window.print()}
+              onClick={() => setIsCertModalOpen(true)}
               className="px-4 py-2.5 bg-white text-emerald-900 font-black rounded-xl text-xs uppercase tracking-wider hover:bg-slate-100 transition shadow-sm cursor-pointer flex items-center gap-1.5"
             >
-              <span>🖨️</span>
-              <span>Print Audit Certificate</span>
+              <span>📜</span>
+              <span>View &amp; Print Official FDNY Certificate</span>
             </button>
           </div>
         </div>
@@ -438,6 +440,14 @@ export const Step5AllSafe: React.FC<Step5AllSafeProps> = ({
           </div>
         </div>
       )}
+
+      {/* Official FDNY Printable Certificate Modal */}
+      <FDNYCertificateModal
+        isOpen={isCertModalOpen}
+        onClose={() => setIsCertModalOpen(false)}
+        snapshot={snapshot}
+        sealedHash={sealedCertId || "b5d4045c3f466fa91fe2cc6abe79232a1a57cdf104f7a26e716e0a1e2789df78"}
+      />
     </div>
   );
 };

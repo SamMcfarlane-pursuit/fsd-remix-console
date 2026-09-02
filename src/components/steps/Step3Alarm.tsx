@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { StatusSnapshot } from "../../types";
+import { playAlarmSiren, stopAlarmSiren, speakEmergencyBroadcast } from "../../lib/audioBroadcast";
 
 interface Step3AlarmProps {
   snapshot: StatusSnapshot | null;
@@ -71,6 +72,11 @@ export const Step3Alarm: React.FC<Step3AlarmProps> = ({
     setIsProcessing(true);
     try {
       await onDeclareIncident(selectedMode, selectedHazard);
+      playAlarmSiren(6);
+      speakEmergencyBroadcast(
+        `Attention Floor 07 occupants: A ${selectedMode === "drill" ? "life-safety evacuation drill" : "live emergency evacuation"} has been declared due to ${selectedHazard.replace("-", " ")}. Please evacuate immediately via ${selectedStairwell} and report to ${assemblyPoint}.`,
+        selectedMode === "drill" ? "HIGH" : "CRITICAL"
+      );
     } finally {
       setIsProcessing(false);
     }
@@ -80,6 +86,11 @@ export const Step3Alarm: React.FC<Step3AlarmProps> = ({
     setIsProcessing(true);
     try {
       await onClearIncident();
+      stopAlarmSiren();
+      speakEmergencyBroadcast(
+        "Attention Floor 07 occupants: The life-safety incident has been cleared. All safe. You may resume normal operations.",
+        "INFO"
+      );
     } finally {
       setIsProcessing(false);
     }

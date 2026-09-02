@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { EmergencyAlertPayload, QuadrantId, StatusSnapshot } from "../../types";
+import { speakEmergencyBroadcast } from "../../lib/audioBroadcast";
 
 interface Step4BroadcastProps {
   snapshot: StatusSnapshot | null;
@@ -86,6 +87,8 @@ export const Step4Broadcast: React.FC<Step4BroadcastProps> = ({
         targetQuadrants: targetPayload,
         channels: activeChannels,
       });
+
+      speakEmergencyBroadcast(narrative, priority);
 
       const entry = {
         id: `BCST-${Date.now().toString().slice(-4)}`,
