@@ -1040,8 +1040,44 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
               Scan &amp; Sign In as Employee or Visitor
             </h2>
             <p className="text-xs text-[#475569] mt-0.5">
-              Choose your profile type below, provide your digital signature to confirm legal floor presence, and be automatically accounted for.
+              Select your role below, verify floor presence in 1 tap, and be automatically accounted for on Floor 07.
             </p>
+          </div>
+
+          {/* Role Distinction Switch: Worker vs Visitor */}
+          <div className="grid grid-cols-2 gap-2 bg-[#F0F6FC] p-1.5 rounded-xl border border-[#B8D8F8] text-xs font-bold text-center">
+            <button
+              type="button"
+              onClick={() => {
+                setUserType("employee");
+                setSignRole("Employee");
+                setSignCompany("Con Edison");
+              }}
+              className={`py-2.5 rounded-lg transition cursor-pointer flex items-center justify-center gap-1.5 ${
+                userType === "employee"
+                  ? "bg-[#005DAA] text-white shadow-sm font-black"
+                  : "text-[#475569] hover:bg-white"
+              }`}
+            >
+              <span>🏢</span>
+              <span>Con Edison Worker</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setUserType("visitor");
+                setSignRole("Visitor");
+                setSignCompany("Guest / Visitor");
+              }}
+              className={`py-2.5 rounded-lg transition cursor-pointer flex items-center justify-center gap-1.5 ${
+                userType === "visitor"
+                  ? "bg-amber-600 text-white shadow-sm font-black"
+                  : "text-[#475569] hover:bg-white"
+              }`}
+            >
+              <span>🎟️</span>
+              <span>Visitor / Guest</span>
+            </button>
           </div>
 
           {/* RECOGNIZED EXISTING USER QUICK SIGN-IN HELPER */}

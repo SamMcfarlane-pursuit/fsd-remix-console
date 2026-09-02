@@ -193,7 +193,7 @@ export interface AuthUser {
   quadrant?: QuadrantId;
   token?: string;
   isGuest?: boolean;
-  authMethod?: "PASSWORD_CREDENTIAL" | "BIOMETRIC_PASSKEY" | "QR_BADGE_SCAN" | "CONED_GUEST_ONBOARDING";
+  authMethod?: "PASSWORD_CREDENTIAL" | "BIOMETRIC_PASSKEY" | "QR_BADGE_SCAN" | "CONED_GUEST_ONBOARDING" | "PIN_CREDENTIAL";
   guestDetails?: {
     organization?: string;
     category?: "Contractor" | "Vendor" | "Visitor" | "Inspector" | "Emergency Liaison";
