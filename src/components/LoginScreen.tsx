@@ -14,6 +14,7 @@ import {
 import { AuthUser, QuadrantId } from "../types";
 import { SignInQRPosterModal } from "./SignInQRPosterModal";
 import { authenticateWithBiometrics } from "../lib/biometrics";
+import { createOfflineOccupant, queueOfflineAction } from "../lib/offlineQueue";
 
 interface LoginScreenProps {
   onLoginSuccess: (user: AuthUser) => void;
@@ -103,7 +104,31 @@ export default function LoginScreen({
         onEnterOccupantApp();
       }
     } catch {
-      onEnterOccupantApp();
+      // Offline fallback: create offline occupant and queue action
+      const offlineOccupant = createOfflineOccupant({
+        name: workerName.trim(),
+        phone: workerPhone.trim(),
+        quadrant: workerQuad,
+        role: "Employee",
+        company: "Con Edison",
+      });
+      queueOfflineAction("occupant-sign-in", {
+        name: workerName.trim(),
+        phone: workerPhone.trim(),
+        action: workerAction,
+        role: "Employee",
+        company: "Con Edison",
+        quadrant: workerQuad,
+      });
+      try {
+        localStorage.setItem("muster_registered_occupant_id", offlineOccupant.id);
+        localStorage.setItem("muster_occupant_id", offlineOccupant.id);
+        localStorage.setItem("muster_registered_name", offlineOccupant.name);
+      } catch {}
+      setSuccessMsg(`🟠 Offline Mode: Pass ${offlineOccupant.id} created locally for ${offlineOccupant.name}. Queued for auto-sync.`);
+      setTimeout(() => {
+        onEnterOccupantApp();
+      }, 700);
     } finally {
       setIsLoading(false);
     }
@@ -140,7 +165,9 @@ export default function LoginScreen({
       if (res.ok) {
         const data = await res.json();
         try {
+          localStorage.setItem("muster_registered_occupant_id", data.occupant.id);
           localStorage.setItem("muster_occupant_id", data.occupant.id);
+          localStorage.setItem("muster_registered_name", data.occupant.name);
         } catch {}
         setSuccessMsg(`Visitor Pass #${data.occupant.id} Issued! Welcome to Floor 07.`);
         setTimeout(() => {
@@ -150,7 +177,31 @@ export default function LoginScreen({
         onEnterOccupantApp();
       }
     } catch {
-      onEnterOccupantApp();
+      // Offline fallback: create offline visitor pass
+      const offlineVisitor = createOfflineOccupant({
+        name: visitorName.trim(),
+        phone: visitorPhone.trim(),
+        quadrant: visitorQuad,
+        role: "Visitor",
+        company: `Guest of ${visitorHost}`,
+      });
+      queueOfflineAction("visitor-register", {
+        name: visitorName.trim(),
+        phone: visitorPhone.trim(),
+        action: "enter",
+        role: "Visitor",
+        company: `Guest of ${visitorHost}`,
+        quadrant: visitorQuad,
+      });
+      try {
+        localStorage.setItem("muster_registered_occupant_id", offlineVisitor.id);
+        localStorage.setItem("muster_occupant_id", offlineVisitor.id);
+        localStorage.setItem("muster_registered_name", offlineVisitor.name);
+      } catch {}
+      setSuccessMsg(`🟠 Offline Visitor Pass ${offlineVisitor.id} Created! Welcome to Floor 07. Queued for auto-sync.`);
+      setTimeout(() => {
+        onEnterOccupantApp();
+      }, 700);
     } finally {
       setIsLoading(false);
     }

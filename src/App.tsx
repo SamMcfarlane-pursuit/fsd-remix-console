@@ -19,10 +19,20 @@ import { UserRole } from "./lib/authGuard";
 import { AuthUser, EmergencyAlertPayload, LocationCategory, OccupantStatus, StatusSnapshot } from "./types";
 import { validateGeofence, LocationMetadata, FLOOR_07_CONSTRAINTS } from "./lib/geofence";
 import { appendLedgerEntry } from "./lib/ledger";
+import {
+  cacheRosterLocally,
+  getCachedRoster,
+  syncOfflineQueue,
+  getOfflineQueue,
+  queueOfflineAction,
+} from "./lib/offlineQueue";
 
 export default function App() {
   const [snapshot, setSnapshot] = useState<StatusSnapshot | null>(null);
   const [currentStep, setCurrentStep] = useState<number>(1);
+  const [isOnline, setIsOnline] = useState<boolean>(typeof navigator !== "undefined" ? navigator.onLine : true);
+  const [offlineQueueCount, setOfflineQueueCount] = useState<number>(() => getOfflineQueue().length);
+  const [isSyncingOffline, setIsSyncingOffline] = useState<boolean>(false);
   const [authUser, setAuthUser] = useState<AuthUser | null>(() => {
     try {
       const stored = sessionStorage.getItem("muster_auth_user");
@@ -160,18 +170,91 @@ export default function App() {
     }
   };
 
-  // Fetch live state from backend
+  // Fetch live state from backend with offline caching fallback
   const refreshState = useCallback(async () => {
     try {
       const res = await fetch("/api/state");
       if (res.ok) {
         const data = await res.json();
         setSnapshot(data);
+        if (data.occupants && data.occupants.length > 0) {
+          cacheRosterLocally(data.occupants);
+        }
       }
     } catch (err) {
-      console.warn("State update check (retry in background):", err);
+      console.warn("State update check (offline fallback):", err);
+      // OFFLINE FALLBACK: Load cached roster from local device storage
+      const cached = getCachedRoster();
+      if (cached && cached.length > 0) {
+        setSnapshot((prev) => {
+          if (prev && prev.occupants && prev.occupants.length > 0) return prev;
+          const inside = cached.filter((o: any) => !o.badgedOut).length;
+          const safeCount = cached.filter((o: any) => o.status === "safe" || o.checkedIn).length;
+          return {
+            incidentDeclared: false,
+            drillMode: false,
+            alarmStatus: "inactive",
+            broadcastActive: false,
+            phase: "scan",
+            occupants: cached,
+            facilityId: "4-IRVING-PL-FL07",
+            accounted: safeCount,
+            expectedOnFloor: 195,
+            buildingStats: {
+              totalStaff: cached.length,
+              insideBuilding: inside,
+              offsite: cached.length - inside,
+              accountedFor: safeCount,
+              unaccountedFor: inside - safeCount,
+              pendingCount: 0,
+              attendanceRate: Math.round((inside / (cached.length || 1)) * 100),
+            },
+            lastUpdated: new Date().toISOString(),
+          } as any;
+        });
+      }
     }
   }, []);
+
+  // Offline event listeners & automatic replay sync when connection restores
+  useEffect(() => {
+    const handleOnline = async () => {
+      setIsOnline(true);
+      console.log("🌐 Connection restored! Syncing offline queue...");
+      setIsSyncingOffline(true);
+      try {
+        const result = await syncOfflineQueue();
+        if (result.syncedCount > 0) {
+          console.log(`✅ Synced ${result.syncedCount} offline actions to server.`);
+          await refreshState();
+        }
+      } catch (err) {
+        console.warn("Offline sync error:", err);
+      } finally {
+        setIsSyncingOffline(false);
+        setOfflineQueueCount(getOfflineQueue().length);
+      }
+    };
+
+    const handleOffline = () => {
+      setIsOnline(false);
+      console.warn("⚠️ Network connection lost. Offline resilient mode active.");
+    };
+
+    const handleQueueChanged = (e: any) => {
+      setOfflineQueueCount(e?.detail?.queue?.length ?? getOfflineQueue().length);
+    };
+
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+    window.addEventListener("muster-offline-queue-changed", handleQueueChanged);
+
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+      window.removeEventListener("muster-offline-queue-changed", handleQueueChanged);
+    };
+  }, [refreshState]);
 
   useEffect(() => {
     refreshState();
@@ -314,7 +397,16 @@ export default function App() {
         await refreshState();
       }
     } catch (err) {
-      console.warn("Check-in processed locally:", err);
+      console.warn("Check-in processed locally (queued for offline sync):", err);
+      queueOfflineAction("check-in", {
+        occupantId,
+        status,
+        via,
+        notes,
+        locationCategory: resolvedCategory,
+        assemblyPoint: resolvedAssemblyPoint,
+        locationMetadata: metaToValidate,
+      });
     }
   };
 
@@ -357,7 +449,8 @@ export default function App() {
         await refreshState();
       }
     } catch (err) {
-      console.warn("Bulk check-in local sync fallback:", err);
+      console.warn("Bulk check-in local sync fallback (queued):", err);
+      queueOfflineAction("bulk-check-in", { occupantIds, status, via, notes });
     }
   };
 
@@ -436,6 +529,26 @@ export default function App() {
 
   return (
     <div className="min-h-screen max-w-full overflow-x-hidden bg-[#F0F6FC] text-[#0F2537] font-sans flex flex-col justify-between select-none">
+      {/* Offline Resilient Status Banner */}
+      {(!isOnline || offlineQueueCount > 0) && (
+        <div className="bg-linear-to-r from-amber-600 via-amber-500 to-amber-600 text-slate-950 px-4 py-1.5 text-xs font-black flex items-center justify-between shadow-md z-50">
+          <div className="flex items-center gap-2">
+            <span className="animate-pulse text-sm">🟠</span>
+            <span>
+              {!isOnline
+                ? "OFFLINE EMERGENCY MODE ACTIVE · All sign-ins, badge scans & attendance actions are securely stored locally on device."
+                : "RECONNECTED · Synchronizing local offline attendance records with command server..."}
+            </span>
+          </div>
+          <div className="flex items-center gap-2 text-[11px] font-mono font-bold">
+            <span className="bg-slate-950/20 px-2 py-0.5 rounded">
+              {offlineQueueCount} action{offlineQueueCount !== 1 ? "s" : ""} pending sync
+            </span>
+            {isSyncingOffline && <span className="animate-spin">⏳</span>}
+          </div>
+        </div>
+      )}
+
       {/* Top Life-Safety Operational Header */}
       <header
         className={`px-4 sm:px-6 py-3 flex items-center justify-between border-b transition-colors shadow-md z-40 sticky top-0 ${
