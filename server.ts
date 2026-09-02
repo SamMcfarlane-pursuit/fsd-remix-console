@@ -1360,7 +1360,58 @@ app.get("/api/system/network-info", (req, res) => {
     currentHost: hostHeader,
     isLocalhost,
     mobileOrigin,
+    publicTunnelUrl: activeTunnelUrl || null,
   });
+});
+
+// Dynamic Public Cellular Pathway (for phones outside building Wi-Fi)
+let activeTunnel: any = null;
+let activeTunnelUrl: string = "";
+
+app.get("/api/system/tunnel/status", (req, res) => {
+  res.json({
+    ok: true,
+    active: !!activeTunnel && !!activeTunnelUrl,
+    url: activeTunnelUrl || null,
+  });
+});
+
+app.post("/api/system/tunnel/start", async (req, res) => {
+  try {
+    if (activeTunnel && activeTunnelUrl) {
+      return res.json({ ok: true, active: true, url: activeTunnelUrl, message: "Tunnel already running" });
+    }
+    const localtunnel = (await import("localtunnel")).default;
+    activeTunnel = await localtunnel({ port: PORT });
+    activeTunnelUrl = activeTunnel.url;
+    activeTunnel.on("close", () => {
+      activeTunnel = null;
+      activeTunnelUrl = "";
+    });
+    activeTunnel.on("error", (err: any) => {
+      console.warn("Tunnel runtime error:", err);
+      activeTunnel = null;
+      activeTunnelUrl = "";
+    });
+    console.log(`🌐 Public Cellular Pathway Active: ${activeTunnelUrl}`);
+    res.json({ ok: true, active: true, url: activeTunnelUrl });
+  } catch (err: any) {
+    console.error("Failed to start tunnel:", err);
+    res.status(500).json({ ok: false, error: err.message || "Failed to start public tunnel" });
+  }
+});
+
+app.post("/api/system/tunnel/stop", (req, res) => {
+  try {
+    if (activeTunnel) {
+      activeTunnel.close();
+      activeTunnel = null;
+      activeTunnelUrl = "";
+    }
+    res.json({ ok: true, active: false });
+  } catch (err: any) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
 });
 
 // Backend Wireframe & Architecture Topology Endpoint

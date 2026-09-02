@@ -3,7 +3,15 @@ import QRCode from "qrcode";
 import { Occupant, StatusSnapshot } from "../../types";
 import { SelfSignInModal } from "../SelfSignInModal";
 import { QRCameraScanner } from "../QRCameraScanner";
-import { parseQRData, getMobileNetworkOrigin, setCustomMobileOrigin, discoverMobileOrigin } from "../../lib/qr";
+import {
+  parseQRData,
+  getMobileNetworkOrigin,
+  setCustomMobileOrigin,
+  discoverMobileOrigin,
+  startPublicTunnel,
+  stopPublicTunnel,
+  getTunnelStatus,
+} from "../../lib/qr";
 import { queueOfflineAction } from "../../lib/offlineQueue";
 
 interface Step1ScanProps {
@@ -40,11 +48,20 @@ export const Step1Scan: React.FC<Step1ScanProps> = ({
   const [mobileOrigin, setMobileOrigin] = useState<string>(getMobileNetworkOrigin());
   const [isEditingOrigin, setIsEditingOrigin] = useState<boolean>(false);
   const [customOriginInput, setCustomOriginInput] = useState<string>("");
+  const [networkMode, setNetworkMode] = useState<"lan" | "cellular">("lan");
+  const [isTunnelLoading, setIsTunnelLoading] = useState<boolean>(false);
 
   // Generate QR Code URL with mobile reachable origin
   useEffect(() => {
-    discoverMobileOrigin().then((origin) => {
-      setMobileOrigin(origin);
+    getTunnelStatus().then((status) => {
+      if (status.active && status.url) {
+        setNetworkMode("cellular");
+        setMobileOrigin(status.url);
+      } else {
+        discoverMobileOrigin().then((origin) => {
+          setMobileOrigin(origin);
+        });
+      }
     });
 
     const handleOriginChange = () => {
@@ -55,6 +72,31 @@ export const Step1Scan: React.FC<Step1ScanProps> = ({
       window.removeEventListener("muster-origin-changed", handleOriginChange);
     };
   }, []);
+
+  const handleActivateCellular = async () => {
+    setIsTunnelLoading(true);
+    try {
+      const res = await startPublicTunnel();
+      if (res.ok && res.url) {
+        setMobileOrigin(res.url);
+        setNetworkMode("cellular");
+      }
+    } finally {
+      setIsTunnelLoading(false);
+    }
+  };
+
+  const handleSwitchToLocalWifi = async () => {
+    setIsTunnelLoading(true);
+    try {
+      await stopPublicTunnel();
+      const discovered = await discoverMobileOrigin();
+      setMobileOrigin(discovered);
+      setNetworkMode("lan");
+    } finally {
+      setIsTunnelLoading(false);
+    }
+  };
 
   useEffect(() => {
     const scanUrl = `${mobileOrigin}/?mode=signin&scan=1`;
@@ -239,6 +281,37 @@ export const Step1Scan: React.FC<Step1ScanProps> = ({
             </button>
           </div>
 
+          {/* Dual Network Pathway Selector */}
+          <div className="w-full bg-[#F0F6FC] p-1.5 rounded-xl border border-[#B8D8F8] grid grid-cols-2 gap-1.5 text-xs font-bold">
+            <button
+              type="button"
+              onClick={handleSwitchToLocalWifi}
+              disabled={isTunnelLoading}
+              className={`py-1.5 px-2 rounded-lg transition cursor-pointer flex items-center justify-center gap-1 ${
+                networkMode === "lan"
+                  ? "bg-[#005DAA] text-white shadow-xs font-black"
+                  : "text-slate-600 hover:text-slate-900 hover:bg-white"
+              }`}
+            >
+              <span>🏢</span>
+              <span>Building Wi-Fi</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleActivateCellular}
+              disabled={isTunnelLoading}
+              className={`py-1.5 px-2 rounded-lg transition cursor-pointer flex items-center justify-center gap-1 ${
+                networkMode === "cellular"
+                  ? "bg-emerald-600 text-white shadow-xs font-black"
+                  : "text-slate-600 hover:text-slate-900 hover:bg-white"
+              }`}
+            >
+              <span>🌐</span>
+              <span>{isTunnelLoading ? "Connecting..." : "Cellular 5G"}</span>
+            </button>
+          </div>
+
           {/* QR Code Container */}
           <div className="p-4 bg-white rounded-2xl border-2 border-dashed border-[#005DAA]/40 shadow-inner flex flex-col items-center w-full">
             {qrDataUrl ? (
@@ -254,7 +327,9 @@ export const Step1Scan: React.FC<Step1ScanProps> = ({
               </div>
             )}
             <p className="text-[11px] font-mono text-[#003B70] font-semibold mt-2">
-              SCAN WITH ANY SMARTPHONE CAMERA
+              {networkMode === "cellular"
+                ? "🌐 CELLULAR 5G SCANNABLE (ANY PHONE)"
+                : "🏢 SCAN WITH PHONES ON BUILDING WI-FI"}
             </p>
 
             {/* Mobile Reachable Network Address Strip */}

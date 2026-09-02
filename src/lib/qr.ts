@@ -85,6 +85,47 @@ if (typeof window !== "undefined") {
 }
 
 /**
+ * Query current public tunnel pathway status
+ */
+export async function getTunnelStatus(): Promise<{ active: boolean; url: string | null }> {
+  try {
+    const res = await fetch("/api/system/tunnel/status");
+    if (res.ok) return await res.json();
+  } catch {}
+  return { active: false, url: null };
+}
+
+/**
+ * Start a free public cloud tunnel for cellular 5G / non-Wi-Fi phones
+ */
+export async function startPublicTunnel(): Promise<{ ok: boolean; url?: string; error?: string }> {
+  try {
+    const res = await fetch("/api/system/tunnel/start", { method: "POST" });
+    const data = await res.json();
+    if (data.ok && data.url) {
+      setCustomMobileOrigin(data.url);
+    }
+    return data;
+  } catch (err: any) {
+    return { ok: false, error: err.message };
+  }
+}
+
+/**
+ * Stop active public tunnel and revert to local Wi-Fi LAN IP
+ */
+export async function stopPublicTunnel(): Promise<{ ok: boolean }> {
+  try {
+    const res = await fetch("/api/system/tunnel/stop", { method: "POST" });
+    setCustomMobileOrigin("");
+    await discoverMobileOrigin();
+    return await res.json();
+  } catch {
+    return { ok: false };
+  }
+}
+
+/**
  * Generate standard Turnstile Badge QR payload that is both
  * (1) directly decodable by optical kiosk hardware (extracts OCC-xxx / CONED-BADGE-xxx)
  * (2) clickable / openable by any native iOS / Android camera app

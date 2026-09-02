@@ -1,6 +1,13 @@
 import React, { useState, useEffect } from "react";
 import QRCode from "qrcode";
-import { discoverMobileOrigin, getMobileNetworkOrigin, setCustomMobileOrigin } from "../lib/qr";
+import {
+  discoverMobileOrigin,
+  getMobileNetworkOrigin,
+  setCustomMobileOrigin,
+  startPublicTunnel,
+  stopPublicTunnel,
+  getTunnelStatus,
+} from "../lib/qr";
 
 interface SignInQRPosterModalProps {
   isOpen: boolean;
@@ -21,11 +28,22 @@ export const SignInQRPosterModal: React.FC<SignInQRPosterModalProps> = ({
   const [mobileOrigin, setMobileOrigin] = useState<string>(getMobileNetworkOrigin());
   const [isEditingOrigin, setIsEditingOrigin] = useState<boolean>(false);
   const [customOriginInput, setCustomOriginInput] = useState<string>("");
+  const [networkMode, setNetworkMode] = useState<"lan" | "cellular">("lan");
+  const [isTunnelLoading, setIsTunnelLoading] = useState<boolean>(false);
+  const [tunnelError, setTunnelError] = useState<string | null>(null);
 
   useEffect(() => {
     if (isOpen) {
-      discoverMobileOrigin().then((origin) => {
-        setMobileOrigin(origin);
+      // Check existing tunnel status
+      getTunnelStatus().then((status) => {
+        if (status.active && status.url) {
+          setNetworkMode("cellular");
+          setMobileOrigin(status.url);
+        } else {
+          discoverMobileOrigin().then((origin) => {
+            setMobileOrigin(origin);
+          });
+        }
       });
     }
 
@@ -54,6 +72,39 @@ export const SignInQRPosterModal: React.FC<SignInQRPosterModalProps> = ({
         .catch(console.error);
     }
   }, [isOpen, signInUrl]);
+
+  // Activate Public Cellular 5G Tunnel
+  const handleActivateCellularPathway = async () => {
+    setIsTunnelLoading(true);
+    setTunnelError(null);
+    try {
+      const res = await startPublicTunnel();
+      if (res.ok && res.url) {
+        setMobileOrigin(res.url);
+        setNetworkMode("cellular");
+      } else {
+        setTunnelError(res.error || "Could not launch public tunnel. Use custom IP.");
+      }
+    } catch (err: any) {
+      setTunnelError(err.message || "Failed to start public tunnel.");
+    } finally {
+      setIsTunnelLoading(false);
+    }
+  };
+
+  // Switch back to Local Wi-Fi (LAN)
+  const handleSwitchToLocalWifi = async () => {
+    setIsTunnelLoading(true);
+    setTunnelError(null);
+    try {
+      await stopPublicTunnel();
+      const discovered = await discoverMobileOrigin();
+      setMobileOrigin(discovered);
+      setNetworkMode("lan");
+    } finally {
+      setIsTunnelLoading(false);
+    }
+  };
 
   const handleSaveCustomOrigin = () => {
     let clean = customOriginInput.trim();
@@ -102,6 +153,43 @@ export const SignInQRPosterModal: React.FC<SignInQRPosterModalProps> = ({
           </p>
         </div>
 
+        {/* Dual Network Pathway Selector */}
+        <div className="bg-[#F0F6FC] p-1.5 rounded-xl border border-[#B8D8F8] grid grid-cols-2 gap-1.5 text-xs font-bold">
+          <button
+            type="button"
+            onClick={handleSwitchToLocalWifi}
+            disabled={isTunnelLoading}
+            className={`py-2 px-2.5 rounded-lg transition cursor-pointer flex items-center justify-center gap-1.5 ${
+              networkMode === "lan"
+                ? "bg-[#005DAA] text-white shadow-xs font-black"
+                : "text-slate-600 hover:text-slate-900 hover:bg-white"
+            }`}
+          >
+            <span>🏢</span>
+            <span>Local Building Wi-Fi</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={handleActivateCellularPathway}
+            disabled={isTunnelLoading}
+            className={`py-2 px-2.5 rounded-lg transition cursor-pointer flex items-center justify-center gap-1.5 ${
+              networkMode === "cellular"
+                ? "bg-emerald-600 text-white shadow-xs font-black"
+                : "text-slate-600 hover:text-slate-900 hover:bg-white"
+            }`}
+          >
+            <span>🌐</span>
+            <span>{isTunnelLoading ? "Connecting..." : "Cellular 5G Pathway"}</span>
+          </button>
+        </div>
+
+        {tunnelError && (
+          <div className="p-2 bg-red-100 border border-red-300 text-red-900 rounded-lg text-xs font-bold">
+            ⚠️ {tunnelError}
+          </div>
+        )}
+
         {/* Large Scannable QR Code */}
         <div className="bg-[#F8FAFC] p-4 sm:p-5 rounded-2xl border-2 border-[#B8D8F8] inline-block shadow-inner w-full max-w-xs mx-auto">
           {qrDataUrl ? (
@@ -116,17 +204,25 @@ export const SignInQRPosterModal: React.FC<SignInQRPosterModalProps> = ({
             </div>
           )}
 
-          <div className="mt-2 text-xs font-mono font-bold text-[#003B70] bg-[#EBF5FB] px-3 py-1.5 rounded-lg border border-[#B8D8F8]">
-            SCAN WITH ANY PHONE CAMERA
+          <div className={`mt-2 text-xs font-mono font-bold px-3 py-1.5 rounded-lg border ${
+            networkMode === "cellular"
+              ? "bg-emerald-50 text-emerald-900 border-emerald-300"
+              : "bg-[#EBF5FB] text-[#003B70] border-[#B8D8F8]"
+          }`}>
+            {networkMode === "cellular"
+              ? "🌐 CELLULAR 5G SCANNABLE (ANY NETWORK)"
+              : "🏢 SCAN ON BUILDING WI-FI"}
           </div>
         </div>
 
-        {/* Network Reachability & LAN Destination HUD */}
+        {/* Reachable Destination HUD */}
         <div className="bg-[#F0F6FC] p-3 rounded-xl border border-[#CBDCEE] text-xs space-y-2">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-1.5 font-bold text-[#005DAA] text-[11px]">
-              <span>📡</span>
-              <span>LAN Reachable Destination:</span>
+              <span>{networkMode === "cellular" ? "🌐" : "📡"}</span>
+              <span>
+                {networkMode === "cellular" ? "Public 5G Pathway URL:" : "Local LAN Wi-Fi URL:"}
+              </span>
             </div>
             {!isEditingOrigin ? (
               <button
@@ -145,7 +241,7 @@ export const SignInQRPosterModal: React.FC<SignInQRPosterModalProps> = ({
                 onClick={handleResetOrigin}
                 className="text-[10px] font-bold text-slate-500 hover:text-slate-700 underline cursor-pointer"
               >
-                Reset Auto-LAN
+                Reset Auto
               </button>
             )}
           </div>
@@ -160,7 +256,7 @@ export const SignInQRPosterModal: React.FC<SignInQRPosterModalProps> = ({
                 type="text"
                 value={customOriginInput}
                 onChange={(e) => setCustomOriginInput(e.target.value)}
-                placeholder="e.g. http://192.168.1.182:3000"
+                placeholder="e.g. http://192.168.1.182:3000 or https://xyz.tunnel"
                 className="flex-1 px-2.5 py-1 text-[11px] font-mono border border-sky-400 rounded-lg bg-white outline-none"
               />
               <button
@@ -172,6 +268,12 @@ export const SignInQRPosterModal: React.FC<SignInQRPosterModalProps> = ({
               </button>
             </div>
           )}
+
+          <p className="text-[10px] text-slate-500 text-left">
+            {networkMode === "cellular"
+              ? "✓ Connects phones on AT&T, Verizon, T-Mobile, or any guest Wi-Fi from outside."
+              : "✓ Zero-cost & works offline during power outages when phones are on building Wi-Fi."}
+          </p>
         </div>
 
         {/* Direct Link Action */}
@@ -191,10 +293,10 @@ export const SignInQRPosterModal: React.FC<SignInQRPosterModalProps> = ({
         <div className="grid grid-cols-3 gap-2 text-left bg-[#F0F6FC] p-3 rounded-xl border border-[#B8D8F8] text-[11px]">
           <div className="space-y-0.5">
             <span className="font-black text-[#005DAA]">1. SCAN QR</span>
-            <p className="text-slate-600">Scan with any phone camera on Wi-Fi</p>
+            <p className="text-slate-600">Scan with any smartphone camera</p>
           </div>
           <div className="space-y-0.5">
-            <span className="font-black text-[#005DAA]">2. AUTO-VERIFIED</span>
+            <span className="font-black text-[#005DAA]">2. AUTO-VERIFY</span>
             <p className="text-slate-600">Staff auto-accounted; guests quick form</p>
           </div>
           <div className="space-y-0.5">
