@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { AuthUser, QuadrantId } from "../types";
 import { SignInQRPosterModal } from "./SignInQRPosterModal";
+import { authenticateWithBiometrics } from "../lib/biometrics";
 
 interface LoginScreenProps {
   onLoginSuccess: (user: AuthUser) => void;
@@ -154,7 +155,7 @@ export default function LoginScreen({ onLoginSuccess, onEnterOccupantApp, onOpen
     const passkeyToken = `BIO-FP-${isMobile ? "MOBILE" : "DESKTOP"}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
 
     try {
-      await new Promise((r) => setTimeout(r, 850));
+      await authenticateWithBiometrics(authTarget);
 
       const res = await fetch("/api/auth/biometric", {
         method: "POST",

@@ -13,6 +13,7 @@ import {
   getOfflineQueue,
   syncOfflineQueue,
 } from "../lib/offlineQueue";
+import { authenticateWithBiometrics } from "../lib/biometrics";
 
 interface OccupantPortalProps {
   snapshot: StatusSnapshot | null;
@@ -369,6 +370,61 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
         .catch((err) => console.warn("Auto-accounting on QR load:", err));
     }
   }, [savedOccupantId, currentUser?.id]);
+
+  // Handle 1-Tap Biometric / Touch ID Fingerprint Sign-In
+  const handleBiometricSignIn = async () => {
+    setIsSubmitting(true);
+    setErrorMessage(null);
+    try {
+      const targetUser = matchingExistingUser || currentUser || occupants[0] || {
+        id: "OCC-001",
+        name: signName.trim() || "Sarah Jenkins",
+        phone: signPhone.trim() || "(212) 555-0199",
+        quadrant: signQuad || "NW",
+        role: signRole || "Employee",
+        company: signCompany || "Con Edison",
+      };
+
+      const bioResult = await authenticateWithBiometrics(targetUser.name);
+      if (bioResult.success) {
+        if ("id" in targetUser && targetUser.id && occupants.some((o) => o.id === targetUser.id)) {
+          await handleDirectSignInExisting(targetUser as Occupant);
+        } else {
+          // Register and sign-in
+          const res = await fetch("/api/occupant/sign-in-register", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              name: targetUser.name,
+              phone: targetUser.phone,
+              action: signAction || "enter",
+              role: targetUser.role,
+              company: targetUser.company,
+              quadrant: targetUser.quadrant,
+              signature_data: "BIOMETRIC_FINGERPRINT_VERIFIED",
+              signature_type: "biometric",
+            }),
+          });
+          if (res.ok) {
+            const data = await res.json();
+            setSelectedUserId(data.occupant.id);
+            setViewState("confirmed");
+            try {
+              localStorage.setItem("muster_occupant_id", data.occupant.id);
+            } catch {}
+          }
+        }
+        setActionSubmittedMsg(
+          `👆 Fingerprint Verified! Digital pass authenticated & recorded as PRESENT on Floor 07.`
+        );
+        setTimeout(() => setActionSubmittedMsg(null), 7000);
+      }
+    } catch (err: any) {
+      console.warn("Biometric sign-in error:", err);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   // Handle Newcomer First-Time Sign-In / Register
   const handleNewcomerSignIn = async (e: React.FormEvent) => {
@@ -1037,6 +1093,34 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
                 🎟️ Fill Visitor (Alex Rivera)
               </button>
             </div>
+          </div>
+
+          {/* 1-Tap Biometric / Touch ID Fingerprint Sign-In */}
+          <div className="bg-linear-to-r from-[#003B70] to-[#005DAA] text-white p-3.5 rounded-xl shadow-xs flex flex-col sm:flex-row items-center justify-between gap-3 border border-sky-400/30">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center text-xl shrink-0">
+                👆
+              </div>
+              <div>
+                <div className="text-xs font-black tracking-wide flex items-center gap-1.5">
+                  <span>Touch ID / Fingerprint Fast Sign-In</span>
+                  <span className="text-[9px] bg-emerald-400 text-emerald-950 font-black px-1.5 py-0.5 rounded uppercase">WebAuthn</span>
+                </div>
+                <p className="text-[11px] text-sky-100 mt-0.5">
+                  Use your phone or laptop biometric sensor to sign in &amp; verify floor presence in 1 tap.
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleBiometricSignIn}
+              disabled={isSubmitting}
+              className="w-full sm:w-auto px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-emerald-950 font-black text-xs uppercase tracking-wider rounded-lg transition cursor-pointer shadow-sm flex items-center justify-center gap-1.5 shrink-0"
+            >
+              <span>👆</span>
+              <span>{isSubmitting ? "Scanning..." : "Scan Fingerprint"}</span>
+            </button>
           </div>
 
           {errorMessage && (
