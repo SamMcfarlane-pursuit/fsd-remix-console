@@ -180,6 +180,7 @@ export const SelfSignInModal: React.FC<SelfSignInModalProps> = ({
         syncOccupantToFirestore(data.occupant);
         try {
           localStorage.setItem("muster_registered_occupant_id", data.occupant.id);
+          localStorage.setItem("muster_occupant_id", data.occupant.id);
           localStorage.setItem("muster_registered_phone", phone.trim());
           localStorage.setItem("muster_registered_name", name.trim());
         } catch (e) {

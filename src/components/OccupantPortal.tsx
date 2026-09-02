@@ -34,7 +34,7 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
   // Check if this occupant has signed in before on this device
   const [savedOccupantId, setSavedOccupantId] = useState<string | null>(() => {
     try {
-      return localStorage.getItem("muster_registered_occupant_id");
+      return localStorage.getItem("muster_registered_occupant_id") || localStorage.getItem("muster_occupant_id");
     } catch {
       return null;
     }
@@ -51,8 +51,8 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
           if (matched) return matched.id;
         }
       }
-      const stored = localStorage.getItem("muster_registered_occupant_id");
-      if (stored && occupants.some((o) => o.id === stored)) return stored;
+      const stored = localStorage.getItem("muster_registered_occupant_id") || localStorage.getItem("muster_occupant_id");
+      if (stored && (occupants.some((o) => o.id === stored) || stored.startsWith("OCC-OFF-"))) return stored;
     } catch {}
     return savedOccupantId || occupants.find((o) => o.role === "Visitor")?.id || occupants[0]?.id || "OCC-101";
   });
@@ -74,7 +74,7 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
           return "newcomer-signin";
         }
       }
-      const stored = localStorage.getItem("muster_registered_occupant_id");
+      const stored = localStorage.getItem("muster_registered_occupant_id") || localStorage.getItem("muster_occupant_id");
       if (stored && (occupants.some((o) => o.id === stored) || stored.startsWith("OCC-OFF-"))) {
         return "confirmed";
       }
@@ -353,7 +353,13 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
 
   // AUTOMATIC ACCOUNTING ON QR CODE SCAN / LOAD FOR RETURNING OCCUPANTS
   useEffect(() => {
-    if (savedOccupantId && currentUser && viewState === "confirmed") {
+    const activeStoredId =
+      savedOccupantId ||
+      (typeof localStorage !== "undefined"
+        ? localStorage.getItem("muster_registered_occupant_id") || localStorage.getItem("muster_occupant_id")
+        : null);
+
+    if (activeStoredId && currentUser && viewState === "confirmed") {
       fetch("/api/occupant/presence", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -369,7 +375,7 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
         })
         .catch((err) => console.warn("Auto-accounting on QR load:", err));
     }
-  }, [savedOccupantId, currentUser?.id]);
+  }, [savedOccupantId, currentUser?.id, viewState]);
 
   // Handle 1-Tap Biometric / Touch ID Fingerprint Sign-In
   const handleBiometricSignIn = async () => {
@@ -502,6 +508,7 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
         setSavedOccupantId(data.occupant.id);
         try {
           localStorage.setItem("muster_registered_occupant_id", data.occupant.id);
+          localStorage.setItem("muster_occupant_id", data.occupant.id);
           localStorage.setItem("muster_registered_phone", signPhone.trim());
           localStorage.setItem("muster_registered_name", signName.trim());
         } catch (e) {

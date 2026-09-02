@@ -99,40 +99,14 @@ export const Step1Scan: React.FC<Step1ScanProps> = ({
     });
 
     if (!occ) {
-      // Auto-register newcomer as Floor 07 Guest / Visitor so attendance is NEVER lost
-      const guestName = parsed.name || (rawTarget.startsWith("OCC-") ? `Visitor (${rawTarget})` : rawTarget);
-      try {
-        const regRes = await fetch("/api/occupant/sign-in-register", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            name: guestName,
-            phone: parsed.phone || "(212) 555-0199",
-            action: action || "enter",
-            role: "Visitor",
-            company: "Guest / External",
-            quadrant: parsed.quadrant || "SE",
-          }),
-        });
-        if (regRes.ok) {
-          const regData = await regRes.json();
-          const newOcc = regData.occupant;
-          setScanMessage({
-            type: "success",
-            text: `⚡ New User Registered & Signed In! Welcome ${newOcc.name} (${newOcc.id}). Recorded as PRESENT & ACCOUNTED on Floor 07.`,
-          });
-          setBadgeInput("");
-          return;
-        }
-      } catch (err) {
-        console.warn("Auto-register fallback failed:", err);
-      }
-
+      // First-time arrival: Open the clean registration form!
+      const initialInput = parsed.name || (rawTarget.startsWith("OCC-") ? "" : rawTarget);
+      setSelfSignInInitialName(initialInput);
+      setIsSelfSignInModalOpen(true);
       setScanMessage({
-        type: "error",
-        text: `⚠️ '${rawTarget}' is not registered in the Floor 07 database.`,
+        type: "success",
+        text: `📝 First-time occupant arrival detected! Please fill out the quick form to register and be accounted for on Floor 07.`,
       });
-      setSelfSignInInitialName(parsed.name || rawTarget);
       return;
     }
 
