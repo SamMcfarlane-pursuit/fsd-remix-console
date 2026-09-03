@@ -15,6 +15,8 @@ import { AuthUser, QuadrantId } from "../types";
 import { SignInQRPosterModal } from "./SignInQRPosterModal";
 import { authenticateWithBiometrics } from "../lib/biometrics";
 import { createOfflineOccupant, queueOfflineAction } from "../lib/offlineQueue";
+import QRCode from "qrcode";
+import { discoverMobileOrigin, getMobileNetworkOrigin } from "../lib/qr";
 
 interface LoginScreenProps {
   onLoginSuccess: (user: AuthUser) => void;
@@ -53,6 +55,36 @@ export default function LoginScreen({
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [isQrModalOpen, setIsQrModalOpen] = useState<boolean>(false);
   const [isMobile, setIsMobile] = useState<boolean>(false);
+  const [loginQrDataUrl, setLoginQrDataUrl] = useState<string>("");
+  const [activeNetworkOrigin, setActiveNetworkOrigin] = useState<string>(getMobileNetworkOrigin());
+
+  useEffect(() => {
+    discoverMobileOrigin().then((origin) => {
+      setActiveNetworkOrigin(origin);
+    });
+
+    const handleOriginChange = () => {
+      setActiveNetworkOrigin(getMobileNetworkOrigin());
+    };
+    window.addEventListener("muster-origin-changed", handleOriginChange);
+    return () => {
+      window.removeEventListener("muster-origin-changed", handleOriginChange);
+    };
+  }, []);
+
+  useEffect(() => {
+    const targetUrl = `${activeNetworkOrigin}/?mode=signin&scan=1`;
+    QRCode.toDataURL(targetUrl, {
+      width: 300,
+      margin: 1,
+      color: {
+        dark: "#003B70",
+        light: "#FFFFFF",
+      },
+    })
+      .then(setLoginQrDataUrl)
+      .catch(console.error);
+  }, [activeNetworkOrigin]);
 
   useEffect(() => {
     const userAgent = navigator.userAgent || "";
@@ -297,7 +329,7 @@ export default function LoginScreen({
       {/* Background Ambience */}
       <div className="fixed inset-0 pointer-events-none opacity-25 bg-[radial-gradient(#1E3A60_1px,transparent_1px)] [background-size:24px_24px]" />
 
-      <div className="w-full max-w-md relative z-10 my-auto py-2 space-y-4">
+      <div className="w-full max-w-lg relative z-10 my-auto py-2 space-y-4">
         {/* Header Branding */}
         <div className="text-center space-y-1">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#1E3A60]/60 border border-[#1E3A60] rounded-full text-[10px] font-mono font-bold text-[#38BDF8] uppercase tracking-wider">
@@ -310,6 +342,100 @@ export default function LoginScreen({
           <p className="text-xs font-mono text-[#829AB8] uppercase tracking-widest">
             Floor 07 Ingress &amp; Life-Safety Portal
           </p>
+        </div>
+
+        {/* ========================================================= */}
+        {/* PROMINENT QR CODE HERO (AT THE VERY BEGINNING OF SIGN-IN) */}
+        {/* ========================================================= */}
+        <div className="bg-[#0B172B] border-2 border-[#005DAA] rounded-2xl p-4 sm:p-5 shadow-2xl relative overflow-hidden text-center space-y-3">
+          {/* Subtle Ambient Light Accents */}
+          <div className="absolute top-0 right-0 w-32 h-32 bg-[#005DAA]/20 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute bottom-0 left-0 w-32 h-32 bg-[#38BDF8]/15 rounded-full blur-3xl pointer-events-none" />
+
+          {/* Card Top Title & Quick Link */}
+          <div className="flex items-center justify-between border-b border-[#1E3A60] pb-2.5">
+            <div className="text-left flex items-center gap-2">
+              <span className="flex h-2.5 w-2.5 relative">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
+              </span>
+              <div>
+                <span className="text-[10px] font-mono font-black text-[#38BDF8] uppercase tracking-wider block">
+                  FAST SMARTPHONE INGRESS
+                </span>
+                <h2 className="text-sm sm:text-base font-black text-white uppercase tracking-wide">
+                  Scan QR with Camera to Sign In
+                </h2>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                if (onOpenQRPoster) onOpenQRPoster();
+                else setIsQrModalOpen(true);
+              }}
+              className="text-[10px] font-mono font-bold text-[#38BDF8] hover:text-white bg-[#1E3A60]/60 hover:bg-[#1E3A60] px-2.5 py-1 rounded-lg border border-[#38BDF8]/30 transition cursor-pointer flex items-center gap-1 shrink-0"
+              title="Open Printable Official Poster"
+            >
+              <span>Full Poster</span>
+              <span>↗</span>
+            </button>
+          </div>
+
+          {/* High-Contrast Robust QR Code & Quick Instructions */}
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 py-1">
+            {/* The QR Code */}
+            <div className="p-3 bg-white rounded-2xl shadow-xl border-2 border-[#38BDF8]/50 shrink-0">
+              {loginQrDataUrl ? (
+                <img
+                  src={loginQrDataUrl}
+                  alt="Scan QR Code to Sign In"
+                  className="w-36 h-36 sm:w-40 sm:h-40 object-contain block mx-auto"
+                />
+              ) : (
+                <div className="w-36 h-36 sm:w-40 sm:h-40 flex items-center justify-center text-slate-400 text-xs font-mono">
+                  Generating QR...
+                </div>
+              )}
+            </div>
+
+            {/* Side Instructions */}
+            <div className="text-left space-y-2.5 max-w-xs">
+              <div className="space-y-1">
+                <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-emerald-950/80 text-emerald-400 border border-emerald-500/40">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                  <span>
+                    {activeNetworkOrigin.includes(".trycloudflare.com")
+                      ? "🌐 5G CELLULAR SCANNABLE"
+                      : "🏢 BUILDING WI-FI READY"}
+                  </span>
+                </div>
+                <p className="text-xs text-slate-200 font-semibold leading-snug">
+                  Point any phone camera at this QR code to check in on Floor 07.
+                </p>
+                <p className="text-[11px] text-[#829AB8] leading-tight">
+                  • <strong className="text-emerald-400">Normal staff</strong>: Auto-accounted instantly with pass.
+                  <br />
+                  • <strong className="text-sky-400">First-time visitors</strong>: Quick 10-second intake.
+                </p>
+              </div>
+
+              {/* URL Display */}
+              <div className="text-[10px] font-mono text-slate-400 truncate bg-[#070D18] p-1.5 rounded-lg border border-[#1E3A60] select-all">
+                {activeNetworkOrigin}/?mode=signin&scan=1
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Divider: OR SIGN IN ON THIS TERMINAL */}
+        <div className="relative flex items-center justify-center py-1">
+          <div className="border-t border-[#1E3A60] w-full" />
+          <span className="bg-[#070D18] px-3 text-[10px] font-mono font-bold uppercase tracking-widest text-[#829AB8] shrink-0">
+            OR SIGN IN ON THIS TERMINAL
+          </span>
+          <div className="border-t border-[#1E3A60] w-full" />
         </div>
 
         {/* Unified 3-Segmented Role Selector */}
