@@ -73,6 +73,13 @@ export const Step1Scan: React.FC<Step1ScanProps> = ({
     };
   }, []);
 
+  useEffect(() => {
+    if (snapshot?.publicTunnelUrl) {
+      setNetworkMode("cellular");
+      setMobileOrigin(snapshot.publicTunnelUrl);
+    }
+  }, [snapshot?.publicTunnelUrl]);
+
   const handleActivateCellular = async () => {
     setIsTunnelLoading(true);
     try {
