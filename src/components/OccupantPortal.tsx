@@ -691,6 +691,21 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
     setTimeout(() => setActionSubmittedMsg(null), 5000);
   };
 
+  const handleSendIntelReport = () => {
+    if (!currentUser || !helpNote.trim()) return;
+    onCheckIn(
+      currentUser.id,
+      currentUser.status || "safe",
+      "mobile-occupant-intel",
+      `Occupant SitRep: ${helpNote.trim()}`,
+      currentUser.locationCategory || "inside-building",
+      currentUser.assemblyPoint
+    );
+    setActionSubmittedMsg(`💬 SitRep Transmitted! FSD Command Center logged your report: "${helpNote.trim()}"`);
+    setHelpNote("");
+    setTimeout(() => setActionSubmittedMsg(null), 6000);
+  };
+
   return (
     <div className="max-w-2xl mx-auto p-4 sm:p-6 space-y-5 text-[#0F2537] animate-fadeIn">
       {/* Top Banner */}
@@ -716,6 +731,70 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
           </button>
         )}
       </div>
+
+      {/* Real-Time Emergency Alert & Evacuation Directive Hub */}
+      {snapshot?.incidentActive && (
+        <div className="bg-gradient-to-r from-red-600 via-red-500 to-amber-600 text-white p-4 sm:p-5 rounded-2xl shadow-xl space-y-3.5 border-2 border-red-300 animate-fadeIn">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <span className="text-2xl animate-bounce">🚨</span>
+              <div>
+                <span className="font-black text-sm uppercase tracking-wider block">
+                  {snapshot.mode === "incident" ? "CRITICAL EMERGENCY EVACUATION" : "LIFE-SAFETY DRILL IN PROGRESS"}
+                </span>
+                <span className="text-[10px] text-amber-200 font-mono font-bold">
+                  HAZARD: {(snapshot.hazardType || "office-fire").replace("-", " ").toUpperCase()}
+                </span>
+              </div>
+            </div>
+            <span className="text-[10px] font-mono font-black bg-black/40 px-2.5 py-1 rounded-full border border-white/30 uppercase tracking-widest animate-pulse">
+              LIVE ALERT
+            </span>
+          </div>
+
+          <div className="bg-black/30 p-3.5 rounded-xl border border-white/20 text-xs space-y-2">
+            <div className="flex items-center gap-1.5 font-bold text-amber-300 text-[11px] uppercase tracking-wider">
+              <span>📢 FSD COMMAND DIRECTIVE:</span>
+            </div>
+            <p className="text-xs leading-relaxed text-white font-medium">
+              {snapshot.latestNarrative?.executiveSummary ||
+                snapshot.latestNarrative?.timelineNarrative ||
+                "Attention Floor 07 occupants: Please evacuate immediately via designated stairwells. Do NOT use elevators. Report to your assigned outdoor muster assembly point."}
+            </p>
+            <div className="grid grid-cols-2 gap-2 pt-1 border-t border-white/10 text-[11px] text-amber-100">
+              <div className="bg-black/25 p-2 rounded-lg">
+                <span className="text-slate-300 text-[9px] font-bold block uppercase tracking-wider">EGRESS PATH:</span>
+                <span className="font-bold text-white text-xs">Stairwell A (East Core)</span>
+              </div>
+              <div className="bg-black/25 p-2 rounded-lg">
+                <span className="text-slate-300 text-[9px] font-bold block uppercase tracking-wider">ASSEMBLY STATION:</span>
+                <span className="font-bold text-white text-xs">Union Sq East / Park Plaza</span>
+              </div>
+            </div>
+          </div>
+
+          {currentUser && (
+            <div className="grid grid-cols-2 gap-2 pt-1">
+              <button
+                type="button"
+                onClick={handleMarkSafeOutside}
+                className="py-3 px-3 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs uppercase tracking-wider rounded-xl shadow-md transition flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
+              >
+                <span>🟢</span>
+                <span>I Am Safe Outside</span>
+              </button>
+              <button
+                type="button"
+                onClick={handleRequestHelp}
+                className="py-3 px-3 bg-red-950 hover:bg-red-900 text-red-200 border border-red-400 font-black text-xs uppercase tracking-wider rounded-xl shadow-md transition flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
+              >
+                <span>🆘</span>
+                <span>Need Assistance</span>
+              </button>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* 3-Action Quick Intent Legend */}
       <div className="grid grid-cols-3 gap-2 text-center text-[10px] font-bold">
@@ -990,28 +1069,73 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
                 </div>
               </div>
 
-              {/* Assistance Request */}
-              <div className="p-3 bg-red-50 rounded-xl border border-red-200 space-y-2">
-                <div className="text-xs font-bold text-red-900">3. Assistance Required</div>
-                <input
-                  type="text"
-                  value={helpNote}
-                  onChange={(e) => setHelpNote(e.target.value)}
-                  placeholder="Optional note: e.g. Mobility limited, stuck at Stairwell A..."
-                  className="w-full bg-white border border-red-200 rounded-lg p-2 text-xs text-[#0F2537] placeholder-[#64748B] focus:outline-none"
-                />
-                <div className="flex gap-2">
+              {/* Assistance & SitRep Transmission */}
+              <div className="p-4 bg-red-50/80 rounded-2xl border-2 border-red-200 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="text-xs font-black uppercase text-red-950 flex items-center gap-1.5">
+                    <span>🚨</span>
+                    <span>Emergency Assistance &amp; Situation Report (SitRep)</span>
+                  </div>
+                  <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-full border ${
+                    currentUser.status === "safe"
+                      ? "bg-emerald-100 text-emerald-800 border-emerald-300"
+                      : currentUser.status === "awaiting-evac-chair"
+                      ? "bg-amber-100 text-amber-900 border-amber-300 animate-pulse"
+                      : currentUser.status === "need-help"
+                      ? "bg-red-200 text-red-950 border-red-400 animate-pulse"
+                      : "bg-slate-200 text-slate-700 border-slate-300"
+                  }`}>
+                    {currentUser.status === "safe"
+                      ? "🟢 SAFE & ACCOUNTED"
+                      : currentUser.status === "awaiting-evac-chair"
+                      ? "🛞 EVAC CHAIR REQUESTED"
+                      : currentUser.status === "need-help"
+                      ? "🚨 SOS ACTIVE"
+                      : "⚪ UNACCOUNTED"}
+                  </span>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-bold text-slate-700 block">
+                    Message or Situation Note for FSD Commander:
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={helpNote}
+                      onChange={(e) => setHelpNote(e.target.value)}
+                      placeholder="e.g., Heavy smoke near East elevators, 4 staff sheltering in 7B, mobility limited..."
+                      className="w-full bg-white border border-red-200 rounded-xl p-3 pr-24 text-xs text-[#0F2537] placeholder-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-red-400"
+                    />
+                    {helpNote.trim().length > 0 && (
+                      <button
+                        type="button"
+                        onClick={handleSendIntelReport}
+                        className="absolute right-1.5 top-1.5 bottom-1.5 px-3 bg-[#005DAA] hover:bg-[#004A88] text-white text-[10px] font-black uppercase rounded-lg transition cursor-pointer flex items-center gap-1 shadow-xs"
+                      >
+                        <span>💬</span>
+                        <span>Send Note</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 pt-1">
                   <button
+                    type="button"
                     onClick={handleRequestEvacChair}
-                    className="flex-1 py-2 bg-amber-600 text-white font-bold text-xs rounded-lg hover:bg-amber-700 transition cursor-pointer"
+                    className="py-2.5 px-2 bg-amber-600 hover:bg-amber-700 text-white font-black text-xs uppercase tracking-wider rounded-xl transition cursor-pointer shadow-xs flex items-center justify-center gap-1.5 active:scale-95"
                   >
-                    🛞 Request Evac Chair
+                    <span>🛞</span>
+                    <span>Request Evac Chair</span>
                   </button>
                   <button
+                    type="button"
                     onClick={handleRequestHelp}
-                    className="flex-1 py-2 bg-red-700 text-white font-bold text-xs rounded-lg hover:bg-red-800 transition cursor-pointer"
+                    className="py-2.5 px-2 bg-red-700 hover:bg-red-800 text-white font-black text-xs uppercase tracking-wider rounded-xl transition cursor-pointer shadow-xs flex items-center justify-center gap-1.5 active:scale-95"
                   >
-                    🚨 Need Help
+                    <span>🚨</span>
+                    <span>Send SOS Distress</span>
                   </button>
                 </div>
               </div>
