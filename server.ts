@@ -358,6 +358,19 @@ appendLedger("genesis-init", { message: "MusterCommand ledger initialized", floo
 /* Derive Snapshot Data                                               */
 /* ------------------------------------------------------------------ */
 
+function getLanIps(): string[] {
+  const ifaces = os.networkInterfaces();
+  const lanIps: string[] = [];
+  for (const name of Object.keys(ifaces)) {
+    for (const net of ifaces[name] || []) {
+      if (net.family === "IPv4" && !net.internal) {
+        lanIps.push(net.address);
+      }
+    }
+  }
+  return lanIps;
+}
+
 function getDerivedSnapshot(): StatusSnapshot {
   const present = occupantsRoster.filter((o) => !o.badgedOut && !o.offSiteToday);
 
@@ -402,6 +415,8 @@ function getDerivedSnapshot(): StatusSnapshot {
     awaitingEvacChair: awaitingEvacChairCount,
     quadrants,
     occupants: occupantsRoster,
+    publicTunnelUrl: activeTunnelUrl || null,
+    lanIps: getLanIps(),
     ledgerEntries: ledgerChain.slice(-30),
     latestNarrative,
   };
@@ -1369,6 +1384,7 @@ app.get("/api/system/network-info", (req, res) => {
 // Dynamic Public Cellular Pathway (for phones outside building Wi-Fi)
 let activeTunnelChild: any = null;
 let activeTunnelUrl: string = "";
+let isRestartingTunnel = false;
 
 async function launchPublicTunnel(): Promise<string> {
   // First attempt: Cloudflare Quick Tunnel (zero interstitials, instant, universal phone reachability)
@@ -1386,13 +1402,21 @@ async function launchPublicTunnel(): Promise<string> {
           activeTunnelChild = child;
           activeTunnelUrl = match[0];
           console.log(`🌐 Cloudflare Public Cellular Pathway Live: ${activeTunnelUrl}`);
+          notifySseClients();
           resolve(match[0]);
         }
       });
 
-      child.on("close", () => {
+      child.on("close", (code) => {
+        console.warn(`Cloudflare tunnel process closed (code: ${code}). Re-evaluating pathway...`);
         activeTunnelChild = null;
         activeTunnelUrl = "";
+        notifySseClients();
+        setTimeout(() => {
+          if (!activeTunnelChild) {
+            restartTunnelGracefully().catch(() => {});
+          }
+        }, 2000);
       });
 
       child.on("error", (err) => {
@@ -1406,7 +1430,7 @@ async function launchPublicTunnel(): Promise<string> {
           try { child.kill(); } catch {}
           reject(new Error("Cloudflare tunnel handshake timed out"));
         }
-      }, 10000);
+      }, 15000);
     });
     return url;
   } catch (cfErr) {
@@ -1425,10 +1449,60 @@ async function launchPublicTunnel(): Promise<string> {
   lt.on("close", () => {
     activeTunnelChild = null;
     activeTunnelUrl = "";
+    notifySseClients();
   });
   console.log(`🌐 Localtunnel Pathway Live: ${activeTunnelUrl}`);
+  notifySseClients();
   return activeTunnelUrl;
 }
+
+// Self-healing watchdog: re-establish if connection drops or becomes unresponsive
+async function restartTunnelGracefully(): Promise<string> {
+  if (isRestartingTunnel) return activeTunnelUrl;
+  isRestartingTunnel = true;
+  console.log("🔄 Self-healing watchdog: Re-establishing Cloudflare public pathway...");
+  try {
+    if (activeTunnelChild) {
+      try {
+        if (typeof activeTunnelChild.kill === "function") activeTunnelChild.kill();
+      } catch {}
+      activeTunnelChild = null;
+    }
+    activeTunnelUrl = "";
+    notifySseClients();
+    await new Promise((r) => setTimeout(r, 1000));
+    const newUrl = await launchPublicTunnel();
+    return newUrl;
+  } catch (err) {
+    console.error("Watchdog restart error:", err);
+    return "";
+  } finally {
+    isRestartingTunnel = false;
+  }
+}
+
+// Periodic Health Check Watchdog (every 30 seconds)
+setInterval(async () => {
+  if (!activeTunnelUrl) {
+    restartTunnelGracefully().catch(() => {});
+    return;
+  }
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 7000);
+    const checkRes = await fetch(`${activeTunnelUrl}/api/health`, {
+      signal: controller.signal,
+    });
+    clearTimeout(timeout);
+    if (!checkRes.ok) {
+      console.warn(`Watchdog detected non-200 tunnel status (${checkRes.status}). Triggering refresh.`);
+      restartTunnelGracefully().catch(() => {});
+    }
+  } catch (err) {
+    console.warn("Watchdog: Tunnel unreachable from outside. Rotating to fresh tunnel endpoint...", err);
+    restartTunnelGracefully().catch(() => {});
+  }
+}, 30000);
 
 app.get("/api/system/tunnel/status", (req, res) => {
   res.json({
@@ -1459,10 +1533,11 @@ app.post("/api/system/tunnel/stop", (req, res) => {
       }
       activeTunnelChild = null;
       activeTunnelUrl = "";
+      notifySseClients();
     }
     res.json({ ok: true, active: false });
   } catch (err: any) {
-    res.status(500).json({ ok: false, error: err.message });
+    res.status(500).json({ ok: false, error: err.message || "Failed to stop tunnel" });
   }
 });
 

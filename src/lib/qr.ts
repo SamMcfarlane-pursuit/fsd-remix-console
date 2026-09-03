@@ -17,27 +17,46 @@ export interface ParsedQRResult {
   rawText: string;
 }
 
-// Cached mobile network origin (e.g., http://192.168.1.60:3000)
+// Cached mobile network origin (e.g., https://xyz.trycloudflare.com or http://192.168.1.60:3000)
 let cachedMobileOrigin: string = "";
 
 /**
+ * Update the live active tunnel URL directly from SSE or backend snapshot
+ */
+export function setLiveTunnelUrl(url: string | null | undefined): void {
+  if (!url) return;
+  if (cachedMobileOrigin !== url) {
+    cachedMobileOrigin = url;
+    if (typeof window !== "undefined") {
+      localStorage.setItem("muster_mobile_network_origin", url);
+      window.dispatchEvent(new CustomEvent("muster-origin-changed", { detail: { origin: url } }));
+    }
+  }
+}
+
+/**
  * Retrieve the reachable mobile origin for QR codes
- * (replaces localhost with LAN IP so phone cameras can connect seamlessly)
+ * (Prioritizes current non-localhost host or active verified public tunnel)
  */
 export function getMobileNetworkOrigin(): string {
   if (typeof window !== "undefined") {
     const custom = localStorage.getItem("muster_custom_network_origin");
     if (custom) return custom;
 
-    const stored = localStorage.getItem("muster_mobile_network_origin");
-    if (stored) return stored;
-
     const winOrigin = window.location.origin;
     if (!winOrigin.includes("localhost") && !winOrigin.includes("127.0.0.1")) {
       return winOrigin;
     }
   }
-  return cachedMobileOrigin || (typeof window !== "undefined" ? window.location.origin : "http://localhost:3000");
+
+  if (cachedMobileOrigin) return cachedMobileOrigin;
+
+  if (typeof window !== "undefined") {
+    const stored = localStorage.getItem("muster_mobile_network_origin");
+    if (stored) return stored;
+    return window.location.origin;
+  }
+  return "http://localhost:3000";
 }
 
 /**
@@ -50,25 +69,24 @@ export function setCustomMobileOrigin(origin: string): void {
     } else {
       localStorage.removeItem("muster_custom_network_origin");
     }
+    cachedMobileOrigin = origin.trim();
     window.dispatchEvent(new CustomEvent("muster-origin-changed", { detail: { origin } }));
   }
 }
 
 /**
- * Query backend to discover server's local LAN IPv4 address
+ * Query backend to discover server's local LAN IPv4 address and active public tunnel
  */
 export async function discoverMobileOrigin(): Promise<string> {
   try {
-    const res = await fetch("/api/system/network-info");
+    const res = await fetch(`/api/system/network-info?t=${Date.now()}`, {
+      cache: "no-store",
+    });
     if (res.ok) {
       const data = await res.json();
       const originToUse = data.publicTunnelUrl || data.mobileOrigin;
       if (originToUse) {
-        cachedMobileOrigin = originToUse;
-        if (typeof window !== "undefined") {
-          localStorage.setItem("muster_mobile_network_origin", originToUse);
-          window.dispatchEvent(new CustomEvent("muster-origin-changed", { detail: { origin: originToUse } }));
-        }
+        setLiveTunnelUrl(originToUse);
         return originToUse;
       }
     }

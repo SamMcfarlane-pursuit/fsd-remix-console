@@ -26,6 +26,7 @@ import {
   getOfflineQueue,
   queueOfflineAction,
 } from "./lib/offlineQueue";
+import { setLiveTunnelUrl } from "./lib/qr";
 
 export default function App() {
   const [snapshot, setSnapshot] = useState<StatusSnapshot | null>(null);
@@ -177,6 +178,9 @@ export default function App() {
       if (res.ok) {
         const data = await res.json();
         setSnapshot(data);
+        if (data.publicTunnelUrl) {
+          setLiveTunnelUrl(data.publicTunnelUrl);
+        }
         if (data.occupants && data.occupants.length > 0) {
           cacheRosterLocally(data.occupants);
         }

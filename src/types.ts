@@ -69,6 +69,8 @@ export interface StatusSnapshot {
   awaitingEvacChair: number;
   quadrants: QuadrantStat[];
   occupants?: Occupant[];
+  publicTunnelUrl?: string | null;
+  lanIps?: string[];
   ledgerEntries?: LedgerEntry[];
   latestNarrative?: DrillNarrativeDraft | null;
 }
