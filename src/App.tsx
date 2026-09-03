@@ -91,7 +91,8 @@ export default function App() {
         urlParams.get("badge")
       ) {
         setViewMode("occupant");
-        if (!authUser) {
+        const storedAuth = sessionStorage.getItem("muster_auth_user");
+        if (!storedAuth) {
           const guestUser: AuthUser = {
             id: "guest-occupant",
             userId: "guest.occupant",
@@ -111,7 +112,7 @@ export default function App() {
     } catch (e) {
       console.warn("Could not check URL parameters", e);
     }
-  }, [authUser]);
+  }, []);
 
   // Handle successful login
   const handleLoginSuccess = (user: AuthUser) => {
@@ -150,7 +151,7 @@ export default function App() {
     setViewMode("occupant");
   };
 
-  // Handle Sign Out
+  // Handle Sign Out - 100% resets session and returns to clean LoginScreen
   const handleLogout = async () => {
     if (authUser && !authUser.isGuest) {
       try {
@@ -163,11 +164,27 @@ export default function App() {
         console.warn("Logout sync deferred", e);
       }
     }
+
+    // 1. Immediately reset state so LoginScreen mounts
     setAuthUser(null);
+    setViewMode("admin");
+
+    // 2. Strip URL query params so initial load checks don't re-login
+    try {
+      if (typeof window !== "undefined" && window.history && window.history.replaceState) {
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+    } catch {}
+
+    // 3. Clear all cached occupant and auth tokens
     try {
       sessionStorage.removeItem("muster_auth_user");
+      localStorage.removeItem("muster_registered_occupant_id");
+      localStorage.removeItem("muster_occupant_id");
+      localStorage.removeItem("muster_registered_phone");
+      localStorage.removeItem("muster_registered_name");
     } catch (e) {
-      console.warn("Could not remove session", e);
+      console.warn("Could not remove session/storage", e);
     }
   };
 
@@ -519,7 +536,7 @@ export default function App() {
     }
   };
 
-  if (!authUser && viewMode !== "occupant") {
+  if (!authUser) {
     return (
       <LoginScreen
         onLoginSuccess={handleLoginSuccess}

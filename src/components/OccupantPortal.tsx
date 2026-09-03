@@ -720,16 +720,41 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
           </div>
         </div>
 
-        {(onSwitchToAdmin || onLogout) && (
-          <button
-            type="button"
-            onClick={onSwitchToAdmin || onLogout}
-            className="bg-[#003B70] hover:bg-[#005DAA] text-white px-3 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1.5 transition cursor-pointer shrink-0 shadow-xs"
-          >
-            <span>🛡️</span>
-            <span>FSD Deck</span>
-          </button>
-        )}
+        <div className="flex items-center gap-1.5 shrink-0">
+          {onSwitchToAdmin && (
+            <button
+              type="button"
+              onClick={onSwitchToAdmin}
+              className="bg-[#003B70] hover:bg-[#005DAA] text-white px-2.5 sm:px-3 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1 transition cursor-pointer shadow-xs"
+              title="Open FSD Commander Console"
+            >
+              <span>🛡️</span>
+              <span>FSD Deck</span>
+            </button>
+          )}
+
+          {onLogout && (
+            <button
+              type="button"
+              onClick={() => {
+                try {
+                  localStorage.removeItem("muster_registered_occupant_id");
+                  localStorage.removeItem("muster_occupant_id");
+                  localStorage.removeItem("muster_registered_phone");
+                  localStorage.removeItem("muster_registered_name");
+                } catch {}
+                setSavedOccupantId(null);
+                setViewState("newcomer-signin");
+                onLogout();
+              }}
+              className="bg-white hover:bg-rose-50 border border-rose-300 text-rose-700 px-2.5 sm:px-3 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1 transition cursor-pointer shadow-xs"
+              title="Sign out of device and return to login screen"
+            >
+              <span>🚪</span>
+              <span>Sign Out</span>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Real-Time Emergency Alert & Evacuation Directive Hub */}
@@ -989,7 +1014,16 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
 
                 <button
                   type="button"
-                  onClick={() => setViewState("newcomer-signin")}
+                  onClick={() => {
+                    try {
+                      localStorage.removeItem("muster_registered_occupant_id");
+                      localStorage.removeItem("muster_occupant_id");
+                      localStorage.removeItem("muster_registered_phone");
+                      localStorage.removeItem("muster_registered_name");
+                    } catch {}
+                    setSavedOccupantId(null);
+                    setViewState("newcomer-signin");
+                  }}
                   className="flex-1 py-2 bg-white border border-[#B8D8F8] text-[#005DAA] hover:bg-[#EBF5FB] rounded-xl text-xs font-bold transition cursor-pointer"
                 >
                   ✍️ Sign In As Another Employee or Visitor
