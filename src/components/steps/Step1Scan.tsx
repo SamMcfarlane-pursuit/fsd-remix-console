@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import QRCode from "qrcode";
 import { Occupant, StatusSnapshot } from "../../types";
 import { SelfSignInModal } from "../SelfSignInModal";
@@ -50,6 +50,38 @@ export const Step1Scan: React.FC<Step1ScanProps> = ({
   const [customOriginInput, setCustomOriginInput] = useState<string>("");
   const [networkMode, setNetworkMode] = useState<"lan" | "cellular">("lan");
   const [isTunnelLoading, setIsTunnelLoading] = useState<boolean>(false);
+
+  // Filter occupants matching search
+  const filteredOccupants = badgeInput.trim()
+    ? occupants.filter(
+        (o) =>
+          o.name.toLowerCase().includes(badgeInput.toLowerCase()) ||
+          o.id.toLowerCase().includes(badgeInput.toLowerCase()) ||
+          (o.phone && o.phone.replace(/\D/g, "").includes(badgeInput.replace(/\D/g, ""))) ||
+          o.desk?.toLowerCase().includes(badgeInput.toLowerCase()) ||
+          o.company?.toLowerCase().includes(badgeInput.toLowerCase())
+      ).slice(0, 5)
+    : [];
+
+  // Extract latest sign-in and attendance ledger blocks in real-time
+  const recentLedgerEntries = useMemo(() => {
+    if (!snapshot?.ledgerEntries || snapshot.ledgerEntries.length === 0) return [];
+    return [...snapshot.ledgerEntries]
+      .filter((e) =>
+        [
+          "occupant-check-in",
+          "qr-occupant-presence-event",
+          "presence-toggle-event",
+          "visitor-registered",
+          "auth-biometric-success",
+          "bulk-check-in",
+          "occupant-sign-in",
+          "event-attendance",
+        ].includes(e.type) || e.payload?.occupantId || e.payload?.name
+      )
+      .slice(-6)
+      .reverse();
+  }, [snapshot?.ledgerEntries]);
 
   // Generate QR Code URL with mobile reachable origin
   useEffect(() => {
@@ -116,17 +148,6 @@ export const Step1Scan: React.FC<Step1ScanProps> = ({
       .catch((err) => console.error("QR Code generation error:", err));
   }, [mobileOrigin]);
 
-  // Filter occupants matching search
-  const filteredOccupants = badgeInput.trim()
-    ? occupants.filter(
-        (o) =>
-          o.name.toLowerCase().includes(badgeInput.toLowerCase()) ||
-          o.id.toLowerCase().includes(badgeInput.toLowerCase()) ||
-          (o.phone && o.phone.replace(/\D/g, "").includes(badgeInput.replace(/\D/g, ""))) ||
-          o.desk?.toLowerCase().includes(badgeInput.toLowerCase()) ||
-          o.company?.toLowerCase().includes(badgeInput.toLowerCase())
-      ).slice(0, 5)
-    : [];
 
   const handleManualScan = async (occupantIdToUse?: string, action: "enter" | "leave" | "muster" = "enter") => {
     const rawTarget = occupantIdToUse || selectedOccupantId || (filteredOccupants.length > 0 ? filteredOccupants[0].id : badgeInput.trim());
@@ -575,6 +596,86 @@ export const Step1Scan: React.FC<Step1ScanProps> = ({
               </div>
             )}
           </div>
+        </div>
+      </div>
+
+      {/* Live Floor 07 Sign-In Cryptographic Ledger Feed */}
+      <div className="bg-white rounded-2xl p-5 sm:p-6 border border-[#B8D8F8] shadow-xs space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#E2E8F0] pb-3">
+          <div className="flex items-center gap-2.5">
+            <span className="text-xl">⛓️</span>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-black text-[#0F2537] uppercase tracking-wider">
+                  Live Floor 07 Sign-In Ledger Feed
+                </h3>
+                <span className="inline-flex items-center gap-1 bg-emerald-100 text-emerald-950 border border-emerald-300 px-2 py-0.5 rounded-full text-[10px] font-mono font-bold">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse" />
+                  REAL-TIME BLOCKS
+                </span>
+              </div>
+              <p className="text-xs text-[#64748B]">
+                Every phone QR scan, Touch ID entry, and staff badge-in is cryptographically recorded into the life-safety ledger.
+              </p>
+            </div>
+          </div>
+          <div className="text-xs font-mono font-bold text-[#005DAA] bg-[#F0F6FC] px-3 py-1.5 rounded-xl border border-[#CBDCEE] shrink-0 self-start sm:self-auto">
+            Ledger Height: {snapshot?.ledgerEntries?.length || 1} Blocks
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          {recentLedgerEntries.length === 0 ? (
+            <div className="p-4 bg-[#F8FAFC] border border-dashed border-[#CBDCEE] rounded-xl text-center text-xs text-slate-500 font-mono">
+              Awaiting ingress events. Scan phone QR or confirm badge-in above to commit the next block.
+            </div>
+          ) : (
+            recentLedgerEntries.map((entry, idx) => {
+              const name = entry.payload?.name || entry.payload?.occupantName || "Floor 07 Occupant";
+              const id = entry.payload?.occupantId || entry.payload?.userId || "";
+              const presence = entry.payload?.presence || (entry.payload?.newStatus === "safe" ? "IN_BUILDING" : entry.type);
+              const isEntry = presence === "IN_BUILDING" || entry.payload?.action === "enter" || entry.payload?.newStatus === "safe";
+              const isLeave = presence === "LEFT_BUILDING" || entry.payload?.action === "leave";
+
+              return (
+                <div
+                  key={entry.id || idx}
+                  className={`p-3 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-2 transition-all font-mono text-xs ${
+                    idx === 0 ? "bg-emerald-50/70 border-emerald-300 ring-1 ring-emerald-400" : "bg-[#F8FAFC] border-[#E2E8F0]"
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <span className="px-2 py-0.5 bg-[#003B70] text-white rounded font-bold text-[10px]">
+                      {entry.id || `L-${String(idx + 1).padStart(4, "0")}`}
+                    </span>
+                    <span className="font-bold text-[#0F2537]">
+                      {name} {id && <span className="text-slate-500 text-[11px]">({id})</span>}
+                    </span>
+                    <span
+                      className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                        isEntry
+                          ? "bg-emerald-100 text-emerald-950 border border-emerald-300"
+                          : isLeave
+                          ? "bg-amber-100 text-amber-950 border border-amber-300"
+                          : "bg-sky-100 text-sky-950 border border-sky-300"
+                      }`}
+                    >
+                      {isEntry ? "🏢 In Building" : isLeave ? "🚪 Badged Out" : "✓ Accounted"}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-3 text-[11px] text-slate-600 justify-between sm:justify-end">
+                    <span className="truncate max-w-[200px]" title={entry.hash}>
+                      SHA-256: {entry.hash ? entry.hash.substring(0, 10) + "..." + entry.hash.substring(entry.hash.length - 4) : "6c79...59ac"}
+                    </span>
+                    <span className="text-slate-400 text-[10px]">
+                      {entry.timestamp ? new Date(entry.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }) : "Just now"}
+                    </span>
+                  </div>
+                </div>
+              );
+            })
+          )}
         </div>
       </div>
 

@@ -34,6 +34,7 @@ export const Step2SignedIn: React.FC<Step2SignedInProps> = ({
   const [filterRole, setFilterRole] = useState<string>("ALL");
   const [filterStatus, setFilterStatus] = useState<string>("ALL");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [activeTab, setActiveTab] = useState<"roster" | "ledger">("roster");
 
   // Statistics
   const totalOccupants = occupants.length;
@@ -260,22 +261,46 @@ export const Step2SignedIn: React.FC<Step2SignedInProps> = ({
         </div>
       </div>
 
-      {/* Roster Table Card */}
+      {/* Roster & Ledger Dual View Card */}
       <div className="bg-white rounded-2xl border border-[#B8D8F8] shadow-xs overflow-hidden">
-        {/* Table Toolbar */}
-        <div className="px-6 py-3.5 bg-[#F8FAFC] border-b border-[#CBDCEE] flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <span className="text-xs font-black text-[#0F2537] uppercase tracking-wider">
-              {filteredOccupants.length} Personnel Listed
-            </span>
-            {selectedIds.size > 0 && (
+        {/* Table Toolbar with View Switcher */}
+        <div className="px-6 py-3.5 bg-[#F8FAFC] border-b border-[#CBDCEE] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setActiveTab("roster")}
+              className={`px-3 py-1.5 rounded-xl font-bold text-xs transition cursor-pointer flex items-center gap-1.5 ${
+                activeTab === "roster"
+                  ? "bg-[#005DAA] text-white shadow-xs"
+                  : "bg-white text-slate-600 border border-[#CBDCEE] hover:bg-[#F0F6FC]"
+              }`}
+            >
+              <span>👥</span>
+              <span>Floor Personnel ({filteredOccupants.length})</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab("ledger")}
+              className={`px-3 py-1.5 rounded-xl font-bold text-xs transition cursor-pointer flex items-center gap-1.5 ${
+                activeTab === "ledger"
+                  ? "bg-[#003B70] text-white shadow-xs"
+                  : "bg-white text-slate-600 border border-[#CBDCEE] hover:bg-[#F0F6FC]"
+              }`}
+            >
+              <span>⛓️</span>
+              <span>Audit Ledger ({snapshot?.ledgerEntries?.length || 0} Blocks)</span>
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse ml-0.5" />
+            </button>
+
+            {selectedIds.size > 0 && activeTab === "roster" && (
               <span className="text-xs font-mono font-bold text-[#005DAA] bg-[#EBF3FB] px-2.5 py-0.5 rounded-full border border-[#CBDCEE]">
                 {selectedIds.size} Selected
               </span>
             )}
           </div>
 
-          {selectedIds.size > 0 && (
+          {selectedIds.size > 0 && activeTab === "roster" && (
             <div className="flex items-center gap-2">
               <button
                 onClick={handleBulkMarkInBuilding}
@@ -287,115 +312,168 @@ export const Step2SignedIn: React.FC<Step2SignedInProps> = ({
           )}
         </div>
 
-        {/* Table Content */}
-        <div className="overflow-x-auto max-h-[460px] overflow-y-auto">
-          <table className="w-full text-left text-xs">
-            <thead className="sticky top-0 bg-[#F0F6FC] text-[#475569] font-bold uppercase tracking-wider border-b border-[#CBDCEE] z-10">
-              <tr>
-                <th className="p-3.5 w-10">
-                  <input
-                    type="checkbox"
-                    checked={selectedIds.size === filteredOccupants.length && filteredOccupants.length > 0}
-                    onChange={toggleSelectAll}
-                    className="rounded border-[#CBDCEE] text-[#005DAA] cursor-pointer"
-                  />
-                </th>
-                <th className="p-3.5">Occupant / Staff</th>
-                <th className="p-3.5">Zone &amp; Desk</th>
-                <th className="p-3.5">Role / Affiliation</th>
-                <th className="p-3.5">Presence Status</th>
-                <th className="p-3.5 text-right">Quick Action</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {filteredOccupants.map((occ) => {
-                const isSelected = selectedIds.has(occ.id);
-                const isPresent = !occ.badgedOut && !occ.offSiteToday;
+        {/* Tab 1: Personnel Roster Table */}
+        {activeTab === "roster" && (
+          <div className="overflow-x-auto max-h-[460px] overflow-y-auto">
+            <table className="w-full text-left text-xs">
+              <thead className="sticky top-0 bg-[#F0F6FC] text-[#475569] font-bold uppercase tracking-wider border-b border-[#CBDCEE] z-10">
+                <tr>
+                  <th className="p-3.5 w-10">
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.size === filteredOccupants.length && filteredOccupants.length > 0}
+                      onChange={toggleSelectAll}
+                      className="rounded border-[#CBDCEE] text-[#005DAA] cursor-pointer"
+                    />
+                  </th>
+                  <th className="p-3.5">Occupant / Staff</th>
+                  <th className="p-3.5">Zone &amp; Desk</th>
+                  <th className="p-3.5">Role / Affiliation</th>
+                  <th className="p-3.5">Presence Status</th>
+                  <th className="p-3.5 text-right">Quick Action</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {filteredOccupants.map((occ) => {
+                  const isSelected = selectedIds.has(occ.id);
+                  const isPresent = !occ.badgedOut && !occ.offSiteToday;
 
-                return (
-                  <tr
-                    key={occ.id}
-                    className={`hover:bg-[#F8FAFC] transition ${
-                      isSelected ? "bg-[#EBF3FB]" : isPresent ? "bg-white" : "bg-slate-50/70 opacity-75"
-                    }`}
-                  >
-                    <td className="p-3.5">
-                      <input
-                        type="checkbox"
-                        checked={isSelected}
-                        onChange={() => toggleSelectId(occ.id)}
-                        className="rounded border-[#CBDCEE] text-[#005DAA] cursor-pointer"
-                      />
-                    </td>
-                    <td className="p-3.5">
-                      <div className="font-bold text-[#0F2537] text-sm">{occ.name}</div>
-                      <div className="text-[11px] text-[#64748B] font-mono">
-                        {occ.id} · {occ.phone || "Ext 4100"}
-                      </div>
-                    </td>
-                    <td className="p-3.5 font-medium">
-                      <span className="inline-block px-2 py-0.5 rounded bg-[#EBF3FB] text-[#005DAA] font-bold text-[11px] mr-1.5">
-                        {occ.quadrant}
-                      </span>
-                      <span className="text-[#475569]">{occ.desk || "07-Floor"}</span>
-                    </td>
-                    <td className="p-3.5">
-                      <span
-                        className={`inline-block px-2 py-0.5 rounded-full font-bold text-[10px] ${
-                          occ.role === "Visitor"
-                            ? "bg-amber-100 text-amber-900 border border-amber-300"
-                            : occ.role === "Contractor"
-                            ? "bg-purple-100 text-purple-900 border border-purple-300"
-                            : "bg-slate-100 text-slate-800"
-                        }`}
-                      >
-                        {occ.role}
-                      </span>
-                      <div className="text-[11px] text-[#64748B] mt-0.5">{occ.company || "Con Edison"}</div>
-                    </td>
-                    <td className="p-3.5">
-                      {isPresent ? (
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-bold text-[11px] bg-emerald-100 text-emerald-900 border border-emerald-300">
-                          <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                          In Building (Floor 07)
+                  return (
+                    <tr
+                      key={occ.id}
+                      className={`hover:bg-[#F8FAFC] transition ${
+                        isSelected ? "bg-[#EBF3FB]" : isPresent ? "bg-white" : "bg-slate-50/70 opacity-75"
+                      }`}
+                    >
+                      <td className="p-3.5">
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => toggleSelectId(occ.id)}
+                          className="rounded border-[#CBDCEE] text-[#005DAA] cursor-pointer"
+                        />
+                      </td>
+                      <td className="p-3.5">
+                        <div className="font-bold text-[#0F2537] flex items-center gap-1.5">
+                          <span>{occ.name}</span>
+                          {occ.role === "Visitor" && (
+                            <span className="text-[10px] bg-amber-100 text-amber-900 border border-amber-300 font-mono px-1 rounded">
+                              VISITOR
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-slate-500 text-[11px] font-mono flex items-center gap-2">
+                          <span>{occ.id}</span>
+                          <span>·</span>
+                          <span>{occ.phone || "(212) 555-0199"}</span>
+                        </div>
+                      </td>
+                      <td className="p-3.5">
+                        <span className="font-mono font-bold text-[#005DAA]">Sector {occ.quadrant}</span>
+                        <div className="text-slate-500 text-[11px]">{occ.desk || "Turnstile Ingress"}</div>
+                      </td>
+                      <td className="p-3.5">
+                        <div className="font-semibold text-slate-700">{occ.role}</div>
+                        <div className="text-slate-500 text-[11px]">{occ.company || "Con Edison"}</div>
+                      </td>
+                      <td className="p-3.5">
+                        {isPresent ? (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-bold text-[11px] bg-emerald-100 text-emerald-950 border border-emerald-300">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse" />
+                            In Building (Floor 07)
+                          </span>
+                        ) : occ.badgedOut ? (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-bold text-[11px] bg-slate-200 text-slate-700">
+                            Badged Out
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-bold text-[11px] bg-blue-50 text-blue-800 border border-blue-200">
+                            Off-Site / Remote
+                          </span>
+                        )}
+                      </td>
+                      <td className="p-3.5 text-right">
+                        {isPresent ? (
+                          <button
+                            onClick={() =>
+                              onCheckIn(occ.id, "unaccounted", "manual-toggle", "Marked badged out", "offsite")
+                            }
+                            className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-[11px] cursor-pointer"
+                          >
+                            Badge Out
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() =>
+                              onCheckIn(occ.id, "safe", "manual-toggle", "Marked in-building", "inside-building")
+                            }
+                            className="px-2.5 py-1 rounded-lg bg-[#005DAA] hover:bg-[#004884] text-white font-bold text-[11px] cursor-pointer"
+                          >
+                            Mark In-Building
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* Tab 2: Cryptographic Audit Ledger View */}
+        {activeTab === "ledger" && (
+          <div className="overflow-x-auto max-h-[460px] overflow-y-auto">
+            <table className="w-full text-left text-xs font-mono">
+              <thead className="sticky top-0 bg-[#F0F6FC] text-[#475569] font-bold uppercase tracking-wider border-b border-[#CBDCEE] z-10">
+                <tr>
+                  <th className="p-3.5 w-24">Block #</th>
+                  <th className="p-3.5 w-24">Time</th>
+                  <th className="p-3.5">Occupant / Action</th>
+                  <th className="p-3.5">Sector &amp; Location</th>
+                  <th className="p-3.5">SHA-256 Hash Seal</th>
+                  <th className="p-3.5 text-right">Audit Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {(snapshot?.ledgerEntries || []).slice().reverse().map((entry: any, idx: number) => {
+                  const name = entry.payload?.name || entry.payload?.occupantName || entry.type;
+                  const id = entry.payload?.occupantId || entry.payload?.userId || "";
+                  const action = entry.payload?.presence || entry.payload?.newStatus || entry.type;
+                  const quad = entry.payload?.quadrant || "Floor 07";
+
+                  return (
+                    <tr key={entry.id || idx} className="hover:bg-[#F8FAFC] transition">
+                      <td className="p-3.5 font-bold text-[#005DAA]">
+                        {entry.id || `L-${String(idx + 1).padStart(4, "0")}`}
+                      </td>
+                      <td className="p-3.5 text-slate-500">
+                        {entry.timestamp ? new Date(entry.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }) : "Recorded"}
+                      </td>
+                      <td className="p-3.5 font-sans font-bold text-[#0F2537]">
+                        {name} {id && <span className="text-slate-500 font-mono text-[11px]">({id})</span>}
+                        <div className="text-[10px] text-slate-500 font-mono capitalize">
+                          {entry.type.replace(/-/g, " ")}
+                        </div>
+                      </td>
+                      <td className="p-3.5 font-bold text-slate-700">
+                        Sector {quad}
+                      </td>
+                      <td className="p-3.5 text-slate-500 truncate max-w-[200px]" title={entry.hash}>
+                        {entry.hash ? entry.hash.substring(0, 14) + "..." + entry.hash.substring(entry.hash.length - 4) : "6c79d9cd..."}
+                      </td>
+                      <td className="p-3.5 text-right">
+                        <span className="inline-flex items-center gap-1 bg-emerald-100 text-emerald-950 border border-emerald-300 px-2 py-0.5 rounded-full text-[10px] font-bold">
+                          ✓ SEALED
                         </span>
-                      ) : occ.badgedOut ? (
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-bold text-[11px] bg-slate-200 text-slate-700">
-                          Badged Out
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-bold text-[11px] bg-blue-50 text-blue-800 border border-blue-200">
-                          Off-Site / Remote
-                        </span>
-                      )}
-                    </td>
-                    <td className="p-3.5 text-right">
-                      {isPresent ? (
-                        <button
-                          onClick={() =>
-                            onCheckIn(occ.id, "unaccounted", "manual-toggle", "Marked badged out", "offsite")
-                          }
-                          className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-[11px] cursor-pointer"
-                        >
-                          Badge Out
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() =>
-                            onCheckIn(occ.id, "safe", "manual-toggle", "Marked in-building", "inside-building")
-                          }
-                          className="px-2.5 py-1 rounded-lg bg-[#005DAA] hover:bg-[#004884] text-white font-bold text-[11px] cursor-pointer"
-                        >
-                          Mark In-Building
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </div>
   );

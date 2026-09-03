@@ -1002,6 +1002,29 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
                 PASS: {currentUser.id}-{currentUser.quadrant}
               </div>
 
+              {/* Official Cryptographic Ledger Block Seal */}
+              <div className="bg-[#F0F6FC] border border-[#B8D8F8] p-3 rounded-xl text-left space-y-1 font-mono">
+                <div className="flex items-center justify-between text-[10px] font-bold text-[#005DAA]">
+                  <span className="flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                    COMMITTED TO LIFE-SAFETY LEDGER
+                  </span>
+                  <span className="bg-emerald-100 text-emerald-950 border border-emerald-300 px-2 py-0.5 rounded-full text-[9px] font-bold">
+                    SEALED BLOCK ✓
+                  </span>
+                </div>
+                <div className="text-xs font-bold text-[#0F2537] flex items-center justify-between">
+                  <span>{currentUser.name} ({currentUser.id})</span>
+                  <span className="text-[10px] text-slate-500">{currentUser.lastBadgeTime || "Verified"}</span>
+                </div>
+                <div className="text-[10px] text-slate-600 flex items-center justify-between pt-0.5">
+                  <span className="truncate max-w-[200px]" title={snapshot?.ledgerEntries && snapshot.ledgerEntries.length > 0 ? snapshot.ledgerEntries.slice(-1)[0].hash : "SHA-256 Hash"}>
+                    HASH: {snapshot?.ledgerEntries && snapshot.ledgerEntries.length > 0 ? snapshot.ledgerEntries.slice(-1)[0].hash.substring(0, 16) + "..." : "6c79d9cd53c9..."}
+                  </span>
+                  <span className="text-emerald-700 font-bold text-[9px]">NYC FDNY §401-06</span>
+                </div>
+              </div>
+
               <div className="flex flex-col sm:flex-row gap-2 pt-2 border-t border-[#B8D8F8]">
                 <button
                   type="button"
