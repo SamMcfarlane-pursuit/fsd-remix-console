@@ -10,6 +10,10 @@ import {
   Lock,
   CheckCircle2,
   AlertTriangle,
+  QrCode,
+  ShieldAlert,
+  KeyRound,
+  ExternalLink,
 } from "lucide-react";
 import { AuthUser, QuadrantId } from "../types";
 import { SignInQRPosterModal } from "./SignInQRPosterModal";
@@ -24,14 +28,14 @@ interface LoginScreenProps {
   onOpenQRPoster?: () => void;
 }
 
-type UserCategory = "worker" | "visitor" | "admin";
+type UserCategory = "qr" | "worker" | "visitor" | "admin";
 
 export default function LoginScreen({
   onLoginSuccess,
   onEnterOccupantApp,
   onOpenQRPoster,
 }: LoginScreenProps) {
-  const [activeCategory, setActiveCategory] = useState<UserCategory>("worker");
+  const [activeCategory, setActiveCategory] = useState<UserCategory>("qr");
 
   // Worker inputs
   const [workerName, setWorkerName] = useState<string>("Sarah Jenkins");
@@ -75,7 +79,7 @@ export default function LoginScreen({
   useEffect(() => {
     const targetUrl = `${activeNetworkOrigin}/?mode=signin&scan=1`;
     QRCode.toDataURL(targetUrl, {
-      width: 300,
+      width: 320,
       margin: 1,
       color: {
         dark: "#003B70",
@@ -126,7 +130,9 @@ export default function LoginScreen({
       if (res.ok) {
         const data = await res.json();
         try {
+          localStorage.setItem("muster_registered_occupant_id", data.occupant.id);
           localStorage.setItem("muster_occupant_id", data.occupant.id);
+          localStorage.setItem("muster_registered_name", data.occupant.name);
         } catch {}
         setSuccessMsg(`Welcome ${data.occupant.name}! Recorded as PRESENT on Floor 07.`);
         setTimeout(() => {
@@ -201,7 +207,7 @@ export default function LoginScreen({
           localStorage.setItem("muster_occupant_id", data.occupant.id);
           localStorage.setItem("muster_registered_name", data.occupant.name);
         } catch {}
-        setSuccessMsg(`Visitor Pass #${data.occupant.id} Issued! Welcome to Floor 07.`);
+        setSuccessMsg(`Visitor Pass ${data.occupant.id} Issued for ${data.occupant.name}!`);
         setTimeout(() => {
           onEnterOccupantApp();
         }, 600);
@@ -209,7 +215,6 @@ export default function LoginScreen({
         onEnterOccupantApp();
       }
     } catch {
-      // Offline fallback: create offline visitor pass
       const offlineVisitor = createOfflineOccupant({
         name: visitorName.trim(),
         phone: visitorPhone.trim(),
@@ -267,18 +272,18 @@ export default function LoginScreen({
           role: "fsd_director",
           roleLabel: "Fire Safety Director",
           caps: 8,
-          capsList: ["incident:control", "attendance:view"],
+          capsList: ["incident:control", "attendance:view", "alarm:trigger", "broadcast:send"],
           token: `AUTH-ADMIN-${Date.now()}`,
           authMethod: "PIN_CREDENTIAL",
         },
         warden: {
           id: "warden.nw",
           userId: "warden.nw",
-          name: "Michael Chang",
+          name: "Michael Chen",
           role: "warden",
-          roleLabel: "Floor Warden (NW)",
+          roleLabel: "Floor Warden (Sector NW)",
           caps: 4,
-          capsList: ["incident:view", "attendance:manage"],
+          capsList: ["attendance:scan", "attendance:view"],
           quadrant: "NW",
           token: `AUTH-WARDEN-${Date.now()}`,
           authMethod: "PIN_CREDENTIAL",
@@ -296,7 +301,10 @@ export default function LoginScreen({
         },
       };
 
-      onLoginSuccess(adminProfiles[adminRole]);
+      setSuccessMsg(`Welcome Commander! Unlocking 5-Step Emergency Deck...`);
+      setTimeout(() => {
+        onLoginSuccess(adminProfiles[adminRole]);
+      }, 400);
     } finally {
       setIsLoading(false);
     }
@@ -317,7 +325,7 @@ export default function LoginScreen({
           handleWorkerSignIn();
         }
       }
-    } catch (err: any) {
+    } catch {
       setErrorMsg("Biometric verification canceled.");
     } finally {
       setIsLoading(false);
@@ -326,10 +334,10 @@ export default function LoginScreen({
 
   return (
     <div className="min-h-screen bg-[#070D18] flex flex-col items-center justify-center p-3 sm:p-6 selection:bg-[#FF6B00] selection:text-black">
-      {/* Background Ambience */}
-      <div className="fixed inset-0 pointer-events-none opacity-25 bg-[radial-gradient(#1E3A60_1px,transparent_1px)] [background-size:24px_24px]" />
+      {/* Ambient Grid Background */}
+      <div className="fixed inset-0 pointer-events-none opacity-20 bg-[radial-gradient(#1E3A60_1px,transparent_1px)] [background-size:24px_24px]" />
 
-      <div className="w-full max-w-lg relative z-10 my-auto py-2 space-y-4">
+      <div className="w-full max-w-md sm:max-w-lg relative z-10 my-auto py-2 space-y-4">
         {/* Header Branding */}
         <div className="text-center space-y-1">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#1E3A60]/60 border border-[#1E3A60] rounded-full text-[10px] font-mono font-bold text-[#38BDF8] uppercase tracking-wider">
@@ -340,200 +348,231 @@ export default function LoginScreen({
             MUSTERCOMMAND
           </h1>
           <p className="text-xs font-mono text-[#829AB8] uppercase tracking-widest">
-            Floor 07 Ingress &amp; Life-Safety Portal
+            Floor 07 Life-Safety &amp; Ingress Portal
           </p>
         </div>
 
-        {/* ========================================================= */}
-        {/* PROMINENT QR CODE HERO (AT THE VERY BEGINNING OF SIGN-IN) */}
-        {/* ========================================================= */}
-        <div className="bg-[#0B172B] border-2 border-[#005DAA] rounded-2xl p-4 sm:p-5 shadow-2xl relative overflow-hidden text-center space-y-3">
-          {/* Subtle Ambient Light Accents */}
-          <div className="absolute top-0 right-0 w-32 h-32 bg-[#005DAA]/20 rounded-full blur-3xl pointer-events-none" />
-          <div className="absolute bottom-0 left-0 w-32 h-32 bg-[#38BDF8]/15 rounded-full blur-3xl pointer-events-none" />
+        {/* Clear, Intuitive 4-Segmented Intent Selector */}
+        <div className="bg-[#0B172B] p-1.5 rounded-2xl border border-[#1E3A60] grid grid-cols-4 gap-1 shadow-xl text-xs font-bold">
+          <button
+            type="button"
+            onClick={() => {
+              setActiveCategory("qr");
+              setErrorMsg(null);
+            }}
+            className={`py-2 px-1.5 rounded-xl transition cursor-pointer flex flex-col items-center justify-center gap-0.5 ${
+              activeCategory === "qr"
+                ? "bg-[#005DAA] text-white shadow-md font-black"
+                : "text-slate-400 hover:text-white hover:bg-slate-800/40"
+            }`}
+          >
+            <QrCode className="w-4 h-4" />
+            <span className="text-[11px]">Phone QR</span>
+          </button>
 
-          {/* Card Top Title & Quick Link */}
-          <div className="flex items-center justify-between border-b border-[#1E3A60] pb-2.5">
-            <div className="text-left flex items-center gap-2">
-              <span className="flex h-2.5 w-2.5 relative">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
-              </span>
-              <div>
-                <span className="text-[10px] font-mono font-black text-[#38BDF8] uppercase tracking-wider block">
-                  FAST SMARTPHONE INGRESS
-                </span>
-                <h2 className="text-sm sm:text-base font-black text-white uppercase tracking-wide">
-                  Scan QR with Camera to Sign In
-                </h2>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => {
-                if (onOpenQRPoster) onOpenQRPoster();
-                else setIsQrModalOpen(true);
-              }}
-              className="text-[10px] font-mono font-bold text-[#38BDF8] hover:text-white bg-[#1E3A60]/60 hover:bg-[#1E3A60] px-2.5 py-1 rounded-lg border border-[#38BDF8]/30 transition cursor-pointer flex items-center gap-1 shrink-0"
-              title="Open Printable Official Poster"
-            >
-              <span>Full Poster</span>
-              <span>↗</span>
-            </button>
-          </div>
-
-          {/* High-Contrast Robust QR Code & Quick Instructions */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 py-1">
-            {/* The QR Code */}
-            <div className="p-3 bg-white rounded-2xl shadow-xl border-2 border-[#38BDF8]/50 shrink-0">
-              {loginQrDataUrl ? (
-                <img
-                  src={loginQrDataUrl}
-                  alt="Scan QR Code to Sign In"
-                  className="w-36 h-36 sm:w-40 sm:h-40 object-contain block mx-auto"
-                />
-              ) : (
-                <div className="w-36 h-36 sm:w-40 sm:h-40 flex items-center justify-center text-slate-400 text-xs font-mono">
-                  Generating QR...
-                </div>
-              )}
-            </div>
-
-            {/* Side Instructions */}
-            <div className="text-left space-y-2.5 max-w-xs">
-              <div className="space-y-1">
-                <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-emerald-950/80 text-emerald-400 border border-emerald-500/40">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                  <span>
-                    {activeNetworkOrigin.includes(".trycloudflare.com")
-                      ? "🌐 5G CELLULAR SCANNABLE"
-                      : "🏢 BUILDING WI-FI READY"}
-                  </span>
-                </div>
-                <p className="text-xs text-slate-200 font-semibold leading-snug">
-                  Point any phone camera at this QR code to check in on Floor 07.
-                </p>
-                <p className="text-[11px] text-[#829AB8] leading-tight">
-                  • <strong className="text-emerald-400">Normal staff</strong>: Auto-accounted instantly with pass.
-                  <br />
-                  • <strong className="text-sky-400">First-time visitors</strong>: Quick 10-second intake.
-                </p>
-              </div>
-
-              {/* URL Display */}
-              <div className="text-[10px] font-mono text-slate-400 truncate bg-[#070D18] p-1.5 rounded-lg border border-[#1E3A60] select-all">
-                {activeNetworkOrigin}/?mode=signin&scan=1
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Divider: OR SIGN IN ON THIS TERMINAL */}
-        <div className="relative flex items-center justify-center py-1">
-          <div className="border-t border-[#1E3A60] w-full" />
-          <span className="bg-[#070D18] px-3 text-[10px] font-mono font-bold uppercase tracking-widest text-[#829AB8] shrink-0">
-            OR SIGN IN ON THIS TERMINAL
-          </span>
-          <div className="border-t border-[#1E3A60] w-full" />
-        </div>
-
-        {/* Unified 3-Segmented Role Selector */}
-        <div className="bg-[#0B172B] p-1.5 rounded-2xl border border-[#1E3A60] flex gap-1 shadow-lg text-xs font-bold">
           <button
             type="button"
             onClick={() => {
               setActiveCategory("worker");
               setErrorMsg(null);
             }}
-            className={`flex-1 py-2.5 px-2 rounded-xl transition cursor-pointer flex flex-col items-center justify-center gap-0.5 ${
+            className={`py-2 px-1.5 rounded-xl transition cursor-pointer flex flex-col items-center justify-center gap-0.5 ${
               activeCategory === "worker"
                 ? "bg-[#005DAA] text-white shadow-md font-black"
                 : "text-slate-400 hover:text-white hover:bg-slate-800/40"
             }`}
           >
-            <span className="text-base">🏢</span>
-            <span>Worker</span>
+            <span className="text-sm">🏢</span>
+            <span className="text-[11px]">Worker</span>
           </button>
+
           <button
             type="button"
             onClick={() => {
               setActiveCategory("visitor");
               setErrorMsg(null);
             }}
-            className={`flex-1 py-2.5 px-2 rounded-xl transition cursor-pointer flex flex-col items-center justify-center gap-0.5 ${
+            className={`py-2 px-1.5 rounded-xl transition cursor-pointer flex flex-col items-center justify-center gap-0.5 ${
               activeCategory === "visitor"
                 ? "bg-amber-600 text-white shadow-md font-black"
                 : "text-slate-400 hover:text-white hover:bg-slate-800/40"
             }`}
           >
-            <span className="text-base">🎟️</span>
-            <span>Visitor</span>
+            <span className="text-sm">🎟️</span>
+            <span className="text-[11px]">Visitor</span>
           </button>
+
           <button
             type="button"
             onClick={() => {
               setActiveCategory("admin");
               setErrorMsg(null);
             }}
-            className={`flex-1 py-2.5 px-2 rounded-xl transition cursor-pointer flex flex-col items-center justify-center gap-0.5 ${
+            className={`py-2 px-1.5 rounded-xl transition cursor-pointer flex flex-col items-center justify-center gap-0.5 ${
               activeCategory === "admin"
                 ? "bg-red-600 text-white shadow-md font-black"
                 : "text-slate-400 hover:text-white hover:bg-slate-800/40"
             }`}
           >
-            <span className="text-base">🛡️</span>
-            <span>Admin</span>
+            <span className="text-sm">🛡️</span>
+            <span className="text-[11px]">Admin</span>
           </button>
         </div>
 
-        {/* Main Clean Card */}
-        <div className="bg-[#0B172B] border border-[#1E3A60] rounded-2xl p-5 sm:p-6 shadow-2xl backdrop-blur-sm space-y-4 text-white text-xs">
-          {/* Feedback Toasts */}
-          {errorMsg && (
-            <div className="p-3 bg-red-950/80 border border-red-500/60 rounded-xl text-red-200 font-medium flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4 text-red-400 shrink-0" />
-              <span>{errorMsg}</span>
-            </div>
-          )}
+        {/* Feedback Toasts */}
+        {errorMsg && (
+          <div className="p-3 bg-red-950/80 border border-red-500/60 rounded-xl text-red-200 font-medium flex items-center gap-2 text-xs animate-fadeIn">
+            <AlertTriangle className="w-4 h-4 text-red-400 shrink-0" />
+            <span>{errorMsg}</span>
+          </div>
+        )}
 
-          {successMsg && (
-            <div className="p-3 bg-emerald-950/80 border border-emerald-500/60 rounded-xl text-emerald-200 font-bold flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-              <span>{successMsg}</span>
-            </div>
-          )}
+        {successMsg && (
+          <div className="p-3 bg-emerald-950/80 border border-emerald-500/60 rounded-xl text-emerald-200 font-bold flex items-center gap-2 text-xs animate-fadeIn">
+            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+            <span>{successMsg}</span>
+          </div>
+        )}
 
-          {/* ========================================================= */}
-          {/* 1. WORKER / EMPLOYEE TAB                                  */}
-          {/* ========================================================= */}
-          {activeCategory === "worker" && (
-            <form onSubmit={handleWorkerSignIn} className="space-y-3.5 animate-fadeIn">
-              <div className="text-slate-300 font-medium pb-1 border-b border-[#1E3A60] flex items-center justify-between">
-                <span>Con Edison Staff Sign-In (Floor 07)</span>
-                <span className="text-[10px] text-sky-400 font-mono">195 Expected</span>
+        {/* ========================================================= */}
+        {/* MODE 1: PROMINENT PHONE QR INGRESS (CLEAN & FOCUSED)      */}
+        {/* ========================================================= */}
+        {activeCategory === "qr" && (
+          <div className="bg-[#0B172B] border-2 border-[#005DAA] rounded-2xl p-5 sm:p-6 shadow-2xl relative overflow-hidden text-center space-y-4 animate-fadeIn">
+            <div className="flex items-center justify-between border-b border-[#1E3A60] pb-3">
+              <div className="text-left flex items-center gap-2">
+                <span className="flex h-2.5 w-2.5 relative">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
+                </span>
+                <div>
+                  <span className="text-[10px] font-mono font-black text-[#38BDF8] uppercase tracking-wider block">
+                    FAST SMARTPHONE INGRESS
+                  </span>
+                  <h2 className="text-base sm:text-lg font-black text-white uppercase tracking-wide">
+                    Scan QR with Phone Camera
+                  </h2>
+                </div>
               </div>
 
-              {/* 1-Tap Fingerprint / Touch ID Button */}
               <button
                 type="button"
-                onClick={handleBiometricClick}
-                disabled={isLoading}
-                className="w-full py-2.5 px-3 bg-linear-to-r from-[#0E2648] to-[#133664] hover:from-[#133664] hover:to-[#184682] border border-sky-400/40 hover:border-sky-400 text-sky-200 rounded-xl transition cursor-pointer flex items-center justify-between shadow-sm"
+                onClick={() => {
+                  if (onOpenQRPoster) onOpenQRPoster();
+                  else setIsQrModalOpen(true);
+                }}
+                className="text-[10px] font-mono font-bold text-[#38BDF8] hover:text-white bg-[#1E3A60]/60 hover:bg-[#1E3A60] px-2.5 py-1.5 rounded-lg border border-[#38BDF8]/30 transition cursor-pointer flex items-center gap-1 shrink-0"
+                title="Open Printable Official Poster"
               >
-                <div className="flex items-center gap-2.5">
-                  <Fingerprint className="w-5 h-5 text-sky-400" />
-                  <div className="text-left">
-                    <div className="font-bold text-white text-[11px]">1-Tap Fingerprint / Touch ID</div>
-                    <div className="text-[10px] text-slate-400 font-mono">Quick scan sensor</div>
+                <span>Full Poster</span>
+                <span>↗</span>
+              </button>
+            </div>
+
+            {/* High-Contrast Robust QR Code */}
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-5 py-2">
+              <div className="p-3 bg-white rounded-2xl shadow-xl border-2 border-[#38BDF8]/50 shrink-0">
+                {loginQrDataUrl ? (
+                  <img
+                    src={loginQrDataUrl}
+                    alt="Scan QR Code to Sign In"
+                    className="w-44 h-44 sm:w-48 sm:h-48 object-contain block mx-auto"
+                  />
+                ) : (
+                  <div className="w-44 h-44 sm:w-48 sm:h-48 flex items-center justify-center text-slate-400 text-xs font-mono">
+                    Generating QR...
+                  </div>
+                )}
+              </div>
+
+              <div className="text-left space-y-3 max-w-xs">
+                <div className="space-y-1">
+                  <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-emerald-950/80 text-emerald-400 border border-emerald-500/40">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                    <span>
+                      {activeNetworkOrigin.includes(".trycloudflare.com")
+                        ? "🌐 5G CELLULAR SCANNABLE"
+                        : "🏢 BUILDING WI-FI READY"}
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-200 font-semibold leading-relaxed">
+                    Point your iPhone or Android camera at the QR code to check in on Floor 07.
+                  </p>
+                </div>
+
+                <div className="space-y-1 text-[11px] text-[#829AB8] bg-[#070D18] p-2.5 rounded-xl border border-[#1E3A60]">
+                  <div className="flex items-center gap-1.5 text-emerald-400 font-bold">
+                    <span>✓</span>
+                    <span>Normal staff: Auto-accounted instantly</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-sky-400 font-bold">
+                    <span>✓</span>
+                    <span>Visitors: Quick 10-second intake</span>
                   </div>
                 </div>
-                <ArrowRight className="w-4 h-4 text-sky-400" />
-              </button>
 
-              {/* Worker Name / Badge */}
+                <div className="text-[10px] font-mono text-slate-400 truncate bg-[#070D18] p-1.5 rounded-lg border border-[#1E3A60] select-all">
+                  {activeNetworkOrigin}/?mode=signin&scan=1
+                </div>
+              </div>
+            </div>
+
+            {/* Quick Switch Prompt */}
+            <div className="pt-2 border-t border-[#1E3A60] flex items-center justify-between text-xs text-slate-400">
+              <span>Signing in without a phone?</span>
+              <button
+                type="button"
+                onClick={() => setActiveCategory("worker")}
+                className="text-[#38BDF8] hover:underline font-bold cursor-pointer"
+              >
+                Use Terminal Sign-In →
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ========================================================= */}
+        {/* MODE 2: WORKER TERMINAL INGRESS (TOUCH ID + NAME SEARCH)  */}
+        {/* ========================================================= */}
+        {activeCategory === "worker" && (
+          <div className="bg-[#0B172B] border border-[#1E3A60] rounded-2xl p-5 sm:p-6 shadow-2xl space-y-4 text-white text-xs animate-fadeIn">
+            <div className="flex items-center justify-between border-b border-[#1E3A60] pb-3">
               <div>
-                <label className="block text-[10px] font-mono font-bold tracking-widest text-[#829AB8] uppercase mb-1">
+                <span className="text-[10px] font-mono text-[#38BDF8] font-bold uppercase tracking-wider block">
+                  CON EDISON EMPLOYEE PORTAL
+                </span>
+                <h2 className="text-base font-black text-white uppercase">
+                  Staff Ingress &amp; Attendance
+                </h2>
+              </div>
+              <span className="text-[10px] font-mono bg-[#1E3A60] text-slate-300 px-2 py-0.5 rounded">
+                195 Expected
+              </span>
+            </div>
+
+            {/* 1-Tap Touch ID Fingerprint Sensor */}
+            <button
+              type="button"
+              onClick={handleBiometricClick}
+              disabled={isLoading}
+              className="w-full bg-[#152744] hover:bg-[#1E3A60] border-2 border-[#005DAA] text-white p-3.5 rounded-xl transition cursor-pointer flex items-center justify-between shadow-sm group"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-lg bg-[#005DAA] flex items-center justify-center text-white shrink-0 group-hover:scale-105 transition">
+                  <Fingerprint className="w-5 h-5" />
+                </div>
+                <div className="text-left">
+                  <div className="font-bold text-xs text-white">1-Tap Fingerprint / Touch ID</div>
+                  <div className="text-[11px] text-slate-400">Instant hardware biometric verification</div>
+                </div>
+              </div>
+              <ArrowRight className="w-4 h-4 text-sky-400 group-hover:translate-x-0.5 transition" />
+            </button>
+
+            {/* Manual Form */}
+            <form onSubmit={handleWorkerSignIn} className="space-y-3.5 pt-1">
+              <div>
+                <label className="text-[10px] font-mono font-bold tracking-widest text-[#829AB8] uppercase block mb-1">
                   FULL NAME OR BADGE ID
                 </label>
                 <div className="relative">
@@ -541,29 +580,28 @@ export default function LoginScreen({
                     type="text"
                     value={workerName}
                     onChange={(e) => setWorkerName(e.target.value)}
-                    placeholder="e.g. Sarah Jenkins or OCC-001"
+                    placeholder="e.g. Sarah Jenkins or OCC-101"
                     required
-                    className="w-full bg-[#060E1C] border border-[#1E3A60] rounded-xl pl-9 pr-3 py-2.5 text-white font-mono text-xs focus:border-[#005DAA] outline-none"
+                    className="w-full bg-[#060E1C] border border-[#1E3A60] rounded-xl pl-9 pr-3 py-2.5 text-white placeholder-slate-500 font-medium focus:border-[#005DAA] outline-none"
                   />
-                  <User className="w-4 h-4 text-slate-500 absolute left-3 top-2.5" />
+                  <User className="w-4 h-4 text-slate-500 absolute left-3 top-3" />
                 </div>
               </div>
 
-              {/* Quadrant Sector */}
               <div>
-                <label className="block text-[10px] font-mono font-bold tracking-widest text-[#829AB8] uppercase mb-1">
+                <label className="text-[10px] font-mono font-bold tracking-widest text-[#829AB8] uppercase block mb-1">
                   FLOOR 07 WORK SECTOR
                 </label>
-                <div className="grid grid-cols-4 gap-1.5 text-center font-mono font-bold text-[11px]">
+                <div className="grid grid-cols-4 gap-1.5 font-bold text-xs">
                   {(["NW", "NE", "SW", "SE"] as QuadrantId[]).map((q) => (
                     <button
                       key={q}
                       type="button"
                       onClick={() => setWorkerQuad(q)}
-                      className={`py-1.5 rounded-lg border transition cursor-pointer ${
+                      className={`py-2 rounded-xl transition cursor-pointer font-mono ${
                         workerQuad === q
-                          ? "bg-[#005DAA] border-sky-400 text-white shadow-sm"
-                          : "bg-[#060E1C] border-[#1E3A60] text-slate-400 hover:text-white"
+                          ? "bg-[#005DAA] text-white shadow-sm font-black"
+                          : "bg-[#060E1C] border border-[#1E3A60] text-slate-400 hover:text-white"
                       }`}
                     >
                       {q}
@@ -572,108 +610,118 @@ export default function LoginScreen({
                 </div>
               </div>
 
-              {/* Action */}
               <div>
-                <label className="block text-[10px] font-mono font-bold tracking-widest text-[#829AB8] uppercase mb-1">
-                  SIGN-IN ACTION
+                <label className="text-[10px] font-mono font-bold tracking-widest text-[#829AB8] uppercase block mb-1">
+                  INGRESS INTENT
                 </label>
-                <div className="grid grid-cols-3 gap-1.5 text-[10px] font-bold text-center">
+                <div className="grid grid-cols-3 gap-1.5 text-[11px] font-bold">
                   <button
                     type="button"
                     onClick={() => setWorkerAction("enter")}
-                    className={`py-2 px-1 rounded-lg border transition cursor-pointer ${
+                    className={`py-2 rounded-xl transition cursor-pointer flex items-center justify-center gap-1 ${
                       workerAction === "enter"
-                        ? "bg-emerald-950 border-emerald-400 text-emerald-300 font-black"
-                        : "bg-[#060E1C] border-[#1E3A60] text-slate-400"
+                        ? "bg-emerald-600 text-white shadow-sm font-black"
+                        : "bg-[#060E1C] border border-[#1E3A60] text-slate-400"
                     }`}
                   >
-                    🟢 Enter Floor 07
+                    <span>🟢</span>
+                    <span>Enter Floor</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => setWorkerAction("leave")}
-                    className={`py-2 px-1 rounded-lg border transition cursor-pointer ${
+                    className={`py-2 rounded-xl transition cursor-pointer flex items-center justify-center gap-1 ${
                       workerAction === "leave"
-                        ? "bg-amber-950 border-amber-400 text-amber-300 font-black"
-                        : "bg-[#060E1C] border-[#1E3A60] text-slate-400"
+                        ? "bg-amber-600 text-white shadow-sm font-black"
+                        : "bg-[#060E1C] border border-[#1E3A60] text-slate-400"
                     }`}
                   >
-                    ⚪ Badge Out
+                    <span>⚪</span>
+                    <span>Badge Out</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => setWorkerAction("muster")}
-                    className={`py-2 px-1 rounded-lg border transition cursor-pointer ${
+                    className={`py-2 rounded-xl transition cursor-pointer flex items-center justify-center gap-1 ${
                       workerAction === "muster"
-                        ? "bg-sky-950 border-sky-400 text-sky-300 font-black"
-                        : "bg-[#060E1C] border-[#1E3A60] text-slate-400"
+                        ? "bg-sky-600 text-white shadow-sm font-black"
+                        : "bg-[#060E1C] border border-[#1E3A60] text-slate-400"
                     }`}
                   >
-                    🚨 Muster Safe
+                    <span>🚨</span>
+                    <span>Muster Safe</span>
                   </button>
                 </div>
               </div>
 
-              {/* Submit */}
               <button
                 type="submit"
                 disabled={isLoading}
                 className="w-full py-3 bg-[#005DAA] hover:bg-[#004884] text-white font-black text-xs uppercase tracking-wider rounded-xl transition cursor-pointer shadow-md flex items-center justify-center gap-2"
               >
                 {isLoading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <span>⚡</span>}
-                <span>Direct Sign-In &amp; View Pass</span>
+                <span>Direct Sign-In &amp; View Digital Pass</span>
               </button>
             </form>
-          )}
+          </div>
+        )}
 
-          {/* ========================================================= */}
-          {/* 2. VISITOR / GUEST TAB                                    */}
-          {/* ========================================================= */}
-          {activeCategory === "visitor" && (
-            <form onSubmit={handleVisitorSignIn} className="space-y-3.5 animate-fadeIn">
-              <div className="text-slate-300 font-medium pb-1 border-b border-[#1E3A60] flex items-center justify-between">
-                <span>Guest &amp; Contractor Ingress</span>
-                <span className="text-[10px] text-amber-400 font-mono">Floor 07 Badge</span>
-              </div>
-
+        {/* ========================================================= */}
+        {/* MODE 3: VISITOR PASS INTAKE                               */}
+        {/* ========================================================= */}
+        {activeCategory === "visitor" && (
+          <div className="bg-[#0B172B] border border-[#1E3A60] rounded-2xl p-5 sm:p-6 shadow-2xl space-y-4 text-white text-xs animate-fadeIn">
+            <div className="flex items-center justify-between border-b border-[#1E3A60] pb-3">
               <div>
-                <label className="block text-[10px] font-mono font-bold tracking-widest text-[#829AB8] uppercase mb-1">
-                  VISITOR FULL NAME
+                <span className="text-[10px] font-mono text-amber-400 font-bold uppercase tracking-wider block">
+                  VISITOR / CONTRACTOR INTAKE
+                </span>
+                <h2 className="text-base font-black text-white uppercase">
+                  Issue Digital Visitor Pass
+                </h2>
+              </div>
+              <span className="text-xs">🎟️</span>
+            </div>
+
+            <form onSubmit={handleVisitorSignIn} className="space-y-3.5">
+              <div>
+                <label className="text-[10px] font-mono font-bold tracking-widest text-[#829AB8] uppercase block mb-1">
+                  FULL NAME
                 </label>
                 <input
                   type="text"
                   value={visitorName}
                   onChange={(e) => setVisitorName(e.target.value)}
-                  placeholder="e.g. Alex Rivera"
+                  placeholder="e.g. David Miller"
                   required
-                  className="w-full bg-[#060E1C] border border-[#1E3A60] rounded-xl px-3 py-2.5 text-white font-mono text-xs focus:border-amber-500 outline-none"
+                  className="w-full bg-[#060E1C] border border-[#1E3A60] rounded-xl px-3 py-2.5 text-white placeholder-slate-500 font-medium focus:border-amber-500 outline-none"
                 />
               </div>
 
               <div>
-                <label className="block text-[10px] font-mono font-bold tracking-widest text-[#829AB8] uppercase mb-1">
+                <label className="text-[10px] font-mono font-bold tracking-widest text-[#829AB8] uppercase block mb-1">
                   MOBILE PHONE (FOR SMS ALERTS)
                 </label>
                 <input
                   type="tel"
                   value={visitorPhone}
                   onChange={(e) => setVisitorPhone(e.target.value)}
-                  placeholder="(917) 555-0812"
+                  placeholder="(212) 555-0144"
                   required
-                  className="w-full bg-[#060E1C] border border-[#1E3A60] rounded-xl px-3 py-2.5 text-white font-mono text-xs focus:border-amber-500 outline-none"
+                  className="w-full bg-[#060E1C] border border-[#1E3A60] rounded-xl px-3 py-2.5 text-white placeholder-slate-500 font-medium focus:border-amber-500 outline-none"
                 />
               </div>
 
               <div>
-                <label className="block text-[10px] font-mono font-bold tracking-widest text-[#829AB8] uppercase mb-1">
-                  VISITING HOST OR COMPANY
+                <label className="text-[10px] font-mono font-bold tracking-widest text-[#829AB8] uppercase block mb-1">
+                  VISITING HOST / CONTACT
                 </label>
                 <input
                   type="text"
                   value={visitorHost}
                   onChange={(e) => setVisitorHost(e.target.value)}
-                  placeholder="e.g. John Davis (Warden)"
-                  className="w-full bg-[#060E1C] border border-[#1E3A60] rounded-xl px-3 py-2.5 text-white font-mono text-xs focus:border-amber-500 outline-none"
+                  placeholder="John Davis (Floor Warden)"
+                  className="w-full bg-[#060E1C] border border-[#1E3A60] rounded-xl px-3 py-2.5 text-white placeholder-slate-500 font-medium focus:border-amber-500 outline-none"
                 />
               </div>
 
@@ -683,71 +731,128 @@ export default function LoginScreen({
                 className="w-full py-3 bg-amber-600 hover:bg-amber-500 text-white font-black text-xs uppercase tracking-wider rounded-xl transition cursor-pointer shadow-md flex items-center justify-center gap-2"
               >
                 {isLoading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <span>🎟️</span>}
-                <span>Issue Visitor Pass &amp; Enter Floor 07</span>
+                <span>Issue Visitor Pass &amp; Record Presence</span>
               </button>
             </form>
-          )}
+          </div>
+        )}
 
-          {/* ========================================================= */}
-          {/* 3. ADMIN / COMMANDER TAB                                  */}
-          {/* ========================================================= */}
-          {activeCategory === "admin" && (
-            <form onSubmit={handleAdminSignIn} className="space-y-3.5 animate-fadeIn">
-              <div className="text-slate-300 font-medium pb-1 border-b border-[#1E3A60] flex items-center justify-between">
-                <span>FSD Commander &amp; Warden Deck</span>
-                <span className="text-[10px] text-red-400 font-mono">PIN Secured</span>
-              </div>
-
+        {/* ========================================================= */}
+        {/* MODE 4: ADMIN / COMMANDER CONSOLE ACCESS (FULLY WORKING)  */}
+        {/* ========================================================= */}
+        {activeCategory === "admin" && (
+          <div className="bg-[#0B172B] border-2 border-red-900/60 rounded-2xl p-5 sm:p-6 shadow-2xl space-y-4 text-white text-xs animate-fadeIn">
+            <div className="flex items-center justify-between border-b border-[#1E3A60] pb-3">
               <div>
-                <label className="block text-[10px] font-mono font-bold tracking-widest text-[#829AB8] uppercase mb-1">
-                  SELECT COMMAND ROLE
+                <span className="text-[10px] font-mono text-red-400 font-bold uppercase tracking-wider block flex items-center gap-1">
+                  <ShieldAlert className="w-3.5 h-3.5" />
+                  <span>LIFE-SAFETY INCIDENT COMMAND</span>
+                </span>
+                <h2 className="text-base font-black text-white uppercase">
+                  Commander Console Access
+                </h2>
+              </div>
+              <span className="text-xs bg-red-950 text-red-300 font-mono font-bold px-2 py-0.5 rounded border border-red-800">
+                FSD Deck
+              </span>
+            </div>
+
+            {/* Role Selection */}
+            <div>
+              <label className="text-[10px] font-mono font-bold tracking-widest text-[#829AB8] uppercase block mb-1.5">
+                SELECT COMMAND ROLE
+              </label>
+              <div className="grid grid-cols-3 gap-1.5 text-[11px] font-bold">
+                <button
+                  type="button"
+                  onClick={() => setAdminRole("fsd_director")}
+                  className={`py-2 rounded-xl border transition cursor-pointer flex flex-col items-center gap-0.5 ${
+                    adminRole === "fsd_director"
+                      ? "bg-red-600 text-white border-red-500 font-black shadow-sm"
+                      : "bg-[#060E1C] border-[#1E3A60] text-slate-400 hover:text-white"
+                  }`}
+                >
+                  <span>🎖️</span>
+                  <span>FSD Director</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAdminRole("warden")}
+                  className={`py-2 rounded-xl border transition cursor-pointer flex flex-col items-center gap-0.5 ${
+                    adminRole === "warden"
+                      ? "bg-amber-600 text-white border-amber-500 font-black shadow-sm"
+                      : "bg-[#060E1C] border-[#1E3A60] text-slate-400 hover:text-white"
+                  }`}
+                >
+                  <span>🦺</span>
+                  <span>Floor Warden</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAdminRole("security")}
+                  className={`py-2 rounded-xl border transition cursor-pointer flex flex-col items-center gap-0.5 ${
+                    adminRole === "security"
+                      ? "bg-blue-600 text-white border-blue-500 font-black shadow-sm"
+                      : "bg-[#060E1C] border-[#1E3A60] text-slate-400 hover:text-white"
+                  }`}
+                >
+                  <span>👮</span>
+                  <span>Security</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Preset PIN Fast Fill */}
+            <div className="bg-[#060E1C] p-2.5 rounded-xl border border-[#1E3A60] space-y-1.5">
+              <div className="flex items-center justify-between text-[10px] font-mono text-[#829AB8]">
+                <span>QUICK PRESET PIN:</span>
+                <span className="text-sky-400 font-bold">Tap to autofill</span>
+              </div>
+              <div className="grid grid-cols-3 gap-1.5 text-xs font-mono font-bold">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAdminRole("fsd_director");
+                    setAdminPin("7007");
+                  }}
+                  className={`py-1.5 rounded-lg border text-center transition cursor-pointer ${
+                    adminPin === "7007" ? "bg-red-600 text-white border-red-400" : "bg-[#0B172B] border-[#1E3A60] text-slate-300"
+                  }`}
+                >
+                  7007 (FSD)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAdminRole("warden");
+                    setAdminPin("2026");
+                  }}
+                  className={`py-1.5 rounded-lg border text-center transition cursor-pointer ${
+                    adminPin === "2026" ? "bg-amber-600 text-white border-amber-400" : "bg-[#0B172B] border-[#1E3A60] text-slate-300"
+                  }`}
+                >
+                  2026 (Warden)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAdminRole("security");
+                    setAdminPin("1901");
+                  }}
+                  className={`py-1.5 rounded-lg border text-center transition cursor-pointer ${
+                    adminPin === "1901" ? "bg-blue-600 text-white border-blue-400" : "bg-[#0B172B] border-[#1E3A60] text-slate-300"
+                  }`}
+                >
+                  1901 (Sec)
+                </button>
+              </div>
+            </div>
+
+            <form onSubmit={handleAdminSignIn} className="space-y-3.5">
+              <div>
+                <label className="text-[10px] font-mono font-bold tracking-widest text-[#829AB8] uppercase block mb-1">
+                  ENTER 4-DIGIT SECURITY PIN
                 </label>
-                <div className="grid grid-cols-3 gap-1 text-[10px] font-bold text-center">
-                  <button
-                    type="button"
-                    onClick={() => setAdminRole("fsd_director")}
-                    className={`py-2 px-1 rounded-lg border transition cursor-pointer ${
-                      adminRole === "fsd_director"
-                        ? "bg-red-950 border-red-500 text-white font-black"
-                        : "bg-[#060E1C] border-[#1E3A60] text-slate-400"
-                    }`}
-                  >
-                    FSD Director
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setAdminRole("warden")}
-                    className={`py-2 px-1 rounded-lg border transition cursor-pointer ${
-                      adminRole === "warden"
-                        ? "bg-red-950 border-red-500 text-white font-black"
-                        : "bg-[#060E1C] border-[#1E3A60] text-slate-400"
-                    }`}
-                  >
-                    Floor Warden
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setAdminRole("security")}
-                    className={`py-2 px-1 rounded-lg border transition cursor-pointer ${
-                      adminRole === "security"
-                        ? "bg-red-950 border-red-500 text-white font-black"
-                        : "bg-[#060E1C] border-[#1E3A60] text-slate-400"
-                    }`}
-                  >
-                    Security
-                  </button>
-                </div>
-              </div>
-
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="text-[10px] font-mono font-bold tracking-widest text-[#829AB8] uppercase">
-                    4-DIGIT SECURITY PIN
-                  </label>
-                  <span className="text-[10px] text-sky-400 font-mono">
-                    Default: {adminRole === "fsd_director" ? "7007" : adminRole === "warden" ? "2026" : "1901"}
-                  </span>
-                </div>
                 <div className="relative">
                   <input
                     type="password"
@@ -756,9 +861,9 @@ export default function LoginScreen({
                     onChange={(e) => setAdminPin(e.target.value)}
                     placeholder="****"
                     required
-                    className="w-full bg-[#060E1C] border border-[#1E3A60] rounded-xl pl-9 pr-3 py-2.5 text-white font-mono text-center tracking-widest text-base font-black focus:border-red-500 outline-none"
+                    className="w-full bg-[#060E1C] border border-[#1E3A60] rounded-xl pl-9 pr-3 py-2.5 text-white font-mono text-center tracking-widest text-lg font-black focus:border-red-500 outline-none"
                   />
-                  <Lock className="w-4 h-4 text-slate-500 absolute left-3 top-3" />
+                  <Lock className="w-4 h-4 text-slate-500 absolute left-3 top-3.5" />
                 </div>
               </div>
 
@@ -767,15 +872,15 @@ export default function LoginScreen({
                 disabled={isLoading}
                 className="w-full py-3 bg-red-600 hover:bg-red-500 text-white font-black text-xs uppercase tracking-wider rounded-xl transition cursor-pointer shadow-md flex items-center justify-center gap-2"
               >
-                {isLoading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <span>🛡️</span>}
+                {isLoading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <ShieldAlert className="w-4 h-4" />}
                 <span>Unlock 5-Step Commander Console</span>
               </button>
             </form>
-          )}
-        </div>
+          </div>
+        )}
 
-        {/* Bottom Fast Action: Display Floor QR Poster */}
-        <div className="flex items-center justify-between text-xs px-1">
+        {/* Footer Navigation */}
+        <div className="flex items-center justify-between text-xs px-1 text-slate-400 pt-1">
           <button
             type="button"
             onClick={() => {
@@ -785,19 +890,19 @@ export default function LoginScreen({
             className="text-sky-400 hover:text-sky-300 font-bold transition cursor-pointer flex items-center gap-1.5"
           >
             <span>📱</span>
-            <span>Display Floor 07 Entrance QR Code</span>
+            <span>Display Official Entrance Poster</span>
           </button>
 
           <button
             type="button"
             onClick={onEnterOccupantApp}
-            className="text-slate-400 hover:text-white transition cursor-pointer"
+            className="hover:text-white transition cursor-pointer"
           >
-            Occupant Pass Direct →
+            Direct Occupant Pass →
           </button>
         </div>
 
-        {/* QR Poster Modal */}
+        {/* Printable Poster Modal */}
         <SignInQRPosterModal
           isOpen={isQrModalOpen}
           onClose={() => setIsQrModalOpen(false)}
