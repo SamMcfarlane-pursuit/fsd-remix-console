@@ -1452,6 +1452,9 @@ async function launchPublicTunnel(): Promise<string> {
   // Fallback: Localtunnel
   const localtunnel = (await import("localtunnel")).default;
   const lt = await localtunnel({ port: PORT });
+  lt.on("error", (err) => {
+    console.warn("Localtunnel error:", err?.message || err);
+  });
   activeTunnelChild = {
     kill: () => {
       try { lt.close(); } catch {}
