@@ -95,6 +95,18 @@ let incidentMode: "drill" | "incident" | null = "drill";
 let hazardType: string | null = "office-fire";
 let declaredAt: string | null = new Date(Date.now() - 140000).toISOString();
 let latestNarrative: DrillNarrativeDraft | null = null;
+let latestWalkieTalkieBroadcast: {
+  id: string;
+  senderName: string;
+  senderRole: "warden" | "commander" | "fsd_director";
+  senderBadge?: string;
+  timestamp: string;
+  audioUrl?: string;
+  transcript?: string;
+  distressLevel: "CRITICAL_DISTRESS" | "EVACUATION_ORDER" | "SITREP" | "ALL_CLEAR";
+  quadrant?: QuadrantId | "ALL";
+  durationSeconds?: number;
+} | null = null;
 
 const NAMES = [
   "Fahmida Ali", "Eric Malone", "John Catuogno", "Pak Lai", "Robert Oates", "Michael Kohlhaas",
@@ -422,6 +434,7 @@ function getDerivedSnapshot(): StatusSnapshot {
     lanIps: getLanIps(),
     ledgerEntries: ledgerChain.slice(-30),
     latestNarrative,
+    latestWalkieTalkie: latestWalkieTalkieBroadcast,
   };
 }
 
@@ -2399,6 +2412,84 @@ app.post("/api/emergency-alert", (req, res) => {
     ok: true,
     alertPayload,
     ledgerEntry: entry,
+    snapshot: getDerivedSnapshot(),
+  });
+});
+
+// Walkie-Talkie Push-To-Talk Distress Broadcast Endpoint (Authorized Warden/Commander Only)
+app.post("/api/walkie-talkie/broadcast", (req, res) => {
+  const {
+    senderName,
+    senderRole,
+    senderBadge,
+    audioData,
+    transcript,
+    distressLevel,
+    quadrant,
+    durationSeconds,
+    pin,
+  } = req.body;
+
+  // Strict role verification: only warden, commander, or fsd_director can transmit live walkie-talkie audio
+  if (
+    senderRole !== "warden" &&
+    senderRole !== "commander" &&
+    senderRole !== "fsd_director"
+  ) {
+    return res.status(403).json({
+      error: "UNAUTHORIZED_TRANSMITTER",
+      message:
+        "Walkie-Talkie distress broadcast is restricted strictly to verified Floor Wardens and FSD Chief Commanders.",
+    });
+  }
+
+  // Rapid PIN check if supplied
+  if (pin) {
+    if (senderRole === "warden" && pin !== "2026") {
+      return res.status(401).json({ error: "INVALID_WARDEN_PIN", message: "Invalid Floor Warden PIN." });
+    }
+    if ((senderRole === "commander" || senderRole === "fsd_director") && pin !== "7007") {
+      return res.status(401).json({ error: "INVALID_COMMANDER_PIN", message: "Invalid FSD Commander PIN." });
+    }
+  }
+
+  const broadcastId = `WT-${Date.now().toString(36).toUpperCase()}`;
+  const timestamp = new Date().toISOString();
+
+  latestWalkieTalkieBroadcast = {
+    id: broadcastId,
+    senderName:
+      senderName ||
+      (senderRole === "warden" ? "Deputy Warden Marcus Vance (Floor 07)" : "FSD Chief Commander"),
+    senderRole: senderRole === "warden" ? "warden" : "commander",
+    senderBadge: senderBadge || (senderRole === "warden" ? "W-07-ALPHA" : "FSD-CHIEF-01"),
+    timestamp,
+    audioUrl: audioData || undefined,
+    transcript: transcript || "Live verbal distress transmission from Floor Warden.",
+    distressLevel: distressLevel || "CRITICAL_DISTRESS",
+    quadrant: quadrant || "ALL",
+    durationSeconds: durationSeconds || 5,
+  };
+
+  const ledgerEntry = appendLedger("WARDEN_WALKIE_TALKIE_BROADCAST", {
+    broadcastId,
+    senderName: latestWalkieTalkieBroadcast.senderName,
+    senderRole: latestWalkieTalkieBroadcast.senderRole,
+    senderBadge: latestWalkieTalkieBroadcast.senderBadge,
+    distressLevel: latestWalkieTalkieBroadcast.distressLevel,
+    quadrant: latestWalkieTalkieBroadcast.quadrant,
+    hasAudio: Boolean(audioData),
+    transcriptPreview: (transcript || "").slice(0, 160),
+    durationSeconds: latestWalkieTalkieBroadcast.durationSeconds,
+    timestamp,
+  });
+
+  notifySseClients();
+
+  res.json({
+    ok: true,
+    broadcast: latestWalkieTalkieBroadcast,
+    ledgerEntry,
     snapshot: getDerivedSnapshot(),
   });
 });

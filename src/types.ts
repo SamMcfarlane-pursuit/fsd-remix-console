@@ -57,6 +57,19 @@ export interface QuadrantStat {
   mia: number;
 }
 
+export interface WalkieTalkieBroadcast {
+  id: string;
+  senderName: string;
+  senderRole: "warden" | "commander" | "fsd_director";
+  senderBadge?: string;
+  timestamp: string;
+  audioUrl?: string;
+  transcript?: string;
+  distressLevel: "CRITICAL_DISTRESS" | "EVACUATION_ORDER" | "SITREP" | "ALL_CLEAR";
+  quadrant?: QuadrantId | "ALL";
+  durationSeconds?: number;
+}
+
 export interface StatusSnapshot {
   incidentActive: boolean;
   mode: "drill" | "incident" | null;
@@ -73,6 +86,7 @@ export interface StatusSnapshot {
   lanIps?: string[];
   ledgerEntries?: LedgerEntry[];
   latestNarrative?: DrillNarrativeDraft | null;
+  latestWalkieTalkie?: WalkieTalkieBroadcast | null;
 }
 
 export interface LedgerEntry {

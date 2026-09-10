@@ -15,6 +15,7 @@ import EmergencyAlertModal from "./components/EmergencyAlertModal";
 import { NavigationGuideModal } from "./components/NavigationGuideModal";
 import { PinModal } from "./components/PinModal";
 import { ExecutiveOnePagerModal } from "./components/ExecutiveOnePagerModal";
+import { WalkieTalkieModal } from "./components/WalkieTalkieModal";
 import { setAudioMuted, getAudioMuted } from "./lib/audioBroadcast";
 import { UserRole } from "./lib/authGuard";
 import { AuthUser, EmergencyAlertPayload, LocationCategory, OccupantStatus, StatusSnapshot } from "./types";
@@ -76,6 +77,7 @@ export default function App() {
   const [isPinModalOpen, setIsPinModalOpen] = useState<boolean>(false);
   const [targetPinRole, setTargetPinRole] = useState<UserRole>("commander");
   const [isOnePagerOpen, setIsOnePagerOpen] = useState<boolean>(false);
+  const [isWalkieTalkieOpen, setIsWalkieTalkieOpen] = useState<boolean>(false);
 
   // Check URL query parameters on initial load (e.g. ?mode=signin or mobile scan)
   useEffect(() => {
@@ -650,6 +652,20 @@ export default function App() {
             <span className="hidden md:inline">{isMuted ? "Muted" : "Audio On"}</span>
           </button>
 
+          {/* Warden Walkie-Talkie Push-to-Talk Radio Modal Trigger */}
+          <button
+            id="header-walkie-talkie-btn"
+            onClick={() => setIsWalkieTalkieOpen(true)}
+            className="rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-slate-950 px-3 py-2 min-h-[38px] text-xs font-black transition cursor-pointer flex items-center gap-1.5 shadow-md border border-amber-300 active:scale-95"
+            title="Open Warden Walkie-Talkie Radio (Live PTT Emergency Voice Broadcast)"
+          >
+            <span className="text-sm animate-pulse">📻</span>
+            <span className="hidden sm:inline">Walkie-Talkie</span>
+            <span className="text-[9px] bg-black/25 text-amber-950 px-1.5 py-0.5 rounded font-mono font-black hidden lg:inline">
+              PTT
+            </span>
+          </button>
+
           {/* Status Report Quick Modal */}
           <button
             onClick={() => setIsStatusReportModalOpen(true)}
@@ -794,6 +810,7 @@ export default function App() {
                 snapshot={snapshot}
                 onSendAlert={handleSendEmergencyAlert}
                 onProceedNext={() => setCurrentStep(5)}
+                onOpenWalkieTalkie={() => setIsWalkieTalkieOpen(true)}
               />
             )}
 
@@ -899,6 +916,16 @@ export default function App() {
         isOpen={isOnePagerOpen}
         onClose={() => setIsOnePagerOpen(false)}
         snapshot={snapshot}
+      />
+
+      <WalkieTalkieModal
+        isOpen={isWalkieTalkieOpen}
+        onClose={() => setIsWalkieTalkieOpen(false)}
+        authUser={authUser}
+        snapshot={snapshot}
+        onBroadcastSent={() => {
+          refreshState();
+        }}
       />
 
       <PinModal

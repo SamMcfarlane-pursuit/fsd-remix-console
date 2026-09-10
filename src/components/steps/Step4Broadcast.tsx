@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { EmergencyAlertPayload, QuadrantId, StatusSnapshot } from "../../types";
-import { speakEmergencyBroadcast } from "../../lib/audioBroadcast";
+import { speakEmergencyBroadcast, testAiVoice } from "../../lib/audioBroadcast";
 
 interface Step4BroadcastProps {
   snapshot: StatusSnapshot | null;
@@ -12,15 +12,18 @@ interface Step4BroadcastProps {
     channels: string[];
   }) => Promise<EmergencyAlertPayload | void>;
   onProceedNext: () => void;
+  onOpenWalkieTalkie?: () => void;
 }
 
 export const Step4Broadcast: React.FC<Step4BroadcastProps> = ({
   snapshot,
   onSendAlert,
   onProceedNext,
+  onOpenWalkieTalkie,
 }) => {
   const hazard = snapshot?.hazardType || "office-fire";
   const isIncident = snapshot?.mode === "incident";
+  const [isPlayingTestVoice, setIsPlayingTestVoice] = useState(false);
 
   const defaultTitle = isIncident
     ? `🚨 EMERGENCY EVACUATION: ${hazard.toUpperCase().replace("-", " ")} ON FLOOR 07`
@@ -72,6 +75,15 @@ export const Step4Broadcast: React.FC<Step4BroadcastProps> = ({
     if (all) setSelectedQuadrants(["NW", "NE", "SW", "SE"]);
   };
 
+  const handleTestVoice = async () => {
+    setIsPlayingTestVoice(true);
+    try {
+      await testAiVoice();
+    } finally {
+      setIsPlayingTestVoice(false);
+    }
+  };
+
   const handleDispatch = async () => {
     if (!title.trim() || !narrative.trim()) return;
     setIsSending(true);
@@ -88,7 +100,7 @@ export const Step4Broadcast: React.FC<Step4BroadcastProps> = ({
         channels: activeChannels,
       });
 
-      speakEmergencyBroadcast(narrative, priority);
+      speakEmergencyBroadcast(narrative, priority, { playChime: true });
 
       const entry = {
         id: `BCST-${Date.now().toString().slice(-4)}`,
@@ -137,6 +149,68 @@ export const Step4Broadcast: React.FC<Step4BroadcastProps> = ({
           >
             <span>Proceed to Step 05</span>
             <span>→</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Industrial Walkie-Talkie (PTT) & Natural Voice Station */}
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+        {/* Left Card: Warden Walkie-Talkie Push-to-Talk (8 cols) */}
+        <div className="md:col-span-8 bg-gradient-to-r from-[#0B1728] via-[#10243C] to-[#0B1728] rounded-2xl p-5 border-2 border-[#1E3E66] shadow-xl text-white flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-start gap-3.5">
+            <div className="w-12 h-12 rounded-2xl bg-amber-500/20 border border-amber-400/50 flex items-center justify-center text-2xl shadow-inner shrink-0">
+              📻
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-base font-black tracking-wide text-white uppercase flex items-center gap-1.5">
+                  <span>Warden Walkie-Talkie Radio Station</span>
+                  <span className="text-[10px] font-mono font-bold bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded border border-amber-500/40">
+                    LIVE PTT
+                  </span>
+                </h3>
+              </div>
+              <p className="text-xs text-slate-300 mt-1 max-w-lg leading-relaxed">
+                Authorized Floor Wardens and FSD Chief Commanders can transmit live spoken voice dispatches with real-time acoustic radio effects and live speech transcription directly to all floor occupant devices.
+              </p>
+            </div>
+          </div>
+
+          <button
+            id="step4-launch-walkie-btn"
+            type="button"
+            onClick={onOpenWalkieTalkie}
+            className="w-full sm:w-auto px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-slate-950 font-black text-xs uppercase tracking-wider rounded-xl transition shadow-lg flex items-center justify-center gap-2 shrink-0 cursor-pointer active:scale-95"
+          >
+            <span className="text-base">🎙️</span>
+            <span>Key Walkie-Talkie</span>
+          </button>
+        </div>
+
+        {/* Right Card: AI Voice Clarity Preview (4 cols) */}
+        <div className="md:col-span-4 bg-white rounded-2xl p-5 border border-[#B8D8F8] shadow-xs flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-xs font-mono font-bold text-[#005DAA] uppercase tracking-wider flex items-center gap-1">
+                <span>✨</span>
+                <span>Natural Voice Engine</span>
+              </span>
+              <span className="text-[10px] font-bold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full">
+                PA Chime Active
+              </span>
+            </div>
+            <p className="text-xs text-[#475569]">
+              Replaced robotic synthesizer with natural human cadence (0.94 rate), warm vocal authority, and commercial PA acoustic chime.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleTestVoice}
+            disabled={isPlayingTestVoice}
+            className="mt-3 w-full py-2.5 bg-[#F0F6FC] hover:bg-[#E2EEF9] border border-[#CBDCEE] text-[#005DAA] font-black text-xs rounded-xl transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+          >
+            <span>{isPlayingTestVoice ? "🔊 Playing Announcement..." : "🔊 Test Clear AI Voice"}</span>
           </button>
         </div>
       </div>

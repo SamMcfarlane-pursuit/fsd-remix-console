@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import QRCode from "qrcode";
 import { Occupant, OccupantStatus, StatusSnapshot, QuadrantId } from "../types";
 import { QRCameraScanner } from "./QRCameraScanner";
@@ -14,6 +14,7 @@ import {
   syncOfflineQueue,
 } from "../lib/offlineQueue";
 import { authenticateWithBiometrics } from "../lib/biometrics";
+import { playRadioIncomingAlert } from "../lib/audioBroadcast";
 
 interface OccupantPortalProps {
   snapshot: StatusSnapshot | null;
@@ -159,6 +160,16 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
       setTimeout(() => setActionSubmittedMsg(null), 6000);
     }
   };
+
+  // Track incoming Warden Walkie-Talkie voice broadcasts
+  const lastWalkieIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    const currentWalkie = snapshot?.latestWalkieTalkie;
+    if (currentWalkie && currentWalkie.id !== lastWalkieIdRef.current) {
+      lastWalkieIdRef.current = currentWalkie.id;
+      playRadioIncomingAlert();
+    }
+  }, [snapshot?.latestWalkieTalkie]);
 
   // Check if current name/phone matches someone already in database
   const matchingExistingUser = (signName.trim().length >= 2 || signPhone.trim().length >= 4)
@@ -769,6 +780,55 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
           )}
         </div>
       </div>
+
+      {/* Live Warden Walkie-Talkie Voice Transmission Card */}
+      {snapshot?.latestWalkieTalkie && (
+        <div className="bg-gradient-to-r from-amber-600 via-orange-600 to-amber-700 text-white p-4 sm:p-5 rounded-2xl shadow-xl space-y-3 border-2 border-amber-300 animate-fadeIn">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <span className="text-2xl animate-pulse">📻</span>
+              <div>
+                <span className="font-black text-sm uppercase tracking-wider block">
+                  LIVE WARDEN RADIO DISPATCH
+                </span>
+                <span className="text-[10px] text-amber-200 font-mono font-bold">
+                  FROM: {snapshot.latestWalkieTalkie.senderName} ({snapshot.latestWalkieTalkie.senderBadge || "WARDEN"})
+                </span>
+              </div>
+            </div>
+            <span className="text-[10px] font-mono font-black bg-black/40 px-2.5 py-1 rounded-full border border-amber-300/40 uppercase tracking-widest text-amber-300 animate-pulse">
+              {snapshot.latestWalkieTalkie.distressLevel.replace(/_/g, " ")}
+            </span>
+          </div>
+
+          {/* Spoken Distress Transcript */}
+          <div className="bg-black/35 p-3.5 rounded-xl border border-white/20 text-xs space-y-2">
+            <div className="flex items-center justify-between text-[10px] font-mono font-bold text-amber-300 uppercase">
+              <span>SPOKEN DISTRESS DIRECTIVE:</span>
+              <span>{new Date(snapshot.latestWalkieTalkie.timestamp).toLocaleTimeString()}</span>
+            </div>
+            <p className="text-sm font-bold text-white leading-relaxed">
+              "{snapshot.latestWalkieTalkie.transcript}"
+            </p>
+          </div>
+
+          {/* Voice Audio Player */}
+          {snapshot.latestWalkieTalkie.audioUrl && (
+            <div className="bg-black/25 p-3 rounded-xl border border-white/10 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2 text-xs font-bold text-amber-200">
+                <span>🔊</span>
+                <span>Warden Live Voice Audio</span>
+              </div>
+              <audio
+                src={snapshot.latestWalkieTalkie.audioUrl}
+                controls
+                autoPlay
+                className="h-8 max-w-[240px]"
+              />
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Real-Time Emergency Alert & Evacuation Directive Hub */}
       {snapshot?.incidentActive && (
