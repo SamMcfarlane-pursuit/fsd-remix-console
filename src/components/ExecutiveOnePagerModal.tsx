@@ -90,6 +90,19 @@ CORE TECHNOLOGY STACK
               <span>{copied ? "Copied!" : "Copy Summary"}</span>
             </button>
 
+            <a
+              id="download-one-pager-pdf-btn"
+              href="/executive_one_pager.pdf"
+              download="ConEdison_Floor07_MusterCommand_OnePager.pdf"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-3 py-1.5 bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-300 hover:to-orange-400 text-slate-950 rounded-xl text-xs font-black transition flex items-center gap-1.5 shadow-sm"
+              title="Download High-Resolution PDF Document"
+            >
+              <span>📥</span>
+              <span className="hidden sm:inline">Download PDF</span>
+            </a>
+
             <button
               type="button"
               onClick={handlePrint}

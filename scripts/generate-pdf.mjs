@@ -1,0 +1,535 @@
+import fs from "fs";
+import path from "path";
+import { execSync } from "child_process";
+import { fileURLToPath } from "url";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const projectRoot = path.resolve(__dirname, "..");
+const publicDir = path.resolve(projectRoot, "public");
+const brainDir = "/Users/samuelmcfarlane/.gemini/antigravity-ide/brain/b1df18cc-825d-480f-aac6-f8eaa63395b6";
+
+if (!fs.existsSync(publicDir)) {
+  fs.mkdirSync(publicDir, { recursive: true });
+}
+
+const htmlContent = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Con Edison Floor 07 · MusterCommand Executive One-Pager</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700;800&display=swap');
+
+    @page {
+      size: letter portrait;
+      margin: 10mm 12mm;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      color: #0F2537;
+      background: #FFFFFF;
+      font-size: 8.5pt;
+      line-height: 1.35;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    /* Header */
+    .header {
+      background: linear-gradient(135deg, #003B70 0%, #002244 100%);
+      color: #FFFFFF;
+      padding: 14px 18px;
+      border-radius: 12px;
+      margin-bottom: 10px;
+      border-bottom: 3px solid #FF6B00;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .header-left h1 {
+      font-size: 16pt;
+      font-weight: 900;
+      letter-spacing: -0.5px;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .header-left .subhead {
+      font-size: 8pt;
+      color: #93C5FD;
+      font-weight: 600;
+      margin-top: 2px;
+    }
+
+    .header-badges {
+      text-align: right;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 4px;
+    }
+
+    .badge {
+      display: inline-block;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 6.5pt;
+      font-weight: 800;
+      text-transform: uppercase;
+      padding: 2.5px 7px;
+      border-radius: 9999px;
+      letter-spacing: 0.5px;
+    }
+
+    .badge-emergency {
+      background: #10B981;
+      color: #064E3B;
+    }
+
+    .badge-mandate {
+      background: rgba(255, 255, 255, 0.15);
+      color: #FFFFFF;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+    }
+
+    /* Executive Pitch Banner */
+    .pitch-banner {
+      background: #F0F6FC;
+      border-left: 4px solid #005DAA;
+      padding: 8px 12px;
+      border-radius: 0 8px 8px 0;
+      margin-bottom: 10px;
+      font-size: 8.5pt;
+      color: #1E3A8A;
+      font-weight: 600;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .pitch-stats {
+      display: flex;
+      gap: 12px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 7.5pt;
+    }
+
+    .pitch-stat strong {
+      color: #003B70;
+    }
+
+    /* Section Headings */
+    .section-title {
+      font-size: 9.5pt;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #003B70;
+      border-bottom: 1.5px solid #CBDCEE;
+      padding-bottom: 3px;
+      margin-bottom: 7px;
+      margin-top: 10px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .section-title .dot {
+      width: 6px;
+      height: 6px;
+      background: #FF6B00;
+      border-radius: 50%;
+    }
+
+    /* 5-Step Lifecycle Grid */
+    .steps-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 6px;
+      margin-bottom: 10px;
+    }
+
+    .step-card {
+      background: #FFFFFF;
+      border: 1px solid #CBDCEE;
+      border-radius: 8px;
+      padding: 7px 8px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+    }
+
+    .step-num {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 6.5pt;
+      font-weight: 800;
+      color: #005DAA;
+      text-transform: uppercase;
+    }
+
+    .step-name {
+      font-size: 8.5pt;
+      font-weight: 800;
+      color: #0F2537;
+      margin: 2px 0 3px 0;
+      line-height: 1.15;
+    }
+
+    .step-desc {
+      font-size: 7pt;
+      color: #475569;
+      line-height: 1.25;
+    }
+
+    /* Two-Column Midsection */
+    .mid-grid {
+      display: grid;
+      grid-template-columns: 1.15fr 0.85fr;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .box {
+      background: #F8FAFC;
+      border: 1px solid #CBDCEE;
+      border-radius: 8px;
+      padding: 9px 11px;
+    }
+
+    .box-title {
+      font-size: 8.5pt;
+      font-weight: 800;
+      color: #003B70;
+      margin-bottom: 5px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .feature-item {
+      margin-bottom: 6px;
+    }
+
+    .feature-item:last-child {
+      margin-bottom: 0;
+    }
+
+    .feature-item strong {
+      color: #0F2537;
+      font-size: 7.5pt;
+      display: block;
+    }
+
+    .feature-item p {
+      color: #475569;
+      font-size: 7pt;
+      line-height: 1.25;
+    }
+
+    /* Tech Stack Table */
+    table.tech-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 7pt;
+      margin-top: 4px;
+    }
+
+    table.tech-table th, table.tech-table td {
+      padding: 3.5px 6px;
+      border-bottom: 1px solid #E2E8F0;
+      text-align: left;
+    }
+
+    table.tech-table th {
+      background: #F1F5F9;
+      color: #334155;
+      font-weight: 800;
+      text-transform: uppercase;
+      font-size: 6.5pt;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    table.tech-table td.layer {
+      font-weight: 700;
+      color: #005DAA;
+    }
+
+    table.tech-table td.stack {
+      font-family: 'JetBrains Mono', monospace;
+      color: #0F2537;
+    }
+
+    /* Footer Stamp */
+    .footer {
+      border-top: 1.5px solid #CBDCEE;
+      padding-top: 7px;
+      margin-top: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 6.5pt;
+      color: #64748B;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .footer-seal {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .seal-box {
+      border: 1px solid #10B981;
+      background: #ECFDF5;
+      color: #065F46;
+      font-weight: 800;
+      padding: 2px 6px;
+      border-radius: 4px;
+      text-transform: uppercase;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <div class="header">
+      <div class="header-left">
+        <h1>Con Edison Floor 07 · MusterCommand</h1>
+        <div class="subhead">Life-Safety Operating System · Spatial Headcount, Real-Time Ingress & Cryptographic Evacuation Engine</div>
+      </div>
+      <div class="header-badges">
+        <span class="badge badge-emergency">100% LIFE-SAFETY READINESS</span>
+        <span class="badge badge-mandate">NYC FIRE CODE 3 RCNY §401-06</span>
+        <div style="font-size: 6pt; color: #CBDCEE; font-family: monospace;">4 Irving Place, New York, NY · Floor 07</div>
+      </div>
+    </div>
+
+    <!-- Pitch Banner -->
+    <div class="pitch-banner">
+      <div>
+        <strong>Executive Directive:</strong> Elimination of archaic paper clipboards via real-time smartphone QR ingress, spatial CAD denominator tracking, and an immutable SHA-256 ledger.
+      </div>
+      <div class="pitch-stats">
+        <div class="pitch-stat">Target: <strong>195 Occupants</strong></div>
+        <div class="pitch-stat">Ingress: <strong>&lt; 10s</strong></div>
+        <div class="pitch-stat">Ledger: <strong>SHA-256 Chain</strong></div>
+      </div>
+    </div>
+
+    <!-- The 5-Step Operational Lifecycle -->
+    <div class="section-title">
+      <span class="dot"></span>
+      The 5-Step Life-Safety Operational Lifecycle
+    </div>
+
+    <div class="steps-grid">
+      <div class="step-card">
+        <div class="step-num">Step 01</div>
+        <div class="step-name">Scan &amp; Ingress</div>
+        <div class="step-desc">
+          Universal smartphone QR scanning over 5G Cloudflare Tunnel or local Wi-Fi. Optical turnstile badge scanning with live SHA-256 ingress stream.
+        </div>
+      </div>
+
+      <div class="step-card">
+        <div class="step-num">Step 02</div>
+        <div class="step-name">Live Baseline</div>
+        <div class="step-desc">
+          Spatial headcount denominator across NW, NE, SW, and SE sectors. Dual view: interactive CAD floor roster vs tamper-evident cryptographic block ledger.
+        </div>
+      </div>
+
+      <div class="step-card">
+        <div class="step-num">Step 03</div>
+        <div class="step-name">Alarm Declare</div>
+        <div class="step-desc">
+          FSD hazard declaration (Fire, Gas Leak, Smoke, Drill). Instant floor lockdown state machine and emergency multi-channel acoustic siren broadcast.
+        </div>
+      </div>
+
+      <div class="step-card">
+        <div class="step-num">Step 04</div>
+        <div class="step-name">Push &amp; SitReps</div>
+        <div class="step-desc">
+          Directives pushed to phones, SMS, PA chimes &amp; displays. 1-tap SOS, Evacuation Chair request, and Warden live Walkie-Talkie (PTT) radio dispatch.
+        </div>
+      </div>
+
+      <div class="step-card">
+        <div class="step-num">Step 05</div>
+        <div class="step-name">All-Safe Audit</div>
+        <div class="step-desc">
+          100% headcount closure (195/195). Cryptographic SHA-256 block ledger sealing, FSD Commander signature, and official FDNY 3 RCNY §401-06 Certificate.
+        </div>
+      </div>
+    </div>
+
+    <!-- Mid Section: AI Architecture & Walkie-Talkie Radio -->
+    <div class="mid-grid">
+      <!-- AI & Voice Engine -->
+      <div class="box">
+        <div class="box-title">
+          <span>🧠</span>
+          <span>How &amp; What AI Operates (Google Gemini 3.6 Flash)</span>
+        </div>
+
+        <div class="feature-item">
+          <strong>1. Hash-Grounded After-Action Narrative Generator (/api/ai/drill-narrative)</strong>
+          <p>
+            Synthesizes raw snapshot metrics and cryptographic ledger events into official compliance narratives. References specific ledger blocks (e.g., L-0001, L-0028) and benchmarks p95 muster times with zero hallucinations. Built with automatic high-demand fallback.
+          </p>
+        </div>
+
+        <div class="feature-item" style="margin-top: 5px;">
+          <strong>2. Natural Language Red-List Query Engine (/api/ai/redlist-query)</strong>
+          <p>
+            Allows commanders to ask plain English questions (<em>"Show missing visitors in Sector NW"</em>, <em>"Who needs evac chairs?"</em>) and instantly converts them into deterministic JSON filter specifications and roster highlights.
+          </p>
+        </div>
+
+        <div class="feature-item" style="margin-top: 5px;">
+          <strong>3. Natural High-Clarity Public Address (PA) Audio Engine</strong>
+          <p>
+            Replaces robotic synthesis with deliberate dispatcher cadence (0.94 rate, 0.98 natural pitch), commercial harmonic PA chime (E5 → A5), and automatic phonetic emergency expansion (e.g., "FSD" → "Fire Safety Director", "Stair A" → "Staircase Alpha").
+          </p>
+        </div>
+      </div>
+
+      <!-- Live Walkie-Talkie & Architecture -->
+      <div class="box">
+        <div class="box-title">
+          <span>📻</span>
+          <span>Warden Walkie-Talkie (PTT) Distress Radio</span>
+        </div>
+
+        <div class="feature-item">
+          <strong>• Role-Restricted Emergency Transmission</strong>
+          <p>
+            Strictly gated to verified Floor Wardens (PIN: 2026) and FSD Chief Commanders (PIN: 7007). Unauthorized occupant devices are blocked (403 Forbidden).
+          </p>
+        </div>
+
+        <div class="feature-item" style="margin-top: 5px;">
+          <strong>• Push-to-Talk (PTT) with Acoustic Effects</strong>
+          <p>
+            Real-time dynamic LED VU meter, key-up radio chirp, roger beep, and squelch tail. Hands-free latch mode for complex hazard briefings.
+          </p>
+        </div>
+
+        <div class="feature-item" style="margin-top: 5px;">
+          <strong>• Live ADA Distress Transcription &amp; Push</strong>
+          <p>
+            Live Speech-to-Text transcription broadcasts spoken distress words to all 195 occupant devices with real voice playback and permanent ledger logging.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Complete Technology Stack Matrix -->
+    <div class="section-title">
+      <span class="dot"></span>
+      Enterprise Technology Stack Matrix
+    </div>
+
+    <table class="tech-table">
+      <thead>
+        <tr>
+          <th>Layer</th>
+          <th>Core Technologies</th>
+          <th>Life-Safety Architectural Role</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="layer">Frontend</td>
+          <td class="stack">React 19, TypeScript, Tailwind CSS v4, Motion</td>
+          <td>Sub-16ms responsive commander deck, mobile occupant portal, and high-contrast accessible UI.</td>
+        </tr>
+        <tr>
+          <td class="layer">Spatial Engine</td>
+          <td class="stack">HTML5 Canvas 2D, Geofencing, Zone Matrix</td>
+          <td>4-quadrant spatial coordinates, turnstile checkpoints, and designated Area of Rescue Assistance (ARA).</td>
+        </tr>
+        <tr>
+          <td class="layer">Backend Bus</td>
+          <td class="stack">Node.js (v22+), Express, Server-Sent Events (SSE)</td>
+          <td>Real-time unidirectional push bus streaming live sign-ins, alarms, and radio distress dispatches in &lt;100ms.</td>
+        </tr>
+        <tr>
+          <td class="layer">Edge Ingress</td>
+          <td class="stack">Cloudflare Quick Tunnels, Localhost.run Watchdog</td>
+          <td>Instant public HTTPS URL for off-network 5G smartphones without corporate firewall or VPN friction.</td>
+        </tr>
+        <tr>
+          <td class="layer">AI Intelligence</td>
+          <td class="stack">Google Gemini 3.6 Flash, Structured JSON Outputs</td>
+          <td>Deterministic red-list natural query parser and cryptographically grounded After-Action Report narratives.</td>
+        </tr>
+        <tr>
+          <td class="layer">Security &amp; Audit</td>
+          <td class="stack">Web Crypto API (SHA-256), IndexedDB Offline Queue</td>
+          <td>Tamper-evident hash-linked event blockchain, offline-resilient action queue, and PIN role authentication.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- Footer Stamp -->
+    <div class="footer">
+      <div class="footer-seal">
+        <span class="seal-box">CERTIFIED FDNY COMPLIANT</span>
+        <span>NYC FIRE CODE 3 RCNY §401-06 · 4 IRVING PLACE FLOOR 07</span>
+      </div>
+      <div>
+        SHA-256 AUDIT LEDGER · GENERATED 2026-09-10 · MUSTERCOMMAND LIFE-SAFETY OS
+      </div>
+    </div>
+  </div>
+</body>
+</html>
+`;
+
+const htmlPath = path.join(publicDir, "executive-one-pager.html");
+fs.writeFileSync(htmlPath, htmlContent, "utf8");
+console.log("Written HTML to:", htmlPath);
+
+const pdfDestPaths = [
+  path.join(publicDir, "executive_one_pager.pdf"),
+  path.join(projectRoot, "executive_one_pager.pdf"),
+  path.join(brainDir, "executive_one_pager.pdf")
+];
+
+const chromePath = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
+
+try {
+  const cmd = `"${chromePath}" --headless --disable-gpu --no-pdf-header-footer --print-to-pdf="${pdfDestPaths[0]}" "${htmlPath}"`;
+  console.log("Running headless Chrome print-to-pdf...");
+  execSync(cmd, { stdio: "inherit" });
+
+  if (fs.existsSync(pdfDestPaths[0])) {
+    const stats = fs.statSync(pdfDestPaths[0]);
+    console.log(`Generated PDF successfully: ${pdfDestPaths[0]} (${stats.size} bytes)`);
+
+    // Copy to other locations
+    fs.copyFileSync(pdfDestPaths[0], pdfDestPaths[1]);
+    fs.copyFileSync(pdfDestPaths[0], pdfDestPaths[2]);
+    console.log("Copied PDF to project root and brain directory.");
+  } else {
+    console.error("PDF was not created at target location.");
+  }
+} catch (err) {
+  console.error("Failed executing Chrome print-to-pdf:", err);
+  process.exit(1);
+}

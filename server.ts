@@ -2787,6 +2787,17 @@ Also write a concise, direct text answer (1-2 sentences) directly answering the 
 /* Journey 5: Compliance Export Endpoint                              */
 /* ------------------------------------------------------------------ */
 
+app.get(["/api/export/one-pager.pdf", "/api/export/executive-one-pager.pdf", "/executive_one_pager.pdf"], (req, res) => {
+  const pdfPath = path.resolve(process.cwd(), "public", "executive_one_pager.pdf");
+  if (fs.existsSync(pdfPath)) {
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", 'inline; filename="ConEdison_Floor07_MusterCommand_OnePager.pdf"');
+    fs.createReadStream(pdfPath).pipe(res);
+  } else {
+    res.status(404).send("Executive One-Pager PDF not found.");
+  }
+});
+
 app.get(["/api/audit-export", "/api/export"], (req, res) => {
   const snapshot = getDerivedSnapshot();
 
