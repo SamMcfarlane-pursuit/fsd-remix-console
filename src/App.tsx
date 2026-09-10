@@ -14,7 +14,6 @@ import DeclareIncidentModal from "./components/DeclareIncidentModal";
 import EmergencyAlertModal from "./components/EmergencyAlertModal";
 import { NavigationGuideModal } from "./components/NavigationGuideModal";
 import { PinModal } from "./components/PinModal";
-import { ExecutiveOnePagerModal } from "./components/ExecutiveOnePagerModal";
 import { WalkieTalkieModal } from "./components/WalkieTalkieModal";
 import { setAudioMuted, getAudioMuted } from "./lib/audioBroadcast";
 import { UserRole } from "./lib/authGuard";
@@ -76,16 +75,12 @@ export default function App() {
   const [isMuted, setIsMuted] = useState<boolean>(() => getAudioMuted());
   const [isPinModalOpen, setIsPinModalOpen] = useState<boolean>(false);
   const [targetPinRole, setTargetPinRole] = useState<UserRole>("commander");
-  const [isOnePagerOpen, setIsOnePagerOpen] = useState<boolean>(false);
   const [isWalkieTalkieOpen, setIsWalkieTalkieOpen] = useState<boolean>(false);
 
   // Check URL query parameters on initial load (e.g. ?mode=signin or mobile scan)
   useEffect(() => {
     try {
       const urlParams = new URLSearchParams(window.location.search);
-      if (urlParams.get("mode") === "one-pager" || urlParams.get("onepager") === "1" || urlParams.get("pager") === "1") {
-        setIsOnePagerOpen(true);
-      }
       if (
         urlParams.get("mode") === "signin" ||
         urlParams.get("mode") === "occupant" ||
@@ -545,19 +540,11 @@ export default function App() {
 
   if (!authUser) {
     return (
-      <>
-        <LoginScreen
-          onLoginSuccess={handleLoginSuccess}
-          onEnterOccupantApp={handleEnterOccupantApp}
-          onOpenQRPoster={() => setIsSignInPosterOpen(true)}
-          onOpenOnePager={() => setIsOnePagerOpen(true)}
-        />
-        <ExecutiveOnePagerModal
-          isOpen={isOnePagerOpen}
-          onClose={() => setIsOnePagerOpen(false)}
-          snapshot={snapshot}
-        />
-      </>
+      <LoginScreen
+        onLoginSuccess={handleLoginSuccess}
+        onEnterOccupantApp={handleEnterOccupantApp}
+        onOpenQRPoster={() => setIsSignInPosterOpen(true)}
+      />
     );
   }
 
@@ -676,15 +663,6 @@ export default function App() {
             <span className="hidden lg:inline">Report</span>
           </button>
 
-          {/* Executive One-Pager Quick Modal */}
-          <button
-            onClick={() => setIsOnePagerOpen(true)}
-            className="rounded-xl bg-gradient-to-r from-sky-600 to-[#005DAA] hover:from-sky-500 hover:to-[#004A88] border border-sky-400/40 px-3 py-2 min-h-[38px] text-xs font-black text-white transition cursor-pointer flex items-center gap-1.5 shadow-sm"
-            title="Open Shareable Executive One-Pager & Architecture Detail"
-          >
-            <span>📑</span>
-            <span className="hidden lg:inline">One-Pager</span>
-          </button>
 
           {/* Role & Mode Switcher Pill */}
           <div className="flex items-center bg-[#07192C] p-1 rounded-xl border border-[#1E3A60]">
@@ -755,7 +733,6 @@ export default function App() {
             onCheckIn={handleCheckIn}
             onSwitchToAdmin={() => setViewMode("admin")}
             onLogout={handleLogout}
-            onOpenOnePager={() => setIsOnePagerOpen(true)}
           />
         </div>
       ) : (
@@ -912,11 +889,6 @@ export default function App() {
         currentMode={viewMode}
       />
 
-      <ExecutiveOnePagerModal
-        isOpen={isOnePagerOpen}
-        onClose={() => setIsOnePagerOpen(false)}
-        snapshot={snapshot}
-      />
 
       <WalkieTalkieModal
         isOpen={isWalkieTalkieOpen}

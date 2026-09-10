@@ -29,10 +29,9 @@ interface OccupantPortalProps {
   ) => void;
   onSwitchToAdmin?: () => void;
   onLogout?: () => void;
-  onOpenOnePager?: () => void;
 }
 
-export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitchToAdmin, onLogout, onOpenOnePager }: OccupantPortalProps) {
+export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitchToAdmin, onLogout }: OccupantPortalProps) {
   // Check if this occupant has signed in before on this device
   const [savedOccupantId, setSavedOccupantId] = useState<string | null>(() => {
     try {
@@ -733,17 +732,7 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
         </div>
 
         <div className="flex items-center gap-1.5 shrink-0">
-          {onOpenOnePager && (
-            <button
-              type="button"
-              onClick={onOpenOnePager}
-              className="bg-amber-100 hover:bg-amber-200 border border-amber-300 text-amber-900 px-2 sm:px-2.5 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1 transition cursor-pointer shadow-xs"
-              title="Open Shareable Executive One-Pager"
-            >
-              <span>📑</span>
-              <span className="hidden sm:inline">One-Pager</span>
-            </button>
-          )}
+
 
           {onSwitchToAdmin && (
             <button

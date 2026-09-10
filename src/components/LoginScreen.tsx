@@ -26,7 +26,6 @@ interface LoginScreenProps {
   onLoginSuccess: (user: AuthUser) => void;
   onEnterOccupantApp: () => void;
   onOpenQRPoster?: () => void;
-  onOpenOnePager?: () => void;
 }
 
 type UserCategory = "qr" | "worker" | "visitor" | "admin";
@@ -35,7 +34,6 @@ export default function LoginScreen({
   onLoginSuccess,
   onEnterOccupantApp,
   onOpenQRPoster,
-  onOpenOnePager,
 }: LoginScreenProps) {
   const [activeCategory, setActiveCategory] = useState<UserCategory>("qr");
 
@@ -894,17 +892,6 @@ export default function LoginScreen({
             <span>📱</span>
             <span>Display Official Entrance Poster</span>
           </button>
-
-          {onOpenOnePager && (
-            <button
-              type="button"
-              onClick={onOpenOnePager}
-              className="text-amber-400 hover:text-amber-300 font-bold transition cursor-pointer flex items-center gap-1.5"
-            >
-              <span>📑</span>
-              <span>Executive One-Pager</span>
-            </button>
-          )}
 
           <button
             type="button"
