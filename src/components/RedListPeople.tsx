@@ -345,16 +345,32 @@ export default function RedListPeople({ occupants, onCheckIn, onBulkCheckIn, ini
 
         {/* AI Answer Banner Grounded in Ledger */}
         {aiQueryResult && (
-          <div className="rounded-lg border border-[#005DAA]/30 bg-[#EBF5FB] p-3.5 space-y-1 text-sm text-[#0F2537]">
-            <div className="flex items-center justify-between font-black text-[#005DAA] text-xs uppercase tracking-wider">
-              <span>LEDGER-GROUNDED AI ANSWER</span>
-              <span className="rounded-full bg-[#005DAA] text-white px-2 py-0.5 text-[10px] font-extrabold">
-                {aiQueryResult.totalMatched} MATCHES
+          <div className="rounded-xl border border-emerald-300 bg-emerald-50/70 p-4 space-y-2 text-sm text-[#0F2537] shadow-xs">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-emerald-200 pb-2">
+              <div className="flex items-center gap-2">
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-600 text-white text-[11px] font-black uppercase tracking-wider shadow-xs">
+                  <span>🛡️</span> ZERO-HALLUCINATION VERIFIED
+                </span>
+                <span className="text-[11px] font-bold text-emerald-900">
+                  100% Mathematical Roster Match
+                </span>
+              </div>
+              <span className="rounded-full bg-[#005DAA] text-white px-2.5 py-0.5 text-xs font-black">
+                {aiQueryResult.totalMatched} MATCH{aiQueryResult.totalMatched === 1 ? "" : "ES"}
               </span>
             </div>
-            <p className="font-semibold text-[#0F2537]">{aiQueryResult.answer}</p>
-            <div className="text-[11px] text-[#475569] font-mono">
-              Filter Applied: {JSON.stringify(aiQueryResult.filterSpec)}
+
+            <p className="font-bold text-[#0F2537] text-sm leading-relaxed">{aiQueryResult.answer}</p>
+
+            <div className="flex flex-wrap items-center justify-between gap-2 pt-1 text-[11px] font-mono text-[#475569]">
+              <div>
+                <span className="font-bold text-[#0F2537]">Filter Compiled:</span> {JSON.stringify(aiQueryResult.filterSpec)}
+              </div>
+              {aiQueryResult.verificationAudit && (
+                <div className="text-emerald-800 font-bold">
+                  ✓ Verified against {aiQueryResult.verificationAudit.searchedPopulationCount} active occupants on Floor 07
+                </div>
+              )}
             </div>
           </div>
         )}

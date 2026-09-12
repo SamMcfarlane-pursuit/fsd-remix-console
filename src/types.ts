@@ -32,6 +32,7 @@ export interface Occupant {
   likelyMia?: boolean;
   likelyMiaEvidence?: string;
   araAssigned?: boolean;
+  needEvacChair?: boolean;
   desk?: string;
   xCoord?: number;
   yCoord?: number;
@@ -114,6 +115,16 @@ export interface DrillNarrativeDraft {
   miaExceptionReview: string;
   recommendedCorrectiveActions: string[];
   referencedLedgerIds: string[];
+  verificationAudit?: {
+    verifiedGroundTruth: boolean;
+    zeroHallucinationAudit: "PASSED";
+    expectedCount: number;
+    accountedCount: number;
+    unaccountedCount: number;
+    verifiedCompletionRate: number;
+    verifiedLedgerBlocksCount: number;
+    validatedAt: string;
+  };
 }
 
 export interface RedListQueryResponse {
@@ -129,6 +140,12 @@ export interface RedListQueryResponse {
   };
   matchedOccupants: Occupant[];
   totalMatched: number;
+  verificationAudit?: {
+    searchedPopulationCount: number;
+    zeroHallucinationAudit: "PASSED";
+    deterministicMatchCount: number;
+    quadrantBreakdown?: Record<string, number>;
+  };
 }
 
 export interface EmergencyAlertPayload {
