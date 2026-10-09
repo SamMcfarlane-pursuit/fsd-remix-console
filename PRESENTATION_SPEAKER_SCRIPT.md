@@ -190,4 +190,24 @@
 
 #### Q3: "How do we remove old names when starting a new shift or drill?"
 > **Speaker Answer:**
-> *"Right at the top of the header, the FSD Commander can click **Clean Database**. With one click, all occupant records are cleared, the disk file `data/fsd_roster.json` is wiped clean, and a fresh Genesis block is minted, putting the console in an immediate 'Ready for Intake' state."*
+> *"Right at the top of the header, the FSD Commander can click **Clean Data**. Protected by Commander PIN `7007`, all mock or prior occupant records are cleared, the disk file `data/fsd_roster.json` is wiped clean, and a fresh Genesis block is minted, putting the console in an immediate 'Ready for Intake' state."*
+
+---
+
+### Phase 8: Next Steps & "What We Need" (15:00 – 16:00)
+
+#### [Action on Screen]
+*Display Deck 13 Conclusion & "What We Need from Con Edison" Slide.*
+
+#### [Speaker Script]
+> *"To bring MusterCommand from this working pilot console into operational deployment for Floor 07, our baseline is standardized at **195 total occupants** across the four quadrants.*
+>
+> *Please note our **Synthetic-Data Disclosure**: all demo personnel names, phone numbers, and badge IDs shown today are synthetic test profiles generated for drill modeling, ensuring zero employee PII exposure.*
+>
+> *Here are the four key items we need from Con Edison to launch the live pilot:*
+> 1. ***Floor Warden Designation***: *Confirmed list of Deputy Wardens and quadrant searchers for NW, NE, SW, and SE.*
+> 2. ***Access Ingress Integration***: *Daily shift roster CSV feed or direct turnstile badging API endpoint.*
+> 3. ***Signage Placement***: *Authorization to post Floor 07 Entrance QR posters at elevator banks and exterior muster points.*
+> 4. ***Pilot Drill Coordination***: *A scheduled 15-minute life-safety drill in coordination with **Robert Petillo** and the Emergency Preparedness team.*
+>
+> *Thank you very much. We are ready to answer any technical or operational questions."*

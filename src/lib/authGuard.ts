@@ -42,7 +42,7 @@ export function verifyRolePin(role: UserRole, inputPin: string): boolean {
 export function getStoredRole(): UserRole {
   if (typeof window === "undefined") return "occupant";
   const stored = sessionStorage.getItem("muster_verified_role") as UserRole | null;
-  return stored || "commander"; // Default to commander for developer ease
+  return stored || "occupant"; // Secure default: occupant
 }
 
 export function setStoredRole(role: UserRole): void {

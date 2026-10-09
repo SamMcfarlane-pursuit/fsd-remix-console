@@ -119,3 +119,22 @@ graph TD
 * **SHA-256 Ledger Sealing**: Every sign-in, alarm trigger, directive push, walkie-talkie transmission, and narrative approval appends a block linking to `prevHash`.
 * **FSD Certificate of Fitness**: Produces an official tamper-evident compliance certificate upon reaching 100% headcount closure.
 * **Publication PDF**: Compiled as a standalone printable document available at [`executive_one_pager.pdf`](file:///Users/samuelmcfarlane/Fsd%20console%205steps/fsd-remix-console/executive_one_pager.pdf).
+
+---
+
+## 📋 7. Demonstration Disclosures & Pilot Deployment Roadmap
+
+### 🔬 Synthetic-Data Disclosure (Confidentiality & Privacy)
+* **Zero PII Exposure**: All personnel identities, phone numbers, and badge IDs displayed during live walkthroughs are **synthetic demonstration records**. 
+* **Database Clean Baseline**: The production-ready database initializes in a pristine, zero-record state (`0 / 0` enrolled) awaiting live facility personnel intake via optical turnstiles, QR posters, or official HR roster sync.
+
+### 🎯 Standardized Floor 07 Operational Baseline
+* **Unified Headcount Baseline**: **195 occupants** represents full commercial Floor 07 shift capacity across four quadrants (NW: 49, NE: 49, SW: 49, SE: 48).
+* **FSD Leadership Coordination**: Coordinated with **Robert Petillo** (Director of Emergency Preparedness & Life Safety).
+* **Illustrative Drill Telemetry**: Field comparison benchmarks (~4 minutes physical egress vs. up to 20 minutes manual paper clipboard roll-call confirmation) illustrate operational latency reduction enabled by real-time mobile ingress.
+
+### 🚀 What We Need from Con Edison (Pilot Deployment Checklist)
+1. **Floor Warden Roster**: Designated Deputy Wardens and searchers for Quadrants NW, NE, SW, and SE.
+2. **Access Control Sync**: Daily badge ingress feed or direct Lenel/CCURE API hookup for turnstile check-ins.
+3. **Display Placement**: Laminated Floor 07 Entrance QR posters at elevator banks and exterior muster points (Plaza / 14th St).
+4. **Joint Pilot Drill**: Scheduled 15-minute live drill simulation with Con Edison Fire Safety Directors and Floor 07 wardens.

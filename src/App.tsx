@@ -16,7 +16,7 @@ import { NavigationGuideModal } from "./components/NavigationGuideModal";
 import { PinModal } from "./components/PinModal";
 import { WalkieTalkieModal } from "./components/WalkieTalkieModal";
 import { setAudioMuted, getAudioMuted } from "./lib/audioBroadcast";
-import { UserRole } from "./lib/authGuard";
+import { UserRole, setStoredRole, getStoredRole } from "./lib/authGuard";
 import { AuthUser, EmergencyAlertPayload, LocationCategory, OccupantStatus, StatusSnapshot } from "./types";
 import { validateGeofence, LocationMetadata, FLOOR_07_CONSTRAINTS } from "./lib/geofence";
 import { appendLedgerEntry } from "./lib/ledger";
@@ -47,8 +47,11 @@ export default function App() {
   const [viewMode, setViewMode] = useState<"admin" | "occupant">(() => {
     try {
       if (typeof window !== "undefined") {
+        const isMobileDevice =
+          window.innerWidth < 768 ||
+          /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
         const urlParams = new URLSearchParams(window.location.search);
-        if (
+        const isExplicitOccupant =
           urlParams.get("mode") === "signin" ||
           urlParams.get("mode") === "occupant" ||
           urlParams.get("scan") === "1" ||
@@ -57,13 +60,18 @@ export default function App() {
           urlParams.get("station") ||
           urlParams.get("id") ||
           urlParams.get("badge") ||
-          urlParams.get("token")
-        ) {
+          urlParams.get("token");
+
+        if (isMobileDevice || isExplicitOccupant) {
           return "occupant";
+        }
+        const storedRole = getStoredRole();
+        if (storedRole === "commander" || storedRole === "warden") {
+          return "admin";
         }
       }
     } catch {}
-    return "admin";
+    return "occupant";
   });
 
   const [isAlertModalOpen, setIsAlertModalOpen] = useState(false);
@@ -512,7 +520,10 @@ export default function App() {
     try {
       const res = await fetch("/api/incident/declare", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-fsd-pin": "7007",
+        },
         body: JSON.stringify({ mode, type }),
       });
       if (res.ok) {
@@ -531,7 +542,10 @@ export default function App() {
     try {
       const res = await fetch("/api/incident/clear", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-fsd-pin": "7007",
+        },
       });
       if (res.ok) {
         await refreshState();
@@ -552,7 +566,10 @@ export default function App() {
     try {
       const res = await fetch("/api/emergency-alert", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-fsd-pin": "7007",
+        },
         body: JSON.stringify(alertData),
       });
       if (res.ok) {
@@ -575,7 +592,10 @@ export default function App() {
     try {
       const res = await fetch("/api/database/clean", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-fsd-pin": "7007",
+        },
       });
       if (res.ok) {
         try {
@@ -627,16 +647,17 @@ export default function App() {
         </div>
       )}
 
-      {/* Top Life-Safety Operational Header */}
-      <header
-        className={`px-4 sm:px-6 py-3 flex items-center justify-between border-b transition-colors shadow-md z-40 sticky top-0 ${
-          snapshot?.incidentActive
-            ? snapshot?.mode === "incident"
-              ? "bg-[#990000] border-[#FF4D4D] text-white"
+      {/* Top Life-Safety Operational Header (Strictly Commander View) */}
+      {viewMode === "admin" && (
+        <header
+          className={`px-4 sm:px-6 py-3 flex items-center justify-between border-b transition-colors shadow-md z-40 sticky top-0 ${
+            snapshot?.incidentActive
+              ? snapshot?.mode === "incident"
+                ? "bg-[#990000] border-[#FF4D4D] text-white"
+                : "bg-[#003B70] border-[#005DAA] text-white"
               : "bg-[#003B70] border-[#005DAA] text-white"
-            : "bg-[#003B70] border-[#005DAA] text-white"
-        }`}
-      >
+          }`}
+        >
         <div className="flex items-center gap-3 min-w-0">
           <div
             className={`flex items-center justify-center w-3 h-3 shrink-0 rounded-full animate-pulse shadow-sm ${
@@ -718,16 +739,17 @@ export default function App() {
             <span className="hidden lg:inline">Report</span>
           </button>
 
-          {/* Clean / Reset Database Button */}
-          <button
-            onClick={handleCleanDatabase}
-            className="rounded-xl bg-white/10 hover:bg-rose-500/20 border border-white/20 hover:border-rose-400/50 px-3 py-2 min-h-[38px] text-xs font-bold text-white transition cursor-pointer flex items-center gap-1.5"
-            title="Clean Database & Reset to Pristine Ready-for-Usage State"
-          >
-            <span>🧹</span>
-            <span className="hidden lg:inline">Clean Data</span>
-          </button>
-
+          {/* Clean / Reset Database Button (Strictly Commander Only) */}
+          {viewMode === "admin" && (
+            <button
+              onClick={handleCleanDatabase}
+              className="rounded-xl bg-white/10 hover:bg-rose-500/20 border border-white/20 hover:border-rose-400/50 px-3 py-2 min-h-[38px] text-xs font-bold text-white transition cursor-pointer flex items-center gap-1.5"
+              title="Clean Database & Reset to Pristine Ready-for-Usage State"
+            >
+              <span>🧹</span>
+              <span className="hidden lg:inline">Clean Data</span>
+            </button>
+          )}
 
           {/* Role & Mode Switcher Pill */}
           <div className="flex items-center bg-[#07192C] p-1 rounded-xl border border-[#1E3A60]">
@@ -745,7 +767,7 @@ export default function App() {
                   ? "bg-[#005DAA] text-white shadow-sm"
                   : "text-slate-400 hover:text-white"
               }`}
-              title="Switch to 5-Step FSD Commander Deck (Protected by 4-digit PIN)"
+              title="Switch to 5-Step FSD Commander Deck (Protected by 4-digit PIN 7007)"
             >
               <span>🛡️</span>
               <span className="hidden sm:inline">Commander Deck</span>
@@ -788,6 +810,7 @@ export default function App() {
           </button>
         </div>
       </header>
+      )}
 
       {/* Main View: Either 5-Step Commander Console OR Occupant Mobile Portal */}
       {viewMode === "occupant" ? (
@@ -796,7 +819,10 @@ export default function App() {
             snapshot={snapshot}
             occupants={occupantsList}
             onCheckIn={handleCheckIn}
-            onSwitchToAdmin={() => setViewMode("admin")}
+            onSwitchToAdmin={() => {
+              setTargetPinRole("commander");
+              setIsPinModalOpen(true);
+            }}
             onLogout={handleLogout}
           />
         </div>
@@ -971,6 +997,7 @@ export default function App() {
         targetRole={targetPinRole}
         onSuccess={() => {
           setIsPinModalOpen(false);
+          setStoredRole(targetPinRole);
           setViewMode("admin");
         }}
         onCancel={() => setIsPinModalOpen(false)}

@@ -318,13 +318,13 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
     }
   };
 
-  // Sample Autofill helpers
+  // Sample Autofill helpers (aligned to Con Edison briefing script)
   const handleAutofillEmployee = () => {
     setUserType("employee");
-    setSignName("Sarah Jenkins");
-    setSignPhone("(212) 555-0144");
+    setSignName("Robert Petillo");
+    setSignPhone("(212) 555-0195");
     setSignCompany("Con Edison");
-    setSignRole("Employee");
+    setSignRole("Staff Lead");
     setSignQuad("NW");
     setSignAction("enter");
   };
@@ -732,19 +732,6 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
         </div>
 
         <div className="flex items-center gap-1.5 shrink-0">
-
-
-          {onSwitchToAdmin && (
-            <button
-              type="button"
-              onClick={onSwitchToAdmin}
-              className="bg-[#003B70] hover:bg-[#005DAA] text-white px-2.5 sm:px-3 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1 transition cursor-pointer shadow-xs"
-              title="Open FSD Commander Console"
-            >
-              <span>🛡️</span>
-              <span>FSD Deck</span>
-            </button>
-          )}
 
           {onLogout && (
             <button
@@ -1362,21 +1349,15 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
 
           {/* Quick Demo Autofill Helpers */}
           <div className="bg-[#F4F8FC] p-3 rounded-xl border border-[#CBDCEE] flex flex-wrap items-center justify-between gap-2 text-xs">
-            <span className="font-bold text-[#005DAA]">⚡ Quick Fill Demo:</span>
+            <span className="font-bold text-[#005DAA]">⚡ 1-Tap Demo Sign-In:</span>
             <div className="flex items-center gap-2">
               <button
                 type="button"
                 onClick={handleAutofillEmployee}
-                className="px-2.5 py-1 bg-white hover:bg-[#EBF5FB] border border-[#B8D8F8] text-[#005DAA] rounded-lg font-bold text-[11px] transition cursor-pointer"
+                className="px-3 py-1.5 bg-white hover:bg-[#EBF5FB] border border-[#005DAA]/40 text-[#005DAA] rounded-lg font-bold text-xs transition cursor-pointer flex items-center gap-1.5 shadow-xs"
               >
-                🏢 Fill Employee (Sarah Jenkins)
-              </button>
-              <button
-                type="button"
-                onClick={handleAutofillVisitor}
-                className="px-2.5 py-1 bg-white hover:bg-amber-50 border border-amber-300 text-amber-900 rounded-lg font-bold text-[11px] transition cursor-pointer"
-              >
-                🎟️ Fill Visitor (Alex Rivera)
+                <span>👤</span>
+                <span>Fill Staff Lead (Robert Petillo)</span>
               </button>
             </div>
           </div>

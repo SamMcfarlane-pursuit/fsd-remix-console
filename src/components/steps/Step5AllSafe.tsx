@@ -96,7 +96,10 @@ export const Step5AllSafe: React.FC<Step5AllSafeProps> = ({
     try {
       const res = await fetch("/api/ledger/seal", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-fsd-pin": "7007",
+        },
         body: JSON.stringify({
           commanderSignature: commanderSignature.trim(),
           commanderId: "FSD-CHIEF-07",

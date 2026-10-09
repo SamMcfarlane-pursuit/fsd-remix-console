@@ -35,18 +35,28 @@ export default function LoginScreen({
   onEnterOccupantApp,
   onOpenQRPoster,
 }: LoginScreenProps) {
-  const [activeCategory, setActiveCategory] = useState<UserCategory>("qr");
+  const [activeCategory, setActiveCategory] = useState<UserCategory>(() => {
+    try {
+      if (typeof window !== "undefined") {
+        const params = new URLSearchParams(window.location.search);
+        if (params.get("mode") === "signin" || params.get("scan") === "1") {
+          return "worker";
+        }
+      }
+    } catch {}
+    return "qr";
+  });
 
   // Worker inputs
-  const [workerName, setWorkerName] = useState<string>("Sarah Jenkins");
-  const [workerPhone, setWorkerPhone] = useState<string>("(212) 555-0199");
+  const [workerName, setWorkerName] = useState<string>("Robert Petillo");
+  const [workerPhone, setWorkerPhone] = useState<string>("(212) 555-0195");
   const [workerQuad, setWorkerQuad] = useState<QuadrantId>("NW");
   const [workerAction, setWorkerAction] = useState<"enter" | "leave" | "muster">("enter");
 
   // Visitor inputs
   const [visitorName, setVisitorName] = useState<string>("");
   const [visitorPhone, setVisitorPhone] = useState<string>("");
-  const [visitorHost, setVisitorHost] = useState<string>("John Davis (Floor Warden)");
+  const [visitorHost, setVisitorHost] = useState<string>("Robert Petillo (Staff Lead)");
   const [visitorQuad, setVisitorQuad] = useState<QuadrantId>("SE");
 
   // Admin inputs
@@ -58,7 +68,16 @@ export default function LoginScreen({
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [isQrModalOpen, setIsQrModalOpen] = useState<boolean>(false);
-  const [isMobile, setIsMobile] = useState<boolean>(false);
+  const [isMobile, setIsMobile] = useState<boolean>(() => {
+    try {
+      if (typeof window !== "undefined") {
+        const params = new URLSearchParams(window.location.search);
+        if (params.get("mode") === "signin" || params.get("scan") === "1") return true;
+        return window.innerWidth < 768 || /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+      }
+    } catch {}
+    return false;
+  });
   const [loginQrDataUrl, setLoginQrDataUrl] = useState<string>("");
   const [activeNetworkOrigin, setActiveNetworkOrigin] = useState<string>(getMobileNetworkOrigin());
 
@@ -353,23 +372,25 @@ export default function LoginScreen({
           </p>
         </div>
 
-        {/* Clear, Intuitive 4-Segmented Intent Selector */}
-        <div className="bg-[#0B172B] p-1.5 rounded-2xl border border-[#1E3A60] grid grid-cols-4 gap-1 shadow-xl text-xs font-bold">
-          <button
-            type="button"
-            onClick={() => {
-              setActiveCategory("qr");
-              setErrorMsg(null);
-            }}
-            className={`py-2 px-1.5 rounded-xl transition cursor-pointer flex flex-col items-center justify-center gap-0.5 ${
-              activeCategory === "qr"
-                ? "bg-[#005DAA] text-white shadow-md font-black"
-                : "text-slate-400 hover:text-white hover:bg-slate-800/40"
-            }`}
-          >
-            <QrCode className="w-4 h-4" />
-            <span className="text-[11px]">Phone QR</span>
-          </button>
+        {/* Intuitive Intent Selector: Commander/Admin button is strictly hidden on mobile phones */}
+        <div className={`bg-[#0B172B] p-1.5 rounded-2xl border border-[#1E3A60] grid ${isMobile ? "grid-cols-2" : "grid-cols-4"} gap-1 shadow-xl text-xs font-bold`}>
+          {!isMobile && (
+            <button
+              type="button"
+              onClick={() => {
+                setActiveCategory("qr");
+                setErrorMsg(null);
+              }}
+              className={`py-2 px-1.5 rounded-xl transition cursor-pointer flex flex-col items-center justify-center gap-0.5 ${
+                activeCategory === "qr"
+                  ? "bg-[#005DAA] text-white shadow-md font-black"
+                  : "text-slate-400 hover:text-white hover:bg-slate-800/40"
+              }`}
+            >
+              <QrCode className="w-4 h-4" />
+              <span className="text-[11px]">Phone QR</span>
+            </button>
+          )}
 
           <button
             type="button"
@@ -403,21 +424,23 @@ export default function LoginScreen({
             <span className="text-[11px]">Visitor</span>
           </button>
 
-          <button
-            type="button"
-            onClick={() => {
-              setActiveCategory("admin");
-              setErrorMsg(null);
-            }}
-            className={`py-2 px-1.5 rounded-xl transition cursor-pointer flex flex-col items-center justify-center gap-0.5 ${
-              activeCategory === "admin"
-                ? "bg-red-600 text-white shadow-md font-black"
-                : "text-slate-400 hover:text-white hover:bg-slate-800/40"
-            }`}
-          >
-            <span className="text-sm">🛡️</span>
-            <span className="text-[11px]">Admin</span>
-          </button>
+          {!isMobile && (
+            <button
+              type="button"
+              onClick={() => {
+                setActiveCategory("admin");
+                setErrorMsg(null);
+              }}
+              className={`py-2 px-1.5 rounded-xl transition cursor-pointer flex flex-col items-center justify-center gap-0.5 ${
+                activeCategory === "admin"
+                  ? "bg-red-600 text-white shadow-md font-black"
+                  : "text-slate-400 hover:text-white hover:bg-slate-800/40"
+              }`}
+            >
+              <span className="text-sm">🛡️</span>
+              <span className="text-[11px]">Admin</span>
+            </button>
+          )}
         </div>
 
         {/* Feedback Toasts */}
@@ -572,7 +595,7 @@ export default function LoginScreen({
                 </h2>
               </div>
               <span className="text-[10px] font-mono bg-[#1E3A60] text-slate-300 px-2 py-0.5 rounded">
-                194 Expected
+                195 Expected
               </span>
             </div>
 
@@ -606,7 +629,7 @@ export default function LoginScreen({
                     type="text"
                     value={workerName}
                     onChange={(e) => setWorkerName(e.target.value)}
-                    placeholder="e.g. Sarah Jenkins or OCC-101"
+                    placeholder="e.g. Robert Petillo or OCC-101"
                     required
                     className="w-full bg-[#060E1C] border border-[#1E3A60] rounded-xl pl-9 pr-3 py-2.5 text-white placeholder-slate-500 font-medium focus:border-[#005DAA] outline-none"
                   />

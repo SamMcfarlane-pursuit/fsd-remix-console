@@ -594,8 +594,35 @@ const DEMO_ACCOUNTS: Record<string, ServerUserAccount> = {
 };
 
 /* ------------------------------------------------------------------ */
-/* Core API Endpoints                                                 */
+/* Core API Endpoints & Role-Based Security Guard                      */
 /* ------------------------------------------------------------------ */
+
+// Role-Based Access Control Middleware for Commander & Incident Actions
+function requireCommanderAuth(req: express.Request, res: express.Response, next: express.NextFunction) {
+  const pinHeader = req.headers["x-fsd-pin"] || req.headers["authorization"]?.toString().replace(/^Bearer\s+/i, "");
+  const pinBody = req.body?.pin;
+  const pinQuery = req.query?.pin;
+  const effectivePin = (pinHeader || pinBody || pinQuery || "").toString().trim();
+
+  // FSD Chief Commander PIN 7007 (or Deputy Warden 2026 for drill/alert broadcasts)
+  if (effectivePin === "7007" || effectivePin === "2026") {
+    return next();
+  }
+
+  appendLedger("unauthorized-commander-action-blocked", {
+    path: req.path,
+    method: req.method,
+    ip: req.ip || req.socket.remoteAddress,
+    timestamp: new Date().toISOString(),
+    reason: "Missing or invalid FSD Commander PIN (7007 required)",
+  });
+
+  return res.status(401).json({
+    ok: false,
+    error: "UNAUTHORIZED_COMMANDER",
+    message: "Security Policy: FSD Commander authorization required (PIN 7007). Unauthenticated incident and administrative commands are strictly rejected.",
+  });
+}
 
 // Authentication Login endpoint
 app.post("/api/auth/login", (req, res) => {
@@ -2377,13 +2404,13 @@ function cleanDatabase() {
 }
 
 // Clean Database Endpoint
-app.post(["/api/database/clean", "/api/system/reset"], (req, res) => {
+app.post(["/api/database/clean", "/api/system/reset"], requireCommanderAuth, (req, res) => {
   const result = cleanDatabase();
   res.json(result);
 });
 
 // Optional Demo Seed Helper Endpoint
-app.post("/api/roster/seed-demo", (req, res) => {
+app.post("/api/roster/seed-demo", requireCommanderAuth, (req, res) => {
   const count = typeof req.body.count === "number" ? req.body.count : 194;
   occupantsRoster = generateInitialRoster(count);
   savePersistedRoster(occupantsRoster);
@@ -2419,7 +2446,7 @@ app.get("/api/database/status", (req, res) => {
 });
 
 // Rapid 1-Click Digital Muster Sweep Endpoint ("Process Round in Seconds")
-app.post("/api/muster/sweep", (req, res) => {
+app.post("/api/muster/sweep", requireCommanderAuth, (req, res) => {
   const { quadrant, sweepAll, via, wardenName } = req.body;
   const startTime = Date.now();
   const sweptOccupants: Occupant[] = [];
@@ -2530,7 +2557,7 @@ app.get("/api/building/status-report", (req, res) => {
 });
 
 // Incident Declare endpoint
-app.post("/api/incident/declare", (req, res) => {
+app.post("/api/incident/declare", requireCommanderAuth, (req, res) => {
   const { mode, type } = req.body;
   incidentActive = true;
   incidentMode = mode === "incident" ? "incident" : "drill";
@@ -2555,7 +2582,7 @@ app.post("/api/incident/declare", (req, res) => {
 });
 
 // Incident Clear endpoint
-app.post("/api/incident/clear", (req, res) => {
+app.post("/api/incident/clear", requireCommanderAuth, (req, res) => {
   incidentActive = false;
   const durationSec = declaredAt ? Math.round((Date.now() - new Date(declaredAt).getTime()) / 1000) : 0;
 
@@ -2570,7 +2597,7 @@ app.post("/api/incident/clear", (req, res) => {
 
 // Emergency Alert Push Notification broadcast endpoint
 // Emergency Alert & Drill Notification Broadcast endpoint
-app.post(["/api/emergency-alert", "/api/drill/broadcast"], (req, res) => {
+app.post(["/api/emergency-alert", "/api/drill/broadcast"], requireCommanderAuth, (req, res) => {
   const { title, narrative, priority, targetQuadrants, channels } = req.body;
 
   const totalRegistered = occupantsRoster.length;
@@ -2661,14 +2688,14 @@ app.post("/api/walkie-talkie/broadcast", (req, res) => {
 
   const effectiveRole = isWarden ? "warden" : "commander";
 
-  // Rapid PIN check if supplied
-  if (pin) {
-    if (effectiveRole === "warden" && pin !== "2026") {
-      return res.status(401).json({ error: "INVALID_WARDEN_PIN", message: "Invalid Floor Warden PIN." });
-    }
-    if (effectiveRole === "commander" && pin !== "7007") {
-      return res.status(401).json({ error: "INVALID_COMMANDER_PIN", message: "Invalid FSD Commander PIN." });
-    }
+  // Mandatory PIN check for transmitter authentication
+  const pinHeader = req.headers["x-fsd-pin"] || req.headers["authorization"]?.toString().replace(/^Bearer\s+/i, "");
+  const effectivePin = (pin || pinHeader || "").toString().trim();
+  if (effectiveRole === "warden" && effectivePin !== "2026") {
+    return res.status(401).json({ error: "INVALID_WARDEN_PIN", message: "Floor Warden PIN 2026 required." });
+  }
+  if (effectiveRole === "commander" && effectivePin !== "7007") {
+    return res.status(401).json({ error: "INVALID_COMMANDER_PIN", message: "FSD Commander PIN 7007 required." });
   }
 
   const broadcastId = `WT-${Date.now().toString(36).toUpperCase()}`;
@@ -2979,7 +3006,7 @@ Produce a JSON object with:
 });
 
 // Approve Narrative Endpoint
-app.post("/api/ai/drill-narrative/approve", (req, res) => {
+app.post("/api/ai/drill-narrative/approve", requireCommanderAuth, (req, res) => {
   const { narrativeId } = req.body;
   if (!latestNarrative || (narrativeId && latestNarrative.id !== narrativeId)) {
     res.status(404).json({ error: "Narrative draft not found or expired" });
@@ -3289,7 +3316,7 @@ app.get(["/api/audit-export", "/api/export"], (req, res) => {
 });
 
 // Cryptographic Ledger Seal Endpoint (Step 5 Success Goal)
-app.post("/api/ledger/seal", (req, res) => {
+app.post("/api/ledger/seal", requireCommanderAuth, (req, res) => {
   const { commanderSignature, commanderId, notes } = req.body;
   const snapshot = getDerivedSnapshot();
 

@@ -187,9 +187,13 @@ export const WalkieTalkieModal: React.FC<WalkieTalkieModalProps> = ({
     setStatusMessage({ type: "info", text: "Transmitting emergency distress audio to all floor devices..." });
 
     try {
+      const effectivePin = pinInput || (authUser?.role === "warden" ? "2026" : "7007");
       const res = await fetch("/api/walkie-talkie/broadcast", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-fsd-pin": effectivePin,
+        },
         body: JSON.stringify({
           senderName,
           senderRole: authUser?.role === "warden" ? "warden" : "commander",
