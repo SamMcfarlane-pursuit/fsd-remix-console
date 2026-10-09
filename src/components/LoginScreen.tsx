@@ -153,6 +153,11 @@ export default function LoginScreen({
           localStorage.setItem("muster_registered_occupant_id", data.occupant.id);
           localStorage.setItem("muster_occupant_id", data.occupant.id);
           localStorage.setItem("muster_registered_name", data.occupant.name);
+          localStorage.setItem("muster_registered_phone", workerPhone.trim());
+          localStorage.setItem("muster_registered_quad", workerQuad);
+          localStorage.setItem("muster_registered_role", "Employee");
+          localStorage.setItem("muster_registered_company", "Con Edison");
+          localStorage.setItem("muster_registered_occupant_json", JSON.stringify(data.occupant));
         } catch {}
         setSuccessMsg(`Welcome ${data.occupant.name}! Recorded as PRESENT on Floor 07.`);
         setTimeout(() => {
@@ -182,6 +187,11 @@ export default function LoginScreen({
         localStorage.setItem("muster_registered_occupant_id", offlineOccupant.id);
         localStorage.setItem("muster_occupant_id", offlineOccupant.id);
         localStorage.setItem("muster_registered_name", offlineOccupant.name);
+        localStorage.setItem("muster_registered_phone", workerPhone.trim());
+        localStorage.setItem("muster_registered_quad", workerQuad);
+        localStorage.setItem("muster_registered_role", "Employee");
+        localStorage.setItem("muster_registered_company", "Con Edison");
+        localStorage.setItem("muster_registered_occupant_json", JSON.stringify(offlineOccupant));
       } catch {}
       setSuccessMsg(`🟠 Offline Mode: Pass ${offlineOccupant.id} created locally for ${offlineOccupant.name}. Queued for auto-sync.`);
       setTimeout(() => {
@@ -226,6 +236,11 @@ export default function LoginScreen({
           localStorage.setItem("muster_registered_occupant_id", data.occupant.id);
           localStorage.setItem("muster_occupant_id", data.occupant.id);
           localStorage.setItem("muster_registered_name", data.occupant.name);
+          localStorage.setItem("muster_registered_phone", visitorPhone.trim());
+          localStorage.setItem("muster_registered_quad", visitorQuad);
+          localStorage.setItem("muster_registered_role", "Visitor");
+          localStorage.setItem("muster_registered_company", `Guest of ${visitorHost}`);
+          localStorage.setItem("muster_registered_occupant_json", JSON.stringify(data.occupant));
         } catch {}
         setSuccessMsg(`Visitor Pass ${data.occupant.id} Issued for ${data.occupant.name}!`);
         setTimeout(() => {
@@ -254,6 +269,11 @@ export default function LoginScreen({
         localStorage.setItem("muster_registered_occupant_id", offlineVisitor.id);
         localStorage.setItem("muster_occupant_id", offlineVisitor.id);
         localStorage.setItem("muster_registered_name", offlineVisitor.name);
+        localStorage.setItem("muster_registered_phone", visitorPhone.trim());
+        localStorage.setItem("muster_registered_quad", visitorQuad);
+        localStorage.setItem("muster_registered_role", "Visitor");
+        localStorage.setItem("muster_registered_company", `Guest of ${visitorHost}`);
+        localStorage.setItem("muster_registered_occupant_json", JSON.stringify(offlineVisitor));
       } catch {}
       setSuccessMsg(`🟠 Offline Visitor Pass ${offlineVisitor.id} Created! Welcome to Floor 07. Queued for auto-sync.`);
       setTimeout(() => {
@@ -560,9 +580,24 @@ export default function LoginScreen({
                   </div>
                 </div>
 
-                <div className="text-[10px] font-mono text-slate-400 truncate bg-[#070D18] p-1.5 rounded-lg border border-[#1E3A60] select-all">
-                  {activeNetworkOrigin}/?mode=signin&scan=1
+                <div
+                  onClick={onEnterOccupantApp}
+                  title="Click to open handheld portal URL directly"
+                  className="text-[10px] font-mono text-sky-400 hover:text-white truncate bg-[#070D18] hover:bg-[#0E1D33] p-1.5 rounded-lg border border-[#1E3A60] cursor-pointer transition flex items-center justify-between group"
+                >
+                  <span className="truncate">{activeNetworkOrigin}/?mode=signin&scan=1</span>
+                  <span className="text-[9px] font-bold bg-[#1E3A60] px-1.5 py-0.5 rounded text-sky-300 shrink-0 group-hover:bg-[#005DAA]">Open ↗</span>
                 </div>
+
+                <button
+                  type="button"
+                  onClick={onEnterOccupantApp}
+                  className="w-full py-2.5 px-3 bg-[#005DAA] hover:bg-[#004A88] text-white rounded-xl text-xs font-black uppercase tracking-wider transition cursor-pointer flex items-center justify-center gap-1.5 shadow-sm active:scale-95"
+                  title="Open Handheld Occupant Portal directly"
+                >
+                  <span>📱</span>
+                  <span>Open Handheld Portal On This Device</span>
+                </button>
               </div>
             </div>
 

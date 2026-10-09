@@ -11,6 +11,7 @@ interface SelfSignInModalProps {
   onClose: () => void;
   onSuccess: () => void;
   onViewOnMap?: (occupantId: string) => void;
+  onOpenHandheldPortal?: () => void;
   defaultAction?: "enter" | "leave" | "muster";
   initialName?: string;
   occupants?: Occupant[];
@@ -21,6 +22,7 @@ export const SelfSignInModal: React.FC<SelfSignInModalProps> = ({
   onClose,
   onSuccess,
   onViewOnMap,
+  onOpenHandheldPortal,
   defaultAction = "enter",
   initialName = "",
   occupants = [],
@@ -183,6 +185,10 @@ export const SelfSignInModal: React.FC<SelfSignInModalProps> = ({
           localStorage.setItem("muster_occupant_id", data.occupant.id);
           localStorage.setItem("muster_registered_phone", phone.trim());
           localStorage.setItem("muster_registered_name", name.trim());
+          localStorage.setItem("muster_registered_quad", quadrant);
+          localStorage.setItem("muster_registered_role", role);
+          localStorage.setItem("muster_registered_company", company.trim() || "Con Edison");
+          localStorage.setItem("muster_registered_occupant_json", JSON.stringify(data.occupant));
         } catch (e) {
           console.warn("Could not save to localStorage", e);
         }
@@ -358,8 +364,23 @@ export const SelfSignInModal: React.FC<SelfSignInModalProps> = ({
 
             {/* Actions */}
             <div className="flex flex-col sm:flex-row gap-2 pt-2 border-t border-[#B8D8F8]">
+              {onOpenHandheldPortal && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClose();
+                    onOpenHandheldPortal();
+                  }}
+                  className="flex-1 min-h-[44px] bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-black uppercase tracking-wider transition cursor-pointer shadow-xs flex items-center justify-center gap-1.5"
+                >
+                  <span>📱</span>
+                  <span>Open Handheld Portal Pass</span>
+                </button>
+              )}
+
               {onViewOnMap && (
                 <button
+                  type="button"
                   onClick={() => {
                     onClose();
                     onViewOnMap(allocatedOccupant.id);
@@ -367,20 +388,22 @@ export const SelfSignInModal: React.FC<SelfSignInModalProps> = ({
                   className="flex-1 min-h-[44px] bg-[#005DAA] hover:bg-[#004A88] text-white rounded-xl text-xs font-black uppercase tracking-wider transition cursor-pointer shadow-xs flex items-center justify-center gap-1.5"
                 >
                   <span>🗺️</span>
-                  <span>View My Location on Live Map</span>
+                  <span>View On Live Map</span>
                 </button>
               )}
 
               <button
+                type="button"
                 onClick={handleReset}
-                className="px-4 min-h-[44px] bg-white border border-[#B8D8F8] hover:bg-[#F0F6FC] text-[#005DAA] rounded-xl text-xs font-bold transition cursor-pointer"
+                className="px-3 min-h-[44px] bg-white border border-[#B8D8F8] hover:bg-[#F0F6FC] text-[#005DAA] rounded-xl text-xs font-bold transition cursor-pointer"
               >
-                Sign In Another Person
+                Sign In Another
               </button>
 
               <button
+                type="button"
                 onClick={onClose}
-                className="px-4 min-h-[44px] bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition cursor-pointer"
+                className="px-3 min-h-[44px] bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition cursor-pointer"
               >
                 Done
               </button>

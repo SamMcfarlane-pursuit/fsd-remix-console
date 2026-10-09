@@ -1,1 +1,33 @@
-[]
+[
+  {
+    "id": "OCC-101",
+    "name": "Robert Petillo",
+    "phone": "(212) 555-0195",
+    "company": "Con Edison",
+    "quadrant": "NW",
+    "status": "safe",
+    "role": "Employee",
+    "badgedOut": false,
+    "offSiteToday": false,
+    "unaccountedMinutes": 0,
+    "desk": "07-NW-Workstation",
+    "locationCategory": "inside-building",
+    "lastLocation": "07-NW-Workstation (NW)",
+    "lastBadgeTime": "06:25 PM",
+    "notes": "Self Sign-In via Mobile QR Code (Robert Petillo)",
+    "checkInMethod": "qr-code-self-signin",
+    "xCoord": 26,
+    "yCoord": 14,
+    "likelyMia": false,
+    "geofenceValidation": {
+      "isInsideBuilding": true,
+      "isAtAssemblyPoint": false,
+      "locationCategory": "inside-building",
+      "assemblyPoint": null,
+      "confidence": "MEDIUM",
+      "distanceMeters": null,
+      "verifiedAt": "2026-10-09T22:17:51.840Z",
+      "auditDetails": "Default Floor 07 station constraints applied"
+    }
+  }
+]

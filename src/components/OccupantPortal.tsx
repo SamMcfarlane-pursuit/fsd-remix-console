@@ -41,6 +41,38 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
     }
   });
 
+  const [localRegisteredOccupant, setLocalRegisteredOccupant] = useState<Occupant | null>(() => {
+    try {
+      if (typeof window !== "undefined") {
+        const storedJson = localStorage.getItem("muster_registered_occupant_json");
+        if (storedJson) {
+          const parsed = JSON.parse(storedJson);
+          if (parsed && parsed.id) return parsed;
+        }
+        const storedId = localStorage.getItem("muster_registered_occupant_id") || localStorage.getItem("muster_occupant_id");
+        const storedName = localStorage.getItem("muster_registered_name");
+        if (storedId || storedName) {
+          return {
+            id: storedId || "OCC-196",
+            name: storedName || "Robert Petillo",
+            phone: localStorage.getItem("muster_registered_phone") || "(212) 555-0195",
+            quadrant: (localStorage.getItem("muster_registered_quad") as QuadrantId) || "NW",
+            role: (localStorage.getItem("muster_registered_role") as OccupantRole) || "Employee",
+            company: localStorage.getItem("muster_registered_company") || "Con Edison",
+            status: "safe",
+            desk: "07-NW-Workstation",
+            badgedOut: false,
+            offSiteToday: false,
+            locationCategory: "inside-building",
+            lastLocation: "Floor 07 (NW)",
+            lastBadgeTime: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+          };
+        }
+      }
+    } catch {}
+    return null;
+  });
+
   const [selectedUserId, setSelectedUserId] = useState<string>(() => {
     try {
       if (typeof window !== "undefined") {
@@ -50,15 +82,36 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
           const clean = urlId.replace(/CONED-BADGE-/i, "").split("-")[0];
           const matched = occupants.find((o) => o.id.toLowerCase() === urlId.toLowerCase() || o.id.toLowerCase() === clean.toLowerCase());
           if (matched) return matched.id;
+          return urlId;
         }
+        const stored = localStorage.getItem("muster_registered_occupant_id") || localStorage.getItem("muster_occupant_id");
+        if (stored) return stored;
       }
-      const stored = localStorage.getItem("muster_registered_occupant_id") || localStorage.getItem("muster_occupant_id");
-      if (stored && (occupants.some((o) => o.id === stored) || stored.startsWith("OCC-OFF-"))) return stored;
     } catch {}
-    return savedOccupantId || occupants.find((o) => o.role === "Visitor")?.id || occupants[0]?.id || "OCC-101";
+    return savedOccupantId || (localRegisteredOccupant ? localRegisteredOccupant.id : null) || occupants.find((o) => o.role === "Visitor")?.id || occupants[0]?.id || "OCC-196";
   });
 
-  const currentUser = occupants.find((o) => o.id === selectedUserId) || occupants[0];
+  const currentUser: Occupant =
+    occupants.find((o) => o.id === selectedUserId) ||
+    (localRegisteredOccupant && localRegisteredOccupant.id === selectedUserId ? localRegisteredOccupant : null) ||
+    localRegisteredOccupant ||
+    occupants.find((o) => o.id === savedOccupantId) ||
+    occupants[0] ||
+    {
+      id: selectedUserId || "OCC-196",
+      name: (typeof localStorage !== "undefined" ? localStorage.getItem("muster_registered_name") : null) || "Robert Petillo",
+      phone: (typeof localStorage !== "undefined" ? localStorage.getItem("muster_registered_phone") : null) || "(212) 555-0195",
+      quadrant: (typeof localStorage !== "undefined" ? (localStorage.getItem("muster_registered_quad") as QuadrantId) : null) || "NW",
+      role: (typeof localStorage !== "undefined" ? (localStorage.getItem("muster_registered_role") as OccupantRole) : null) || "Employee",
+      company: (typeof localStorage !== "undefined" ? localStorage.getItem("muster_registered_company") : null) || "Con Edison",
+      status: "safe",
+      desk: "07-NW-Workstation",
+      badgedOut: false,
+      offSiteToday: false,
+      locationCategory: "inside-building",
+      lastLocation: "Floor 07 (NW)",
+      lastBadgeTime: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+    };
 
   // Screen state:
   // If returning user (savedOccupantId or recognized URL param exists in roster), show 'confirmed' pass screen.
@@ -67,17 +120,17 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
     try {
       if (typeof window !== "undefined") {
         const params = new URLSearchParams(window.location.search);
-        const urlId = params.get("id") || params.get("badge") || params.get("user") || params.get("occupantId");
-        if (urlId && occupants.some((o) => o.id.toLowerCase() === urlId.toLowerCase())) {
-          return "confirmed";
-        }
         if (params.get("new") === "1" || params.get("register") === "1") {
           return "newcomer-signin";
         }
-      }
-      const stored = localStorage.getItem("muster_registered_occupant_id") || localStorage.getItem("muster_occupant_id");
-      if (stored && (occupants.some((o) => o.id === stored) || stored.startsWith("OCC-OFF-"))) {
-        return "confirmed";
+        const urlId = params.get("id") || params.get("badge") || params.get("user") || params.get("occupantId");
+        if (urlId) {
+          return "confirmed";
+        }
+        const stored = localStorage.getItem("muster_registered_occupant_id") || localStorage.getItem("muster_occupant_id");
+        if (stored) {
+          return "confirmed";
+        }
       }
     } catch {}
     return "newcomer-signin";
@@ -208,10 +261,16 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
 
       setSelectedUserId(existingUser.id);
       setSavedOccupantId(existingUser.id);
+      setLocalRegisteredOccupant(existingUser);
       try {
         localStorage.setItem("muster_registered_occupant_id", existingUser.id);
+        localStorage.setItem("muster_occupant_id", existingUser.id);
         localStorage.setItem("muster_registered_name", existingUser.name);
         if (existingUser.phone) localStorage.setItem("muster_registered_phone", existingUser.phone);
+        localStorage.setItem("muster_registered_quad", existingUser.quadrant);
+        localStorage.setItem("muster_registered_role", existingUser.role);
+        if (existingUser.company) localStorage.setItem("muster_registered_company", existingUser.company);
+        localStorage.setItem("muster_registered_occupant_json", JSON.stringify(existingUser));
       } catch (e) {}
       setViewState("confirmed");
       setActionSubmittedMsg(
@@ -425,10 +484,28 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
           if (res.ok) {
             const data = await res.json();
             setSelectedUserId(data.occupant.id);
-            setViewState("confirmed");
+            setSavedOccupantId(data.occupant.id);
+            setLocalRegisteredOccupant(data.occupant);
             try {
+              localStorage.setItem("muster_registered_occupant_id", data.occupant.id);
               localStorage.setItem("muster_occupant_id", data.occupant.id);
+              localStorage.setItem("muster_registered_name", data.occupant.name);
+              localStorage.setItem("muster_registered_phone", data.occupant.phone || "");
+              localStorage.setItem("muster_registered_quad", data.occupant.quadrant);
+              localStorage.setItem("muster_registered_role", data.occupant.role);
+              localStorage.setItem("muster_registered_company", data.occupant.company || "Con Edison");
+              localStorage.setItem("muster_registered_occupant_json", JSON.stringify(data.occupant));
             } catch {}
+            setViewState("confirmed");
+            if (onCheckIn) {
+              onCheckIn(
+                data.occupant.id,
+                "safe",
+                "biometric-fingerprint-signin",
+                `Biometric Fingerprint Sign-In Verified (${data.occupant.name})`,
+                "inside-building"
+              );
+            }
           }
         }
         setActionSubmittedMsg(
@@ -517,16 +594,32 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
       if (data && data.occupant) {
         setSelectedUserId(data.occupant.id);
         setSavedOccupantId(data.occupant.id);
+        setLocalRegisteredOccupant(data.occupant);
         try {
           localStorage.setItem("muster_registered_occupant_id", data.occupant.id);
           localStorage.setItem("muster_occupant_id", data.occupant.id);
           localStorage.setItem("muster_registered_phone", signPhone.trim());
           localStorage.setItem("muster_registered_name", signName.trim());
+          localStorage.setItem("muster_registered_quad", signQuad);
+          localStorage.setItem("muster_registered_role", signRole);
+          localStorage.setItem("muster_registered_company", signCompany.trim() || "Con Edison");
+          localStorage.setItem("muster_registered_occupant_json", JSON.stringify(data.occupant));
         } catch (e) {
           console.warn("Storage write error", e);
         }
 
         setViewState("confirmed");
+        // Immediately dispatch check-in to console so live accounted numbers and roster update
+        if (onCheckIn) {
+          onCheckIn(
+            data.occupant.id,
+            "safe",
+            "qr-code-self-signin",
+            `Self Sign-In via Mobile QR Code (${data.occupant.name})`,
+            signAction === "leave" ? "offsite" : signAction === "muster" ? "outside-assembly" : "inside-building",
+            signAction === "muster" ? "Assembly Point A (Park Plaza)" : undefined
+          );
+        }
         setActionSubmittedMsg(
           isOfflineSaved
             ? `🟠 Offline Mode Active: Pass ${data.occupant.id} allocated for ${data.occupant.name}. Registration and signature saved locally and queued for auto-sync.`

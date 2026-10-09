@@ -37,6 +37,35 @@ export default function App() {
   const [isSyncingOffline, setIsSyncingOffline] = useState<boolean>(false);
   const [authUser, setAuthUser] = useState<AuthUser | null>(() => {
     try {
+      if (typeof window !== "undefined") {
+        const urlParams = new URLSearchParams(window.location.search);
+        const isExplicitOccupant =
+          urlParams.get("mode") === "signin" ||
+          urlParams.get("mode") === "occupant" ||
+          urlParams.get("scan") === "1" ||
+          urlParams.get("scan") === "signin" ||
+          urlParams.get("token") ||
+          urlParams.get("qr") === "1" ||
+          urlParams.get("station") ||
+          urlParams.get("id") ||
+          urlParams.get("badge");
+        if (isExplicitOccupant) {
+          const guestUser: AuthUser = {
+            id: "guest-occupant",
+            userId: "guest.occupant",
+            name: "Guest / Occupant Device",
+            role: "occupant",
+            roleLabel: "Occupant (Device Token)",
+            caps: 0,
+            capsList: [],
+            isGuest: true,
+          };
+          try {
+            sessionStorage.setItem("muster_auth_user", JSON.stringify(guestUser));
+          } catch {}
+          return guestUser;
+        }
+      }
       const stored = sessionStorage.getItem("muster_auth_user");
       return stored ? JSON.parse(stored) : null;
     } catch {
@@ -371,30 +400,63 @@ export default function App() {
 
     setSnapshot((prev) => {
       if (!prev) return prev;
-      const updatedOccupants = (prev.occupants || []).map((o) =>
-        o.id === occupantId
-          ? {
-              ...o,
-              status,
-              badgedOut: isLeaving ? true : isEntering ? false : o.badgedOut,
-              offSiteToday: isLeaving ? true : isEntering ? false : o.offSiteToday,
-              notes: notes || o.notes,
+      let found = false;
+      let updatedOccupants = (prev.occupants || []).map((o) => {
+        if (o.id === occupantId) {
+          found = true;
+          return {
+            ...o,
+            status,
+            badgedOut: isLeaving ? true : isEntering ? false : o.badgedOut,
+            offSiteToday: isLeaving ? true : isEntering ? false : o.offSiteToday,
+            notes: notes || o.notes,
+            locationCategory: resolvedCategory,
+            assemblyPoint: resolvedAssemblyPoint,
+            lastLocation: resolvedLastLocation,
+            geofenceValidation: {
+              isInsideBuilding: geoResult.isInsideBuilding,
+              isAtAssemblyPoint: geoResult.isAtAssemblyPoint,
               locationCategory: resolvedCategory,
-              assemblyPoint: resolvedAssemblyPoint,
-              lastLocation: resolvedLastLocation,
-              geofenceValidation: {
-                isInsideBuilding: geoResult.isInsideBuilding,
-                isAtAssemblyPoint: geoResult.isAtAssemblyPoint,
-                locationCategory: resolvedCategory,
-                assemblyPoint: resolvedAssemblyPoint || null,
-                confidence: geoResult.confidence,
-                distanceMeters: geoResult.distanceToBuildingCenterMeters,
-                verifiedAt: new Date().toISOString(),
-                auditDetails: geoResult.auditDetails,
-              },
-            }
-          : o
-      );
+              assemblyPoint: resolvedAssemblyPoint || null,
+              confidence: geoResult.confidence,
+              distanceMeters: geoResult.distanceToBuildingCenterMeters,
+              verifiedAt: new Date().toISOString(),
+              auditDetails: geoResult.auditDetails,
+            },
+          };
+        }
+        return o;
+      });
+
+      if (!found) {
+        let newOcc: any = null;
+        try {
+          const raw = localStorage.getItem("muster_registered_occupant_json");
+          if (raw) newOcc = JSON.parse(raw);
+        } catch {}
+        if (!newOcc) {
+          newOcc = {
+            id: occupantId,
+            name: localStorage.getItem("muster_registered_name") || occupantId,
+            phone: localStorage.getItem("muster_registered_phone") || "(212) 555-0195",
+            quadrant: (localStorage.getItem("muster_registered_quad") as QuadrantId) || "NW",
+            role: "Employee",
+            company: "Con Edison",
+            desk: "07-NW-Workstation",
+            xCoord: 24,
+            yCoord: 24,
+          };
+        }
+        newOcc.status = status;
+        newOcc.badgedOut = isLeaving;
+        newOcc.offSiteToday = isLeaving;
+        newOcc.notes = notes || newOcc.notes;
+        newOcc.locationCategory = resolvedCategory;
+        newOcc.assemblyPoint = resolvedAssemblyPoint;
+        newOcc.lastLocation = resolvedLastLocation;
+        updatedOccupants = [newOcc, ...updatedOccupants];
+      }
+
       const accounted = updatedOccupants.filter((o) => o.status === "safe").length;
       const needHelp = updatedOccupants.filter((o) => o.status === "need-help").length;
       const mia = updatedOccupants.filter((o) => o.status === "mia").length;
@@ -850,6 +912,7 @@ export default function App() {
                 onProceedNext={() => setCurrentStep(2)}
                 onOpenSelfSignIn={() => setIsSelfSignInOpen(true)}
                 onOpenQRPoster={() => setIsSignInPosterOpen(true)}
+                onOpenOccupantPortal={() => setViewMode("occupant")}
                 onRefreshState={refreshState}
               />
             )}
@@ -950,7 +1013,10 @@ export default function App() {
       <SignInQRPosterModal
         isOpen={isSignInPosterOpen}
         onClose={() => setIsSignInPosterOpen(false)}
-        onOpenSignInForm={() => setIsSelfSignInOpen(true)}
+        onOpenSignInForm={() => {
+          setIsSignInPosterOpen(false);
+          setViewMode("occupant");
+        }}
         occupantsCount={snapshot?.occupants?.length || 176}
         inBuildingCount={snapshot?.occupants?.filter((o) => !o.badgedOut && !o.offSiteToday).length || 176}
       />
@@ -959,6 +1025,10 @@ export default function App() {
         isOpen={isSelfSignInOpen}
         occupants={snapshot?.occupants || []}
         onClose={() => setIsSelfSignInOpen(false)}
+        onOpenHandheldPortal={() => {
+          setIsSelfSignInOpen(false);
+          setViewMode("occupant");
+        }}
         onSuccess={() => {
           refreshState();
         }}

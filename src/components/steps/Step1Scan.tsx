@@ -28,6 +28,7 @@ interface Step1ScanProps {
   onProceedNext: () => void;
   onOpenSelfSignIn: () => void;
   onOpenQRPoster: () => void;
+  onOpenOccupantPortal?: () => void;
   onRefreshState?: () => void;
 }
 
@@ -38,6 +39,7 @@ export const Step1Scan: React.FC<Step1ScanProps> = ({
   onProceedNext,
   onOpenSelfSignIn,
   onOpenQRPoster,
+  onOpenOccupantPortal,
   onRefreshState,
 }) => {
   const [qrDataUrl, setQrDataUrl] = useState<string>("");
@@ -664,15 +666,27 @@ export const Step1Scan: React.FC<Step1ScanProps> = ({
             </div>
 
           <div className="w-full space-y-2 text-xs">
-            <div className="flex gap-2">
+            <div className="flex flex-col sm:flex-row gap-2">
+              {onOpenOccupantPortal && (
+                <button
+                  type="button"
+                  onClick={onOpenOccupantPortal}
+                  className="flex-1 py-2.5 px-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold transition cursor-pointer flex items-center justify-center gap-1.5 shadow-xs"
+                >
+                  <span>📱</span>
+                  <span>Handheld Portal</span>
+                </button>
+              )}
               <button
+                type="button"
                 onClick={onOpenSelfSignIn}
-                className="flex-1 py-2.5 px-3 bg-[#005DAA] hover:bg-[#004884] text-white rounded-xl font-bold transition cursor-pointer flex items-center justify-center gap-1.5"
+                className="flex-1 py-2.5 px-3 bg-[#005DAA] hover:bg-[#004884] text-white rounded-xl font-bold transition cursor-pointer flex items-center justify-center gap-1.5 shadow-xs"
               >
-                <span>📱</span>
-                <span>Open Mobile Sign-In</span>
+                <span>✍️</span>
+                <span>Self Sign-In</span>
               </button>
               <button
+                type="button"
                 onClick={onOpenQRPoster}
                 className="flex-1 py-2.5 px-3 bg-[#EBF3FB] hover:bg-[#D6E8F8] text-[#005DAA] border border-[#CBDCEE] rounded-xl font-bold transition cursor-pointer flex items-center justify-center gap-1.5"
               >
