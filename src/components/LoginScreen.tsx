@@ -79,10 +79,11 @@ export default function LoginScreen({
   useEffect(() => {
     const targetUrl = `${activeNetworkOrigin}/?mode=signin&scan=1`;
     QRCode.toDataURL(targetUrl, {
-      width: 320,
-      margin: 1,
+      width: 600,
+      margin: 2,
+      errorCorrectionLevel: "H",
       color: {
-        dark: "#003B70",
+        dark: "#002447",
         light: "#FFFFFF",
       },
     })
@@ -455,34 +456,59 @@ export default function LoginScreen({
                 </div>
               </div>
 
-              <button
-                type="button"
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (onOpenQRPoster) onOpenQRPoster();
+                    else setIsQrModalOpen(true);
+                  }}
+                  className="text-[10px] font-mono font-bold text-amber-300 hover:text-white bg-amber-500/20 hover:bg-amber-500/30 px-2.5 py-1.5 rounded-lg border border-amber-400/40 transition cursor-pointer flex items-center gap-1 shrink-0"
+                  title="Super-Size QR for distance scanning"
+                >
+                  <span>⚡ Super-Size</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (onOpenQRPoster) onOpenQRPoster();
+                    else setIsQrModalOpen(true);
+                  }}
+                  className="text-[10px] font-mono font-bold text-[#38BDF8] hover:text-white bg-[#1E3A60]/60 hover:bg-[#1E3A60] px-2.5 py-1.5 rounded-lg border border-[#38BDF8]/30 transition cursor-pointer flex items-center gap-1 shrink-0"
+                  title="Open Printable Official Poster"
+                >
+                  <span>Full Poster</span>
+                  <span>↗</span>
+                </button>
+              </div>
+            </div>
+
+            {/* High-Contrast Robust QR Code with Distance Support */}
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-5 py-2">
+              <div
                 onClick={() => {
                   if (onOpenQRPoster) onOpenQRPoster();
                   else setIsQrModalOpen(true);
                 }}
-                className="text-[10px] font-mono font-bold text-[#38BDF8] hover:text-white bg-[#1E3A60]/60 hover:bg-[#1E3A60] px-2.5 py-1.5 rounded-lg border border-[#38BDF8]/30 transition cursor-pointer flex items-center gap-1 shrink-0"
-                title="Open Printable Official Poster"
+                className="p-3.5 bg-white rounded-2xl shadow-2xl border-3 border-[#38BDF8]/70 shrink-0 cursor-zoom-in group relative hover:scale-105 transition-all"
+                title="Click to Super-Size QR for distance scanning"
               >
-                <span>Full Poster</span>
-                <span>↗</span>
-              </button>
-            </div>
-
-            {/* High-Contrast Robust QR Code */}
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-5 py-2">
-              <div className="p-3 bg-white rounded-2xl shadow-xl border-2 border-[#38BDF8]/50 shrink-0">
                 {loginQrDataUrl ? (
                   <img
                     src={loginQrDataUrl}
                     alt="Scan QR Code to Sign In"
-                    className="w-44 h-44 sm:w-48 sm:h-48 object-contain block mx-auto"
+                    className="w-52 h-52 sm:w-60 sm:h-60 object-contain block mx-auto rounded-lg"
                   />
                 ) : (
-                  <div className="w-44 h-44 sm:w-48 sm:h-48 flex items-center justify-center text-slate-400 text-xs font-mono">
-                    Generating QR...
+                  <div className="w-52 h-52 sm:w-60 sm:h-60 flex items-center justify-center text-slate-400 text-xs font-mono">
+                    Generating High-Res QR...
                   </div>
                 )}
+                <div className="absolute inset-0 bg-[#005DAA]/10 opacity-0 group-hover:opacity-100 rounded-2xl transition flex items-center justify-center">
+                  <span className="bg-black/85 text-white text-[10px] font-mono font-black px-2.5 py-1 rounded-full shadow-lg">
+                    🔍 Click to Super-Size
+                  </span>
+                </div>
               </div>
 
               <div className="text-left space-y-3 max-w-xs">
@@ -546,7 +572,7 @@ export default function LoginScreen({
                 </h2>
               </div>
               <span className="text-[10px] font-mono bg-[#1E3A60] text-slate-300 px-2 py-0.5 rounded">
-                195 Expected
+                194 Expected
               </span>
             </div>
 
@@ -910,7 +936,7 @@ export default function LoginScreen({
             setIsQrModalOpen(false);
             onEnterOccupantApp();
           }}
-          occupantsCount={195}
+          occupantsCount={194}
           inBuildingCount={142}
         />
       </div>

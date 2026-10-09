@@ -5,7 +5,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
  * Single-file artifact version with 10x drill simulation clock.
  */
 
-const EXPECTED = 195;
+const EXPECTED = 194;
 const TARGET_S = 180;
 const SPEED = 10;
 
@@ -313,7 +313,7 @@ export default function CommanderDemo() {
                 Real-Time Presence: Inside vs. Offsite
               </div>
               <p className="text-[#475569] font-medium leading-relaxed">
-                <strong>Speaker script:</strong> "The system automatically reconciles badged-out personnel, PTO rosters, and on-floor visitors. Notice how the expected headcount is exactly 195 on Floor 07, eliminating phantom missing persons from the start."
+                <strong>Speaker script:</strong> "The system automatically reconciles badged-out personnel, PTO rosters, and on-floor visitors. Notice how the expected headcount is exactly 194 on Floor 07, eliminating phantom missing persons from the start."
               </p>
             </div>
 

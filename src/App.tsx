@@ -222,7 +222,7 @@ export default function App() {
             occupants: cached,
             facilityId: "4-IRVING-PL-FL07",
             accounted: safeCount,
-            expectedOnFloor: 195,
+            expectedOnFloor: cached.length,
             buildingStats: {
               totalStaff: cached.length,
               insideBuilding: inside,
@@ -358,6 +358,9 @@ export default function App() {
       console.warn("Local ledger append warning:", e);
     }
 
+    const isLeaving = locationCategory === "offsite" || notes?.toLowerCase().includes("badged out") || notes?.toLowerCase().includes("left building");
+    const isEntering = locationCategory === "inside-building" || notes?.toLowerCase().includes("in-building");
+
     setSnapshot((prev) => {
       if (!prev) return prev;
       const updatedOccupants = (prev.occupants || []).map((o) =>
@@ -365,6 +368,8 @@ export default function App() {
           ? {
               ...o,
               status,
+              badgedOut: isLeaving ? true : isEntering ? false : o.badgedOut,
+              offSiteToday: isLeaving ? true : isEntering ? false : o.offSiteToday,
               notes: notes || o.notes,
               locationCategory: resolvedCategory,
               assemblyPoint: resolvedAssemblyPoint,
@@ -405,6 +410,7 @@ export default function App() {
           status,
           via,
           notes,
+          action: isLeaving ? "leave" : isEntering ? "enter" : undefined,
           locationCategory: resolvedCategory,
           assemblyPoint: resolvedAssemblyPoint,
           locationMetadata: metaToValidate,
@@ -438,15 +444,29 @@ export default function App() {
     occupantIds: string[],
     status: OccupantStatus,
     via: string = "batch-action",
-    notes?: string
+    notes?: string,
+    action?: "enter" | "leave",
+    locationCategory?: "inside-building" | "outside-assembly" | "offsite"
   ) => {
     if (!occupantIds || occupantIds.length === 0) return;
     const idSet = new Set(occupantIds);
+    const isLeaving = action === "leave" || locationCategory === "offsite" || notes?.toLowerCase().includes("badged out") || notes?.toLowerCase().includes("left building");
+    const isEntering = action === "enter" || locationCategory === "inside-building" || notes?.toLowerCase().includes("in-building");
 
     setSnapshot((prev) => {
       if (!prev) return prev;
       const updatedOccupants = (prev.occupants || []).map((o) =>
-        idSet.has(o.id) ? { ...o, status, notes: notes || o.notes } : o
+        idSet.has(o.id)
+          ? {
+              ...o,
+              status,
+              badgedOut: isLeaving ? true : isEntering ? false : o.badgedOut,
+              offSiteToday: isLeaving ? true : isEntering ? false : o.offSiteToday,
+              notes: notes || o.notes,
+              locationCategory: isLeaving ? "offsite" : isEntering ? "inside-building" : o.locationCategory,
+              lastLocation: isLeaving ? "Off-Site / Exited Building" : o.lastLocation,
+            }
+          : o
       );
       const accounted = updatedOccupants.filter((o) => o.status === "safe").length;
       const needHelp = updatedOccupants.filter((o) => o.status === "need-help").length;
@@ -466,7 +486,14 @@ export default function App() {
       const res = await fetch("/api/check-in/bulk", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ occupantIds, status, via, notes }),
+        body: JSON.stringify({
+          occupantIds,
+          status,
+          via,
+          notes,
+          action: isLeaving ? "leave" : isEntering ? "enter" : undefined,
+          locationCategory: isLeaving ? "offsite" : isEntering ? "inside-building" : locationCategory,
+        }),
       });
       if (res.ok) {
         await refreshState();
@@ -535,6 +562,34 @@ export default function App() {
       }
     } catch (err) {
       console.warn("Emergency alert sync deferred:", err);
+    }
+  };
+
+  // Handle Clean Database & Reset System to Ready State
+  const handleCleanDatabase = async () => {
+    const confirmed = window.confirm(
+      "🧹 Clean Database & Ready for Intake?\n\nThis will remove previous mock names and prepare the system for live personnel intake:\n- Clears active alarms & simulated drills\n- Resets roster to 0 enrolled (ready for live intake via QR, Kiosk, or Quick Register)\n- Re-initializes clean genesis audit ledger block\n- Clears local test session data\n\nProceed with clean intake reset?"
+    );
+    if (!confirmed) return;
+
+    try {
+      const res = await fetch("/api/database/clean", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      if (res.ok) {
+        try {
+          localStorage.removeItem("muster_registered_occupant_id");
+          localStorage.removeItem("muster_registered_name");
+          localStorage.removeItem("muster_registered_phone");
+          localStorage.removeItem("muster_occupant_id");
+        } catch (e) {}
+        await refreshState();
+        alert("✅ Database cleaned successfully! Mock names removed. System is 100% ready to intake personnel and dispatch drill notifications.");
+      }
+    } catch (err) {
+      console.error("Clean database failed:", err);
+      alert("⚠️ Could not clean database: network error");
     }
   };
 
@@ -663,6 +718,16 @@ export default function App() {
             <span className="hidden lg:inline">Report</span>
           </button>
 
+          {/* Clean / Reset Database Button */}
+          <button
+            onClick={handleCleanDatabase}
+            className="rounded-xl bg-white/10 hover:bg-rose-500/20 border border-white/20 hover:border-rose-400/50 px-3 py-2 min-h-[38px] text-xs font-bold text-white transition cursor-pointer flex items-center gap-1.5"
+            title="Clean Database & Reset to Pristine Ready-for-Usage State"
+          >
+            <span>🧹</span>
+            <span className="hidden lg:inline">Clean Data</span>
+          </button>
+
 
           {/* Role & Mode Switcher Pill */}
           <div className="flex items-center bg-[#07192C] p-1 rounded-xl border border-[#1E3A60]">
@@ -706,7 +771,7 @@ export default function App() {
             <div className="text-[9px] uppercase text-[#829AB8] font-bold tracking-widest">Accounted</div>
             <div className="text-sm sm:text-base font-mono font-bold leading-none text-[#38BDF8]">
               {snapshot?.accounted || 0}
-              <span className="text-[10px] text-[#829AB8]">/{snapshot?.expectedOnFloor || 195}</span>
+              <span className="text-[10px] text-[#829AB8]">/{snapshot?.expectedOnFloor ?? snapshot?.occupants?.length ?? 0}</span>
             </div>
           </div>
 
@@ -759,6 +824,7 @@ export default function App() {
                 onProceedNext={() => setCurrentStep(2)}
                 onOpenSelfSignIn={() => setIsSelfSignInOpen(true)}
                 onOpenQRPoster={() => setIsSignInPosterOpen(true)}
+                onRefreshState={refreshState}
               />
             )}
 
@@ -836,7 +902,7 @@ export default function App() {
       <EmergencyAlertModal
         isOpen={isAlertModalOpen}
         onClose={() => setIsAlertModalOpen(false)}
-        expectedOnFloor={snapshot?.expectedOnFloor || 195}
+        expectedOnFloor={snapshot?.expectedOnFloor ?? snapshot?.occupants?.length ?? 0}
         onSendAlert={handleSendEmergencyAlert}
       />
 

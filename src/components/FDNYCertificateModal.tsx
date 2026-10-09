@@ -29,9 +29,9 @@ export const FDNYCertificateModal: React.FC<FDNYCertificateModalProps> = ({
     second: "2-digit",
   });
 
-  const accounted = snapshot?.accounted || 195;
-  const total = snapshot?.expectedOnFloor || 195;
-  const pct = Math.round((accounted / (total || 1)) * 100);
+  const accounted = snapshot?.accounted ?? snapshot?.occupants?.filter((o) => o.status === "safe").length ?? 0;
+  const total = snapshot?.expectedOnFloor ?? snapshot?.occupants?.length ?? 0;
+  const pct = total > 0 ? Math.round((accounted / total) * 100) : 100;
 
   const handlePrint = () => {
     window.print();

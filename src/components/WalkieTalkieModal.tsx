@@ -216,7 +216,7 @@ export const WalkieTalkieModal: React.FC<WalkieTalkieModalProps> = ({
 
       setStatusMessage({
         type: "success",
-        text: `✓ Distress voice transmission dispatched to ${snapshot?.expectedOnFloor || 195} devices on Floor 07!`,
+        text: `✓ Distress voice transmission dispatched to ${snapshot?.occupants?.length ?? snapshot?.expectedOnFloor ?? 0} personnel on Floor 07!`,
       });
     } catch (err: any) {
       setStatusMessage({
@@ -375,7 +375,7 @@ export const WalkieTalkieModal: React.FC<WalkieTalkieModalProps> = ({
                     onChange={(e) => setSelectedChannel(e.target.value as any)}
                     className="w-full bg-[#102238] border border-[#23456D] text-xs font-bold text-white rounded-xl p-2 outline-hidden focus:ring-1 focus:ring-amber-400"
                   >
-                    <option value="ALL">📻 CH 07: ALL FLOOR 07 ({snapshot?.expectedOnFloor || 195} Devices)</option>
+                    <option value="ALL">📻 CH 07: ALL FLOOR 07 ({snapshot?.occupants?.length ?? snapshot?.expectedOnFloor ?? 0} Personnel)</option>
                     <option value="NW">📡 CH 01: NW CORRIDOR &amp; LABS</option>
                     <option value="NE">📡 CH 02: NE OPERATIONS</option>
                     <option value="SW">📡 CH 03: SW CORE &amp; STAIR A</option>

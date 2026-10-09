@@ -15,7 +15,9 @@ interface Step2SignedInProps {
     occupantIds: string[],
     status: OccupantStatus,
     via?: string,
-    notes?: string
+    notes?: string,
+    action?: "enter" | "leave",
+    locationCategory?: "inside-building" | "outside-assembly" | "offsite"
   ) => Promise<void>;
   onRefreshState: () => void;
   onProceedNext: () => void;
@@ -114,10 +116,23 @@ export const Step2SignedIn: React.FC<Step2SignedInProps> = ({
   const handleBulkMarkInBuilding = async () => {
     if (selectedIds.size === 0) return;
     if (onBulkCheckIn) {
-      await onBulkCheckIn(Array.from(selectedIds), "safe", "roster-bulk-inbuilding");
+      await onBulkCheckIn(Array.from(selectedIds), "safe", "roster-bulk-inbuilding", "Marked in-building via roster", "enter", "inside-building");
     } else {
       for (const id of selectedIds) {
         await onCheckIn(id, "safe", "roster-bulk", "Marked in-building via roster", "inside-building");
+      }
+    }
+    setSelectedIds(new Set());
+    onRefreshState();
+  };
+
+  const handleBulkBadgeOut = async () => {
+    if (selectedIds.size === 0) return;
+    if (onBulkCheckIn) {
+      await onBulkCheckIn(Array.from(selectedIds), "unaccounted", "roster-bulk-badgeout", "Marked badged out via roster", "leave", "offsite");
+    } else {
+      for (const id of selectedIds) {
+        await onCheckIn(id, "unaccounted", "roster-bulk-badgeout", "Marked badged out via roster", "offsite");
       }
     }
     setSelectedIds(new Set());
@@ -304,9 +319,19 @@ export const Step2SignedIn: React.FC<Step2SignedInProps> = ({
             <div className="flex items-center gap-2">
               <button
                 onClick={handleBulkMarkInBuilding}
-                className="px-3 py-1.5 bg-[#005DAA] text-white text-xs font-bold rounded-lg hover:bg-[#004884] transition cursor-pointer"
+                className="px-3 py-1.5 bg-[#005DAA] text-white text-xs font-bold rounded-lg hover:bg-[#004884] transition cursor-pointer flex items-center gap-1"
+                title="Mark all selected occupants as In Building"
               >
-                Mark {selectedIds.size} In-Building
+                <span>🏢</span>
+                <span>Mark {selectedIds.size} In-Building</span>
+              </button>
+              <button
+                onClick={handleBulkBadgeOut}
+                className="px-3 py-1.5 bg-slate-700 text-white text-xs font-bold rounded-lg hover:bg-slate-800 transition cursor-pointer flex items-center gap-1"
+                title="Mark all selected occupants as Badged Out / Left Building"
+              >
+                <span>🚪</span>
+                <span>Badge Out {selectedIds.size}</span>
               </button>
             </div>
           )}

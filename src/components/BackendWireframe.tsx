@@ -212,7 +212,7 @@ const SUBSYSTEM_NODES: SubsystemNode[] = [
       "Tactical Zones": "NW Engineering · NE Comms · SW Legal · SE Visitors",
       "Spatial Grid": "100x100 relative coordinate matrix",
       "ARA Tracker": "Stairwell A / B evacuation chair queues",
-      "Expected On Floor": "195 Occupants",
+      "Expected On Floor": "194 Occupants",
     },
     endpoints: [
       { method: "GET", path: "/api/state", description: "Retrieve complete derived status snapshot", authLevel: "Public" },
@@ -262,7 +262,7 @@ const PACKET_WORKFLOWS = [
     icon: Bell,
     steps: [
       { node: "FSD Admin Console", action: "Commander drafts CRITICAL alert: 'EVACUATE IMMEDIATELY VIA STAIR A/B'" },
-      { node: "Life-Safety REST Controllers (/api/emergency-alert)", action: "Dispatches multi-channel payload targeting 195 registered devices" },
+      { node: "Life-Safety REST Controllers (/api/emergency-alert)", action: "Dispatches multi-channel payload targeting 194 registered devices" },
       { node: "Cryptographic Audit Ledger", action: "Records immutable 'emergency-alert-broadcast' audit event" },
       { node: "Real-Time SSE Event Bus", action: "Triggers emergency alert overlay on all client viewports simultaneously" },
       { node: "Client Receivers", action: "Mobile sound chime, vibration alert, and kiosk banner popups trigger" },

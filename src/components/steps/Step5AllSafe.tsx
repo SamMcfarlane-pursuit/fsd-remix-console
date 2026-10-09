@@ -31,12 +31,12 @@ export const Step5AllSafe: React.FC<Step5AllSafeProps> = ({
   onRefreshState,
   onOpenSelfReportPortal,
 }) => {
-  const totalExpected = snapshot?.expectedOnFloor || occupants.length || 195;
-  const accounted = snapshot?.accounted || occupants.filter((o) => o.status === "safe").length;
-  const needHelp = snapshot?.needHelp || occupants.filter((o) => o.status === "need-help").length;
-  const mia = snapshot?.mia || occupants.filter((o) => o.status === "mia").length;
+  const totalExpected = snapshot?.expectedOnFloor ?? occupants.length;
+  const accounted = snapshot?.accounted ?? occupants.filter((o) => o.status === "safe").length;
+  const needHelp = snapshot?.needHelp ?? occupants.filter((o) => o.status === "need-help").length;
+  const mia = snapshot?.mia ?? occupants.filter((o) => o.status === "mia").length;
   const awaitingEvacChair =
-    snapshot?.awaitingEvacChair || occupants.filter((o) => o.status === "awaiting-evac-chair").length;
+    snapshot?.awaitingEvacChair ?? occupants.filter((o) => o.status === "awaiting-evac-chair").length;
   const unaccounted = Math.max(0, totalExpected - accounted);
 
   const percentAccounted = totalExpected > 0 ? Math.round((accounted / totalExpected) * 100) : 100;
@@ -132,7 +132,7 @@ export const Step5AllSafe: React.FC<Step5AllSafeProps> = ({
             Accountability Muster &amp; Audit Seal
           </h2>
           <p className="text-sm text-[#475569] mt-1 max-w-2xl">
-            Personnel self-report at exterior assembly points or are checked in by floor wardens. When all 195 are verified safe, the Commander cryptographically seals the tamper-evident life-safety ledger.
+            Personnel self-report at exterior assembly points or are checked in by floor wardens. When all {totalExpected} are verified safe, the Commander cryptographically seals the tamper-evident life-safety ledger.
           </p>
         </div>
 
@@ -181,7 +181,7 @@ export const Step5AllSafe: React.FC<Step5AllSafeProps> = ({
                 OFFICIAL NYC LIFE-SAFETY COMPLIANCE CERTIFICATE · {sealedCertId || "VERIFIED"}
               </div>
               <h3 className="text-xl sm:text-2xl font-black mt-0.5">
-                ALL 195 OCCUPANTS 100% ACCOUNTED &amp; ALL SAFE
+                ALL {totalExpected} OCCUPANTS 100% ACCOUNTED &amp; ALL SAFE
               </h3>
               <p className="text-xs text-emerald-100 mt-1">
                 Signed by FSD Commander: <strong>{commanderSignature}</strong> · Ledger Block #
@@ -403,7 +403,7 @@ export const Step5AllSafe: React.FC<Step5AllSafeProps> = ({
                 Official Incident Sign-Off (FDNY / DOB Compliance)
               </div>
               <p className="text-[#475569]">
-                All 195 Floor 07 occupants are accounted for. Submitting this signature writes the final immutable SHA-256 seal block to the local device database and CRDT mesh network.
+                All {totalExpected} Floor 07 occupants are accounted for. Submitting this signature writes the final immutable SHA-256 seal block to the local device database and CRDT mesh network.
               </p>
             </div>
 

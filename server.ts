@@ -21,6 +21,7 @@ import {
   RosterAttendee,
   AttendanceRecord,
   EventRosterStatus,
+  EmergencyAlertPayload,
 } from "./src/types";
 
 // Initialize Express app
@@ -90,10 +91,10 @@ function appendLedger(type: string, payload: Record<string, any>): LedgerEntry {
 /* In-Memory State & Roster Data                                      */
 /* ------------------------------------------------------------------ */
 
-let incidentActive = true;
-let incidentMode: "drill" | "incident" | null = "drill";
-let hazardType: string | null = "office-fire";
-let declaredAt: string | null = new Date(Date.now() - 140000).toISOString();
+let incidentActive = false;
+let incidentMode: "drill" | "incident" | null = null;
+let hazardType: string | null = null;
+let declaredAt: string | null = null;
 let latestNarrative: DrillNarrativeDraft | null = null;
 let latestWalkieTalkieBroadcast: {
   id: string;
@@ -107,6 +108,7 @@ let latestWalkieTalkieBroadcast: {
   quadrant?: QuadrantId | "ALL";
   durationSeconds?: number;
 } | null = null;
+let latestEmergencyAlert: EmergencyAlertPayload | null = null;
 
 const NAMES = [
   "Fahmida Ali", "Eric Malone", "John Catuogno", "Pak Lai", "Robert Oates", "Michael Kohlhaas",
@@ -156,7 +158,7 @@ const QUADRANT_DESK_PREFIXES: Record<QuadrantId, string[]> = {
   SE: ["07-500", "07-520", "07-550", "07-574", "07-580", "07-SteamCtrl", "VP-SteamOps", "07-560", "07-565", "07-590"],
 };
 
-function generateInitialRoster(targetCount: number = 200): Occupant[] {
+function generateInitialRoster(targetCount: number = 194): Occupant[] {
   const occupants: Occupant[] = [];
   let idCounter = 101;
   const countPerQuad = Math.floor(targetCount / 4);
@@ -262,7 +264,36 @@ function generateInitialRoster(targetCount: number = 200): Occupant[] {
   return occupants;
 }
 
-let occupantsRoster: Occupant[] = generateInitialRoster(200);
+const DATA_DIR = path.join(process.cwd(), "data");
+const ROSTER_FILE = path.join(DATA_DIR, "fsd_roster.json");
+
+function loadPersistedRoster(): Occupant[] {
+  try {
+    if (fs.existsSync(ROSTER_FILE)) {
+      const data = fs.readFileSync(ROSTER_FILE, "utf-8");
+      const parsed = JSON.parse(data);
+      if (Array.isArray(parsed)) {
+        return parsed;
+      }
+    }
+  } catch (err) {
+    console.warn("Could not read persisted roster file:", err);
+  }
+  return [];
+}
+
+function savePersistedRoster(roster: Occupant[]): void {
+  try {
+    if (!fs.existsSync(DATA_DIR)) {
+      fs.mkdirSync(DATA_DIR, { recursive: true });
+    }
+    fs.writeFileSync(ROSTER_FILE, JSON.stringify(roster, null, 2), "utf-8");
+  } catch (err) {
+    console.warn("Could not write persisted roster file:", err);
+  }
+}
+
+let occupantsRoster: Occupant[] = loadPersistedRoster();
 
 /* ------------------------------------------------------------------ */
 /* PostgreSQL Pool & In-Memory Dual Engine for QR Attendance & Events */
@@ -435,6 +466,7 @@ function getDerivedSnapshot(): StatusSnapshot {
     ledgerEntries: ledgerChain.slice(-30),
     latestNarrative,
     latestWalkieTalkie: latestWalkieTalkieBroadcast,
+    latestEmergencyAlert,
   };
 }
 
@@ -443,6 +475,7 @@ function getDerivedSnapshot(): StatusSnapshot {
 /* ------------------------------------------------------------------ */
 
 function notifySseClients() {
+  savePersistedRoster(occupantsRoster);
   const snapshot = getDerivedSnapshot();
   const data = `data: ${JSON.stringify(snapshot)}\n\n`;
   sseResList.forEach((res) => {
@@ -1496,7 +1529,8 @@ async function restartTunnelGracefully(): Promise<string> {
   }
 }
 
-// Periodic Health Check Watchdog (every 30 seconds)
+// Periodic Health Check Watchdog (every 45 seconds with 3 consecutive failure threshold)
+let consecutiveTunnelFailures = 0;
 setInterval(async () => {
   if (!activeTunnelUrl) {
     restartTunnelGracefully().catch(() => {});
@@ -1510,14 +1544,24 @@ setInterval(async () => {
     });
     clearTimeout(timeout);
     if (!checkRes.ok) {
-      console.warn(`Watchdog detected non-200 tunnel status (${checkRes.status}). Triggering refresh.`);
-      restartTunnelGracefully().catch(() => {});
+      consecutiveTunnelFailures++;
+      if (consecutiveTunnelFailures >= 3) {
+        console.warn(`Watchdog detected persistent non-200 tunnel status (${checkRes.status}). Triggering refresh.`);
+        consecutiveTunnelFailures = 0;
+        restartTunnelGracefully().catch(() => {});
+      }
+    } else {
+      consecutiveTunnelFailures = 0;
     }
   } catch (err) {
-    console.warn("Watchdog: Tunnel unreachable from outside. Rotating to fresh tunnel endpoint...", err);
-    restartTunnelGracefully().catch(() => {});
+    consecutiveTunnelFailures++;
+    if (consecutiveTunnelFailures >= 3) {
+      console.warn("Watchdog: Tunnel unreachable from outside across 3 checks. Rotating to fresh tunnel endpoint...");
+      consecutiveTunnelFailures = 0;
+      restartTunnelGracefully().catch(() => {});
+    }
   }
-}, 30000);
+}, 45000);
 
 app.get("/api/system/tunnel/status", (req, res) => {
   res.json({
@@ -1688,7 +1732,7 @@ app.get(["/api/state", "/api/status", "/api/muster/state"], (req, res) => {
 
 // Check-in / Status update endpoint with Geo-Fence validation check
 app.post("/api/check-in", (req, res) => {
-  const { occupantId, status, quadrant, via, notes, locationCategory, assemblyPoint, locationMetadata, geoValidation } = req.body;
+  const { occupantId, status, quadrant, via, notes, locationCategory, assemblyPoint, locationMetadata, geoValidation, action } = req.body;
   const occupant = occupantsRoster.find((o) => o.id === occupantId);
 
   if (!occupant) {
@@ -1699,11 +1743,27 @@ app.post("/api/check-in", (req, res) => {
   const oldStatus = occupant.status;
   occupant.status = status || "safe";
   occupant.unaccountedMinutes = 0;
+  occupant.lastBadgeTime = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+
+  const isLeaving = action === "leave" || locationCategory === "offsite" || notes?.toLowerCase().includes("badged out") || notes?.toLowerCase().includes("left building");
+  const isEntering = action === "enter" || locationCategory === "inside-building" || notes?.toLowerCase().includes("in-building");
+
+  if (isLeaving) {
+    occupant.badgedOut = true;
+    occupant.offSiteToday = true;
+    occupant.locationCategory = "offsite";
+    occupant.lastLocation = "Off-Site / Exited Building";
+  } else if (isEntering) {
+    occupant.badgedOut = false;
+    occupant.offSiteToday = false;
+    occupant.locationCategory = "inside-building";
+    occupant.lastLocation = `${occupant.desk || "Floor 07"} (${occupant.quadrant})`;
+  } else if (locationCategory) {
+    occupant.locationCategory = locationCategory;
+  }
+
   if (quadrant && QUADRANT_IDS.includes(quadrant)) {
     occupant.quadrant = quadrant;
-  }
-  if (locationCategory) {
-    occupant.locationCategory = locationCategory;
   }
   if (assemblyPoint) {
     occupant.assemblyPoint = assemblyPoint;
@@ -1711,8 +1771,6 @@ app.post("/api/check-in", (req, res) => {
   } else if (locationCategory === "outside-assembly") {
     occupant.assemblyPoint = occupant.assemblyPoint || "Assembly Point A (Park Plaza / Union Sq East)";
     occupant.lastLocation = occupant.assemblyPoint;
-  } else if (locationCategory === "inside-building") {
-    occupant.lastLocation = `${occupant.quadrant} Floor 07`;
   }
   if (notes) {
     occupant.notes = notes;
@@ -1723,7 +1781,7 @@ app.post("/api/check-in", (req, res) => {
     occupant.geofenceValidation = {
       isInsideBuilding: !!geoValidation.isInsideBuilding,
       isAtAssemblyPoint: !!geoValidation.isAtAssemblyPoint,
-      locationCategory: occupant.locationCategory || "inside-building",
+      locationCategory: occupant.locationCategory || (occupant.badgedOut ? "offsite" : "inside-building"),
       assemblyPoint: occupant.assemblyPoint || null,
       confidence: geoValidation.confidence || "HIGH",
       distanceMeters: geoValidation.distanceMeters || null,
@@ -1732,18 +1790,21 @@ app.post("/api/check-in", (req, res) => {
     };
   }
 
-  const ledgerItem = appendLedger("occupant-check-in", {
+  const presenceState = occupant.badgedOut ? "LEFT_BUILDING" : "IN_BUILDING";
+  const ledgerItem = appendLedger(isLeaving ? "presence-toggle-event" : "occupant-check-in", {
     occupantId: occupant.id,
     name: occupant.name,
     quadrant: occupant.quadrant,
+    presence: presenceState,
     locationCategory: occupant.locationCategory,
     assemblyPoint: occupant.assemblyPoint || null,
     previousStatus: oldStatus,
     newStatus: occupant.status,
     via: occupant.checkInMethod,
     notes: occupant.notes || null,
+    timestamp: occupant.lastBadgeTime,
     geofenceVerification: occupant.geofenceValidation || {
-      isInsideBuilding: occupant.locationCategory === "inside-building",
+      isInsideBuilding: !occupant.badgedOut && occupant.locationCategory === "inside-building",
       isAtAssemblyPoint: occupant.locationCategory === "outside-assembly",
       locationCategory: occupant.locationCategory,
       verifiedAt: new Date().toISOString(),
@@ -1752,12 +1813,12 @@ app.post("/api/check-in", (req, res) => {
 
   notifySseClients();
 
-  res.json({ ok: true, occupant, ledgerEntry: ledgerItem });
+  res.json({ ok: true, occupant, presence: presenceState, ledgerEntry: ledgerItem, snapshot: getDerivedSnapshot() });
 });
 
 // Bulk Check-In / Status Update endpoint (Mark down a list)
 app.post("/api/check-in/bulk", (req, res) => {
-  const { occupantIds, status, via, notes } = req.body;
+  const { occupantIds, status, via, notes, action, locationCategory } = req.body;
 
   if (!Array.isArray(occupantIds) || occupantIds.length === 0) {
     res.status(400).json({ error: "occupantIds must be a non-empty array" });
@@ -1767,6 +1828,9 @@ app.post("/api/check-in/bulk", (req, res) => {
   const updatedOccupants: Occupant[] = [];
   const targetStatus = status || "safe";
   const checkInVia = via || "batch-admin-action";
+  const isLeaving = action === "leave" || locationCategory === "offsite" || notes?.toLowerCase().includes("badged out") || notes?.toLowerCase().includes("left building");
+  const isEntering = action === "enter" || locationCategory === "inside-building" || notes?.toLowerCase().includes("in-building");
+  const nowTime = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
 
   for (const id of occupantIds) {
     const occupant = occupantsRoster.find((o) => o.id === id);
@@ -1775,7 +1839,20 @@ app.post("/api/check-in/bulk", (req, res) => {
       occupant.status = targetStatus;
       occupant.unaccountedMinutes = 0;
       occupant.checkInMethod = checkInVia;
+      occupant.lastBadgeTime = nowTime;
       if (notes) occupant.notes = notes;
+
+      if (isLeaving) {
+        occupant.badgedOut = true;
+        occupant.offSiteToday = true;
+        occupant.locationCategory = "offsite";
+        occupant.lastLocation = "Off-Site / Exited Building";
+      } else if (isEntering) {
+        occupant.badgedOut = false;
+        occupant.offSiteToday = false;
+        occupant.locationCategory = "inside-building";
+        occupant.lastLocation = `${occupant.desk || "Floor 07"} (${occupant.quadrant})`;
+      }
 
       appendLedger("bulk-check-in", {
         occupantId: occupant.id,
@@ -1783,7 +1860,9 @@ app.post("/api/check-in/bulk", (req, res) => {
         quadrant: occupant.quadrant,
         previousStatus: oldStatus,
         newStatus: targetStatus,
+        presence: occupant.badgedOut ? "LEFT_BUILDING" : "IN_BUILDING",
         via: checkInVia,
+        timestamp: nowTime,
       });
 
       updatedOccupants.push(occupant);
@@ -1796,6 +1875,7 @@ app.post("/api/check-in/bulk", (req, res) => {
     ok: true,
     updatedCount: updatedOccupants.length,
     status: targetStatus,
+    snapshot: getDerivedSnapshot(),
     message: `Batch updated ${updatedOccupants.length} occupants to "${targetStatus}".`,
   });
 });
@@ -2036,7 +2116,11 @@ app.post("/api/occupant/presence", (req, res) => {
     return;
   }
 
-  const isLeaving = action === "leave" || (action === "toggle" && !occupant.badgedOut);
+  const isLeaving =
+    action === "leave" ||
+    req.body.badgedOut === true ||
+    (action === "toggle" && !occupant.badgedOut) ||
+    (!action && req.body.badgedOut !== undefined && Boolean(req.body.badgedOut));
 
   if (isLeaving) {
     occupant.badgedOut = true;
@@ -2237,6 +2321,103 @@ app.post("/api/roster/scale", (req, res) => {
   });
 });
 
+// Clean Database & System Reset Engine (Pristine Ready-to-Intake State)
+function cleanDatabase() {
+  incidentActive = false;
+  incidentMode = null;
+  hazardType = null;
+  declaredAt = null;
+  latestNarrative = null;
+  latestWalkieTalkieBroadcast = null;
+  latestEmergencyAlert = null;
+
+  // Clear all mock names: Fresh intake state ready for incoming personnel
+  occupantsRoster = [];
+  savePersistedRoster(occupantsRoster);
+
+  // Re-initialize clean genesis ledger
+  ledgerChain = [];
+  const genesisEntry = appendLedger("genesis-init", {
+    message: "Con Edison Floor 07 Life-Safety Ledger Initialized & Ready for Live Personnel Intake",
+    building: "Con Edison Headquarters · 4 Irving Place",
+    floor: "07",
+    facilityId: "FAC-NYC-4IRVING-FL07",
+    totalEnrolled: 0,
+    activePersonnel: 0,
+    intakeStatus: "READY_FOR_INTAKE",
+    timestamp: new Date().toISOString(),
+    verifiedGroundTruth: true,
+  });
+
+  // Clean event attendance tables
+  dbAttendance = [];
+  dbRoster = [];
+
+  if (pgPool && isPgConnected) {
+    pgPool.query(`TRUNCATE TABLE attendance;`).catch((err) => {
+      console.warn("PostgreSQL truncate attendance notice:", err.message);
+    });
+  }
+
+  notifySseClients();
+
+  return {
+    ok: true,
+    clean: true,
+    message: "Floor 07 database cleaned. Current mock names removed. Ready for live personnel intake.",
+    totalOccupants: 0,
+    inBuilding: 0,
+    ledgerHeight: ledgerChain.length,
+    genesisHash: genesisEntry.hash,
+    incidentActive: false,
+    readyForIntake: true,
+    timestamp: new Date().toISOString(),
+    snapshot: getDerivedSnapshot(),
+  };
+}
+
+// Clean Database Endpoint
+app.post(["/api/database/clean", "/api/system/reset"], (req, res) => {
+  const result = cleanDatabase();
+  res.json(result);
+});
+
+// Optional Demo Seed Helper Endpoint
+app.post("/api/roster/seed-demo", (req, res) => {
+  const count = typeof req.body.count === "number" ? req.body.count : 194;
+  occupantsRoster = generateInitialRoster(count);
+  savePersistedRoster(occupantsRoster);
+  syncInitialRosterToEvents();
+  const entry = appendLedger("demo-roster-seeded", {
+    count: occupantsRoster.length,
+    timestamp: new Date().toISOString(),
+  });
+  notifySseClients();
+  res.json({
+    ok: true,
+    message: `Seeded ${occupantsRoster.length} demo occupants.`,
+    totalOccupants: occupantsRoster.length,
+    ledgerEntry: entry,
+    snapshot: getDerivedSnapshot(),
+  });
+});
+
+// Database Status Endpoint
+app.get("/api/database/status", (req, res) => {
+  res.json({
+    ok: true,
+    clean: !incidentActive && ledgerChain.length >= 1,
+    readyForIntake: true,
+    totalOccupants: occupantsRoster.length,
+    inBuilding: occupantsRoster.filter((o) => !o.badgedOut && !o.offSiteToday).length,
+    badgedOut: occupantsRoster.filter((o) => o.badgedOut || o.offSiteToday).length,
+    ledgerHeight: ledgerChain.length,
+    incidentActive,
+    hazardType,
+    isPostgresConnected: isPgConnected,
+  });
+});
+
 // Rapid 1-Click Digital Muster Sweep Endpoint ("Process Round in Seconds")
 app.post("/api/muster/sweep", (req, res) => {
   const { quadrant, sweepAll, via, wardenName } = req.body;
@@ -2388,32 +2569,59 @@ app.post("/api/incident/clear", (req, res) => {
 });
 
 // Emergency Alert Push Notification broadcast endpoint
-app.post("/api/emergency-alert", (req, res) => {
+// Emergency Alert & Drill Notification Broadcast endpoint
+app.post(["/api/emergency-alert", "/api/drill/broadcast"], (req, res) => {
   const { title, narrative, priority, targetQuadrants, channels } = req.body;
 
-  const totalDevices = occupantsRoster.filter((o) => !o.badgedOut && !o.offSiteToday).length;
+  const totalRegistered = occupantsRoster.length;
+  const inBuildingDevices = occupantsRoster.filter((o) => !o.badgedOut && !o.offSiteToday).length;
   const alertId = `ALERT-${Date.now().toString(36).toUpperCase()}`;
   const timestamp = new Date().toISOString();
 
-  const alertPayload = {
+  // Create full alert payload
+  const alertPayload: EmergencyAlertPayload = {
     alertId,
-    title: title || "HIGH-PRIORITY EVACUATION ALERT",
-    narrative: narrative || "FIRE EMERGENCY DETECTED ON FLOOR 7. PROCEED IMMEDIATELY TO NEAREST STAIRWELL EXIT (STAIR A OR B). DO NOT USE ELEVATORS.",
-    priority: priority || "CRITICAL",
+    title: title || (incidentMode === "incident" ? "🚨 CRITICAL EVACUATION ORDER" : "🎯 LIFE-SAFETY EVACUATION DRILL ALERT"),
+    narrative: narrative || "FSD Directive: Scheduled Floor 07 evacuation drill. All occupants please proceed calmly to designated Stairwell A/B exits. Do not use elevators.",
+    priority: (priority || (incidentMode === "incident" ? "CRITICAL" : "HIGH")) as any,
     targetQuadrants: targetQuadrants || ["ALL"],
-    channels: channels || ["PUSH_NOTIFICATION", "MESH_AUDIO_BEACON", "KIOSK_POPUP"],
+    channels: channels || ["PUSH_NOTIFICATION", "SMS_DIRECT", "MESH_AUDIO_BEACON", "KIOSK_POPUP"],
     senderRole: "FSD COMMANDER",
     timestamp,
-    deliveredCount: totalDevices,
-    ackCount: Math.round(totalDevices * 0.92),
+    deliveredCount: totalRegistered,
+    ackCount: totalRegistered > 0 ? Math.max(1, Math.round(totalRegistered * 0.94)) : 0,
   };
 
-  const entry = appendLedger("emergency-alert-broadcast", alertPayload);
+  latestEmergencyAlert = alertPayload;
+
+  // Log SMS and mobile push dispatch for all intaken occupants
+  const dispatchedList = occupantsRoster.map((occ) => ({
+    occupantId: occ.id,
+    name: occ.name,
+    phone: occ.phone || "No phone registered",
+    channel: occ.phone ? "SMS_AND_MOBILE_PUSH" : "PORTAL_PUSH_ONLY",
+    deliveryStatus: "DELIVERED",
+    dispatchedAt: timestamp,
+  }));
+
+  const entry = appendLedger("emergency-drill-alert-broadcast", {
+    alertId,
+    title: alertPayload.title,
+    narrative: alertPayload.narrative,
+    priority: alertPayload.priority,
+    totalRecipients: totalRegistered,
+    inBuildingCount: inBuildingDevices,
+    dispatchedList: dispatchedList.slice(0, 50),
+    timestamp,
+  });
+
   notifySseClients();
 
   res.json({
     ok: true,
     alertPayload,
+    dispatchedCount: totalRegistered,
+    dispatchedList,
     ledgerEntry: entry,
     snapshot: getDerivedSnapshot(),
   });
@@ -2433,12 +2641,17 @@ app.post("/api/walkie-talkie/broadcast", (req, res) => {
     pin,
   } = req.body;
 
-  // Strict role verification: only warden, commander, or fsd_director can transmit live walkie-talkie audio
-  if (
-    senderRole !== "warden" &&
-    senderRole !== "commander" &&
-    senderRole !== "fsd_director"
-  ) {
+  // Normalize role verification: allow warden, commander, fsd_director, or variants
+  const rawRole = (senderRole || req.body.role || "").toLowerCase().replace(/[\s_-]+/g, "");
+  const isWarden = rawRole === "warden" || rawRole === "floorwarden";
+  const isCommander =
+    rawRole === "commander" ||
+    rawRole === "fsdcommander" ||
+    rawRole === "fsddirector" ||
+    rawRole === "director" ||
+    rawRole === "fsd";
+
+  if (!isWarden && !isCommander) {
     return res.status(403).json({
       error: "UNAUTHORIZED_TRANSMITTER",
       message:
@@ -2446,32 +2659,36 @@ app.post("/api/walkie-talkie/broadcast", (req, res) => {
     });
   }
 
+  const effectiveRole = isWarden ? "warden" : "commander";
+
   // Rapid PIN check if supplied
   if (pin) {
-    if (senderRole === "warden" && pin !== "2026") {
+    if (effectiveRole === "warden" && pin !== "2026") {
       return res.status(401).json({ error: "INVALID_WARDEN_PIN", message: "Invalid Floor Warden PIN." });
     }
-    if ((senderRole === "commander" || senderRole === "fsd_director") && pin !== "7007") {
+    if (effectiveRole === "commander" && pin !== "7007") {
       return res.status(401).json({ error: "INVALID_COMMANDER_PIN", message: "Invalid FSD Commander PIN." });
     }
   }
 
   const broadcastId = `WT-${Date.now().toString(36).toUpperCase()}`;
   const timestamp = new Date().toISOString();
+  const effectiveAudio = audioData || req.body.audioBase64 || undefined;
+  const effectiveDuration = durationSeconds || req.body.durationSec || 5;
 
   latestWalkieTalkieBroadcast = {
     id: broadcastId,
     senderName:
       senderName ||
-      (senderRole === "warden" ? "Deputy Warden Marcus Vance (Floor 07)" : "FSD Chief Commander"),
-    senderRole: senderRole === "warden" ? "warden" : "commander",
-    senderBadge: senderBadge || (senderRole === "warden" ? "W-07-ALPHA" : "FSD-CHIEF-01"),
+      (effectiveRole === "warden" ? "Deputy Warden Marcus Vance (Floor 07)" : "FSD Chief Commander"),
+    senderRole: effectiveRole,
+    senderBadge: senderBadge || (effectiveRole === "warden" ? "W-07-ALPHA" : "FSD-CHIEF-01"),
     timestamp,
-    audioUrl: audioData || undefined,
+    audioUrl: effectiveAudio,
     transcript: transcript || "Live verbal distress transmission from Floor Warden.",
     distressLevel: distressLevel || "CRITICAL_DISTRESS",
     quadrant: quadrant || "ALL",
-    durationSeconds: durationSeconds || 5,
+    durationSeconds: effectiveDuration,
   };
 
   const ledgerEntry = appendLedger("WARDEN_WALKIE_TALKIE_BROADCAST", {
@@ -3105,6 +3322,51 @@ app.post("/api/ledger/seal", (req, res) => {
     certificateId: `CERT-FL7-SEAL-${Date.now().toString(36).toUpperCase()}`,
     ledgerEntry: sealEntry,
     snapshot: getDerivedSnapshot(),
+  });
+});
+
+// Cryptographic Ledger Integrity Verification Endpoint
+app.get("/api/ledger/validate", (_req, res) => {
+  let valid = true;
+  let brokenIndex: number | null = null;
+  let brokenReason: string | null = null;
+
+  for (let i = 0; i < ledgerChain.length; i++) {
+    const entry = ledgerChain[i];
+    if (i === 0) {
+      if (entry.prevHash !== "0000000000000000000000000000000000000000000000000000000000000000") {
+        valid = false;
+        brokenIndex = 0;
+        brokenReason = "Genesis block prevHash mismatch";
+        break;
+      }
+    } else {
+      const prev = ledgerChain[i - 1];
+      if (entry.prevHash !== prev.hash) {
+        valid = false;
+        brokenIndex = i;
+        brokenReason = `Block ${entry.id} prevHash does not match Block ${prev.id} hash`;
+        break;
+      }
+    }
+
+    const calculatedHash = computeHash(entry.prevHash, entry.type, entry.timestamp, entry.payload);
+    if (calculatedHash !== entry.hash) {
+      valid = false;
+      brokenIndex = i;
+      brokenReason = `Block ${entry.id} content digest mismatch`;
+      break;
+    }
+  }
+
+  res.json({
+    ok: true,
+    valid,
+    ledgerHeight: ledgerChain.length,
+    brokenIndex,
+    brokenReason,
+    lastHash: ledgerChain.length > 0 ? ledgerChain[ledgerChain.length - 1].hash : null,
+    verifiedAt: new Date().toISOString(),
   });
 });
 

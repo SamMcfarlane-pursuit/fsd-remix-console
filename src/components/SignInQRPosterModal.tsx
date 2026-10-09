@@ -31,6 +31,7 @@ export const SignInQRPosterModal: React.FC<SignInQRPosterModalProps> = ({
   const [networkMode, setNetworkMode] = useState<"lan" | "cellular">("lan");
   const [isTunnelLoading, setIsTunnelLoading] = useState<boolean>(false);
   const [tunnelError, setTunnelError] = useState<string | null>(null);
+  const [qrScale, setQrScale] = useState<"standard" | "large" | "supersize" | "giant">("supersize");
 
   useEffect(() => {
     if (isOpen) {
@@ -60,18 +61,20 @@ export const SignInQRPosterModal: React.FC<SignInQRPosterModalProps> = ({
 
   useEffect(() => {
     if (isOpen) {
+      const qrRes = qrScale === "giant" ? 850 : qrScale === "supersize" ? 650 : qrScale === "large" ? 480 : 360;
       QRCode.toDataURL(signInUrl, {
-        width: 360,
+        width: qrRes,
         margin: 2,
+        errorCorrectionLevel: "H",
         color: {
-          dark: "#003B70",
+          dark: "#002447",
           light: "#FFFFFF",
         },
       })
         .then(setQrDataUrl)
         .catch(console.error);
     }
-  }, [isOpen, signInUrl]);
+  }, [isOpen, signInUrl, qrScale]);
 
   // Activate Public Cellular 5G Tunnel
   const handleActivateCellularPathway = async () => {
@@ -129,10 +132,12 @@ export const SignInQRPosterModal: React.FC<SignInQRPosterModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-xs animate-fadeIn">
-      <div className="bg-white border-2 border-[#005DAA] rounded-2xl max-w-lg w-full p-5 sm:p-6 shadow-2xl space-y-4 text-center relative max-h-[92vh] overflow-y-auto">
+      <div className={`bg-white border-2 border-[#005DAA] rounded-2xl w-full p-5 sm:p-6 shadow-2xl space-y-4 text-center relative max-h-[94vh] overflow-y-auto transition-all ${
+        qrScale === "giant" ? "max-w-3xl" : qrScale === "supersize" ? "max-w-2xl" : "max-w-lg"
+      }`}>
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 text-slate-400 hover:text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-full w-8 h-8 flex items-center justify-center font-bold text-sm cursor-pointer transition"
+          className="absolute top-4 right-4 text-slate-400 hover:text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-full w-8 h-8 flex items-center justify-center font-bold text-sm cursor-pointer transition z-10"
         >
           ✕
         </button>
@@ -151,6 +156,52 @@ export const SignInQRPosterModal: React.FC<SignInQRPosterModalProps> = ({
           <p className="text-xs text-[#475569] font-medium">
             Scan this QR code with any smartphone camera to check in on Floor 07, receive your digital turnstile pass, and be accounted for immediately.
           </p>
+        </div>
+
+        {/* Super-Size Scale Control Bar */}
+        <div className="bg-[#F0F6FC] p-2 rounded-xl border border-[#CBDCEE] flex flex-col sm:flex-row items-center justify-between gap-2 text-xs">
+          <span className="font-bold text-[#0F2537] flex items-center gap-1.5 text-[11px]">
+            <span className="text-amber-500">📐</span>
+            <span className="font-black">POSTER QR SIZE:</span>
+          </span>
+          <div className="flex items-center gap-1 bg-white p-1 rounded-lg border border-[#CBDCEE]">
+            <button
+              type="button"
+              onClick={() => setQrScale("standard")}
+              className={`px-2 py-0.5 rounded text-[11px] font-bold transition cursor-pointer ${
+                qrScale === "standard" ? "bg-[#005DAA] text-white shadow-xs" : "text-slate-600 hover:text-slate-900"
+              }`}
+            >
+              Standard
+            </button>
+            <button
+              type="button"
+              onClick={() => setQrScale("large")}
+              className={`px-2 py-0.5 rounded text-[11px] font-bold transition cursor-pointer ${
+                qrScale === "large" ? "bg-[#005DAA] text-white shadow-xs" : "text-slate-600 hover:text-slate-900"
+              }`}
+            >
+              Large
+            </button>
+            <button
+              type="button"
+              onClick={() => setQrScale("supersize")}
+              className={`px-2.5 py-0.5 rounded text-[11px] font-black transition cursor-pointer flex items-center gap-1 ${
+                qrScale === "supersize" ? "bg-amber-600 text-white shadow-xs ring-1 ring-amber-400" : "text-amber-800 bg-amber-50 hover:bg-amber-100"
+              }`}
+            >
+              <span>⚡ Super-Size</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setQrScale("giant")}
+              className={`px-2.5 py-0.5 rounded text-[11px] font-black transition cursor-pointer flex items-center gap-1 ${
+                qrScale === "giant" ? "bg-[#002447] text-white shadow-xs ring-1 ring-amber-400" : "text-slate-700 hover:bg-slate-100"
+              }`}
+            >
+              <span>🏢 Giant Wall</span>
+            </button>
+          </div>
         </div>
 
         {/* Dual Network Pathway Selector */}
@@ -190,28 +241,48 @@ export const SignInQRPosterModal: React.FC<SignInQRPosterModalProps> = ({
           </div>
         )}
 
-        {/* Large Scannable QR Code */}
-        <div className="bg-[#F8FAFC] p-4 sm:p-5 rounded-2xl border-2 border-[#B8D8F8] inline-block shadow-inner w-full max-w-xs mx-auto">
+        {/* Large Scannable Super-Size QR Code Container */}
+        <div className="relative bg-white p-5 sm:p-7 rounded-3xl border-3 border-[#002447] shadow-xl inline-block w-full transition-all">
+          {/* Long-Distance Targeting Reticles */}
+          <div className="absolute top-2 left-2 w-6 h-6 border-t-3 border-l-3 border-amber-500 rounded-tl-md pointer-events-none" />
+          <div className="absolute top-2 right-2 w-6 h-6 border-t-3 border-r-3 border-amber-500 rounded-tr-md pointer-events-none" />
+          <div className="absolute bottom-2 left-2 w-6 h-6 border-b-3 border-l-3 border-amber-500 rounded-bl-md pointer-events-none" />
+          <div className="absolute bottom-2 right-2 w-6 h-6 border-b-3 border-r-3 border-amber-500 rounded-br-md pointer-events-none" />
+
           {qrDataUrl ? (
             <img
               src={qrDataUrl}
               alt="Scan to Sign In on Floor 07"
-              className="w-56 h-56 sm:w-64 sm:h-64 mx-auto object-contain"
+              className={`mx-auto object-contain transition-all duration-200 rounded-xl ${
+                qrScale === "giant"
+                  ? "w-80 h-80 sm:w-[480px] sm:h-[480px] md:w-[540px] md:h-[540px]"
+                  : qrScale === "supersize"
+                  ? "w-72 h-72 sm:w-[400px] sm:h-[400px]"
+                  : qrScale === "large"
+                  ? "w-64 h-64 sm:w-80 sm:h-80"
+                  : "w-52 h-52 sm:w-60 sm:h-60"
+              }`}
+              style={{ maxWidth: "85vw", maxHeight: "55vh" }}
             />
           ) : (
-            <div className="w-56 h-56 sm:w-64 sm:h-64 flex items-center justify-center text-xs text-slate-400">
+            <div className="w-64 h-64 flex items-center justify-center text-xs text-slate-400 font-mono mx-auto">
               Generating High-Resolution QR...
             </div>
           )}
 
-          <div className={`mt-2 text-xs font-mono font-bold px-3 py-1.5 rounded-lg border ${
-            networkMode === "cellular"
-              ? "bg-emerald-50 text-emerald-900 border-emerald-300"
-              : "bg-[#EBF5FB] text-[#003B70] border-[#B8D8F8]"
-          }`}>
-            {networkMode === "cellular"
-              ? "🌐 CELLULAR 5G SCANNABLE (ANY NETWORK)"
-              : "🏢 SCAN ON BUILDING WI-FI"}
+          <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
+            <span className="px-3 py-1 rounded-md text-[11px] font-mono font-black bg-amber-50 text-amber-900 border border-amber-300">
+              🎯 DISTANCE SCANNABLE UP TO 20 FEET
+            </span>
+            <span className={`text-[11px] font-mono font-bold px-3 py-1 rounded-md border ${
+              networkMode === "cellular"
+                ? "bg-emerald-50 text-emerald-900 border-emerald-300"
+                : "bg-[#EBF5FB] text-[#003B70] border-[#B8D8F8]"
+            }`}>
+              {networkMode === "cellular"
+                ? "🌐 CELLULAR 5G SCANNABLE (ANY NETWORK)"
+                : "🏢 SCAN ON BUILDING WI-FI"}
+            </span>
           </div>
         </div>
 

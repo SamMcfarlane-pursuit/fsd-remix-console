@@ -107,7 +107,7 @@ export const Step4Broadcast: React.FC<Step4BroadcastProps> = ({
         title,
         priority,
         sentAt: new Date().toLocaleTimeString(),
-        recipients: snapshot?.expectedOnFloor || 195,
+        recipients: snapshot?.occupants?.length ?? snapshot?.expectedOnFloor ?? 0,
         channels: activeChannels,
       };
 
@@ -138,7 +138,7 @@ export const Step4Broadcast: React.FC<Step4BroadcastProps> = ({
           <div className="bg-[#F0F6FC] px-4 py-2.5 rounded-xl border border-[#CBDCEE] text-right">
             <div className="text-[10px] font-mono font-bold text-[#475569] uppercase">Total Recipients</div>
             <div className="text-xl font-mono font-black text-[#005DAA]">
-              {snapshot?.expectedOnFloor || 195} <span className="text-xs text-[#64748B]">Devices</span>
+              {snapshot?.occupants?.length ?? snapshot?.expectedOnFloor ?? 0} <span className="text-xs text-[#64748B]">Devices</span>
             </div>
           </div>
 
@@ -297,7 +297,7 @@ export const Step4Broadcast: React.FC<Step4BroadcastProps> = ({
                     : "bg-[#F0F6FC] text-[#005DAA] border border-[#CBDCEE]"
                 }`}
               >
-                ✓ ALL FLOOR 07 (195 Personnel)
+                ✓ ALL FLOOR 07 ({snapshot?.occupants?.length ?? snapshot?.expectedOnFloor ?? 0} Personnel)
               </button>
 
               {(["NW", "NE", "SW", "SE"] as QuadrantId[]).map((qid) => {
@@ -369,6 +369,47 @@ export const Step4Broadcast: React.FC<Step4BroadcastProps> = ({
                 </label>
               ))}
             </div>
+          </div>
+
+          {/* Target Audience: Registered Personnel */}
+          <div className="bg-white rounded-2xl p-5 border border-[#B8D8F8] shadow-xs space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-black text-[#0F2537] flex items-center gap-1.5">
+                <span>📱</span>
+                <span>Drill Notification Audience</span>
+              </h3>
+              <span className="text-[10px] font-mono text-[#005DAA] font-bold bg-[#EBF3FB] px-2 py-0.5 rounded">
+                {snapshot?.occupants?.length || 0} Registered
+              </span>
+            </div>
+
+            {(!snapshot?.occupants || snapshot.occupants.length === 0) ? (
+              <div className="p-4 bg-amber-50 rounded-xl border border-amber-200 text-xs text-amber-900 space-y-1">
+                <div className="font-bold">⚠️ Roster Currently Empty (Ready for Intake)</div>
+                <p className="text-[11px] text-amber-800 leading-relaxed">
+                  No occupants are currently intaken. Personnel who sign in via the Step 01 QR code, Kiosk, or Quick Intake will appear here and receive direct push alerts and emergency SMS broadcasts.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-1.5 max-h-48 overflow-y-auto divide-y divide-slate-100">
+                {snapshot.occupants.map((occ) => (
+                  <div key={occ.id} className="pt-1.5 first:pt-0 flex items-center justify-between text-xs">
+                    <div>
+                      <div className="font-bold text-[#0F2537] flex items-center gap-1">
+                        <span>{occ.name}</span>
+                        <span className="text-[10px] text-slate-500 font-mono">({occ.id})</span>
+                      </div>
+                      <div className="text-[10px] text-slate-500 font-mono">
+                        {occ.phone || "No phone registered"} · Sector {occ.quadrant}
+                      </div>
+                    </div>
+                    <span className="text-[9px] font-mono font-bold bg-emerald-50 text-emerald-800 border border-emerald-300 px-1.5 py-0.5 rounded">
+                      {occ.phone ? "SMS + PUSH" : "PORTAL PUSH"}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Broadcast Delivery History */}

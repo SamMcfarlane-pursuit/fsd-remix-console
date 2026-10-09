@@ -88,6 +88,7 @@ export interface StatusSnapshot {
   ledgerEntries?: LedgerEntry[];
   latestNarrative?: DrillNarrativeDraft | null;
   latestWalkieTalkie?: WalkieTalkieBroadcast | null;
+  latestEmergencyAlert?: EmergencyAlertPayload | null;
 }
 
 export interface LedgerEntry {

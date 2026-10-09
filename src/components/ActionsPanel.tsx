@@ -43,7 +43,7 @@ export default function ActionsPanel({
     } catch (err: any) {
       console.warn("AI narrative generation fallback:", err);
       // Fallback local narrative draft (100% Mathematically Grounded in Live Snapshot)
-      const expected = snapshot?.expectedOnFloor || 195;
+      const expected = snapshot?.occupants?.length ?? snapshot?.expectedOnFloor ?? 0;
       const accounted = snapshot?.accounted || 0;
       const rate = expected > 0 ? Math.round((accounted / expected) * 100) : 100;
       const fallbackDraft: DrillNarrativeDraft = {
@@ -141,7 +141,7 @@ export default function ActionsPanel({
                 Emergency Alert & Evacuation Narrative Broadcast
               </h3>
               <p className="text-xs text-[#475569] mt-0.5 font-medium">
-                Dispatch pre-drafted evacuation instructions to all {snapshot.expectedOnFloor || 195} registered mobile devices on Floor 07.
+                Dispatch pre-drafted evacuation instructions to all {snapshot?.occupants?.length ?? snapshot?.expectedOnFloor ?? 0} registered personnel on Floor 07.
               </p>
             </div>
           </div>
@@ -154,8 +154,8 @@ export default function ActionsPanel({
           </button>
         </div>
         <div className="flex flex-wrap items-center justify-between text-[11px] font-mono text-[#005DAA] font-bold">
-          <span>TARGET AUDIENCE: {snapshot.expectedOnFloor || 195} DEVICES</span>
-          <span>CHANNELS: MOBILE PUSH · MESH AUDIO · KIOSK POPUP</span>
+          <span>TARGET AUDIENCE: {snapshot?.occupants?.length ?? snapshot?.expectedOnFloor ?? 0} ENROLLED OCCUPANTS</span>
+          <span>CHANNELS: MOBILE PUSH · SMS DIRECT · MESH AUDIO · KIOSK POPUP</span>
         </div>
       </div>
 

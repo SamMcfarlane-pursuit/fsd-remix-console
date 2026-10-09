@@ -106,8 +106,8 @@ export default function EmergencyAlertModal({
           channels: activeChannels,
           senderRole: "FSD COMMANDER",
           timestamp: new Date().toISOString(),
-          deliveredCount: expectedOnFloor || 195,
-          ackCount: Math.round((expectedOnFloor || 195) * 0.94),
+          deliveredCount: expectedOnFloor || 0,
+          ackCount: Math.round((expectedOnFloor || 0) * 0.94),
         });
       }
     } catch (err) {

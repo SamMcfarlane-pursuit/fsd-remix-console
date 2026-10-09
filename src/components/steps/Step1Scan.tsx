@@ -28,6 +28,7 @@ interface Step1ScanProps {
   onProceedNext: () => void;
   onOpenSelfSignIn: () => void;
   onOpenQRPoster: () => void;
+  onRefreshState?: () => void;
 }
 
 export const Step1Scan: React.FC<Step1ScanProps> = ({
@@ -37,6 +38,7 @@ export const Step1Scan: React.FC<Step1ScanProps> = ({
   onProceedNext,
   onOpenSelfSignIn,
   onOpenQRPoster,
+  onRefreshState,
 }) => {
   const [qrDataUrl, setQrDataUrl] = useState<string>("");
   const [badgeInput, setBadgeInput] = useState<string>("");
@@ -50,6 +52,113 @@ export const Step1Scan: React.FC<Step1ScanProps> = ({
   const [customOriginInput, setCustomOriginInput] = useState<string>("");
   const [networkMode, setNetworkMode] = useState<"lan" | "cellular">("lan");
   const [isTunnelLoading, setIsTunnelLoading] = useState<boolean>(false);
+
+  // Super-Size QR Display & Distance Scanning State
+  const [qrDisplaySize, setQrDisplaySize] = useState<"standard" | "large" | "supersize">("supersize");
+  const [isSuperSizeModalOpen, setIsSuperSizeModalOpen] = useState<boolean>(false);
+  const [billboardZoom, setBillboardZoom] = useState<number>(100);
+
+  // Quick Ingress Intake Form State
+  const [showQuickIntake, setShowQuickIntake] = useState<boolean>(false);
+  const [intakeName, setIntakeName] = useState<string>("");
+  const [intakePhone, setIntakePhone] = useState<string>("");
+  const [intakeRole, setIntakeRole] = useState<string>("Employee");
+  const [intakeQuadrant, setIntakeQuadrant] = useState<"NW" | "NE" | "SW" | "SE">("NW");
+  const [intakeDesk, setIntakeDesk] = useState<string>("");
+  const [isIntaking, setIsIntaking] = useState<boolean>(false);
+
+  // Batch Paste Intake State
+  const [isBatchPasteOpen, setIsBatchPasteOpen] = useState<boolean>(false);
+  const [batchPasteText, setBatchPasteText] = useState<string>("");
+  const [isBatchIntaking, setIsBatchIntaking] = useState<boolean>(false);
+
+  const handleQuickIntakeSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!intakeName.trim()) {
+      setScanMessage({ type: "error", text: "Please enter occupant full name." });
+      return;
+    }
+    setIsIntaking(true);
+    try {
+      const res = await fetch("/api/occupant/sign-in-register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: intakeName.trim(),
+          phone: intakePhone.trim() || undefined,
+          role: intakeRole,
+          quadrant: intakeQuadrant,
+          desk: intakeDesk.trim() || `07-${intakeQuadrant}-Desk`,
+          action: "enter",
+          locationCategory: "inside-building",
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.occupant) {
+        setScanMessage({
+          type: "success",
+          text: `✅ Intaken & Saved: ${data.occupant.name} (${data.occupant.id}) added to Floor 07 database and marked IN BUILDING!`,
+        });
+        setIntakeName("");
+        setIntakePhone("");
+        setIntakeDesk("");
+        setShowQuickIntake(false);
+        if (onRefreshState) onRefreshState();
+      } else {
+        setScanMessage({ type: "error", text: data.error || "Failed to intake occupant." });
+      }
+    } catch {
+      setScanMessage({ type: "error", text: "Network error during intake." });
+    } finally {
+      setIsIntaking(false);
+    }
+  };
+
+  const handleBatchPasteSubmit = async () => {
+    if (!batchPasteText.trim()) return;
+    setIsBatchIntaking(true);
+    try {
+      const lines = batchPasteText.split("\n").filter((l) => l.trim().length > 0);
+      const parsedOccupants = lines.map((line, idx) => {
+        const parts = line.split(/[,\t]/).map((p) => p.trim());
+        const name = parts[0] || `Occupant ${idx + 1}`;
+        const phone = parts[1] || "";
+        const rawQuad = (parts[2] || "SE").toUpperCase();
+        const quad = ["NW", "NE", "SW", "SE"].includes(rawQuad) ? rawQuad : "SE";
+        const role = parts[3] || "Employee";
+        return {
+          name,
+          phone,
+          quadrant: quad,
+          role,
+          desk: `07-${quad}-Workstation`,
+          status: "safe",
+          locationCategory: "inside-building",
+        };
+      });
+      const res = await fetch("/api/roster/import", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ occupants: parsedOccupants, mode: "append" }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setScanMessage({
+          type: "success",
+          text: `✅ Batch Intake Complete: Successfully saved ${data.importedCount} personnel into Floor 07 database!`,
+        });
+        setBatchPasteText("");
+        setIsBatchPasteOpen(false);
+        if (onRefreshState) onRefreshState();
+      } else {
+        setScanMessage({ type: "error", text: data.error || "Batch intake failed." });
+      }
+    } catch {
+      setScanMessage({ type: "error", text: "Batch intake request failed." });
+    } finally {
+      setIsBatchIntaking(false);
+    }
+  };
 
   // Filter occupants matching search
   const filteredOccupants = badgeInput.trim()
@@ -139,14 +248,18 @@ export const Step1Scan: React.FC<Step1ScanProps> = ({
 
   useEffect(() => {
     const scanUrl = `${mobileOrigin}/?mode=signin&scan=1`;
+    // High-resolution rendering (up to 800px) with High error correction (30% recovery)
+    // Guarantees pin-sharp modules and effortless optical capture from distance
+    const targetWidth = qrDisplaySize === "supersize" || isSuperSizeModalOpen ? 800 : (qrDisplaySize === "large" ? 540 : 360);
     QRCode.toDataURL(scanUrl, {
-      width: 320,
+      width: targetWidth,
       margin: 2,
-      color: { dark: "#003B70", light: "#FFFFFF" },
+      errorCorrectionLevel: "H",
+      color: { dark: "#002447", light: "#FFFFFF" },
     })
       .then((url) => setQrDataUrl(url))
       .catch((err) => console.error("QR Code generation error:", err));
-  }, [mobileOrigin]);
+  }, [mobileOrigin, qrDisplaySize, isSuperSizeModalOpen]);
 
 
   const handleManualScan = async (occupantIdToUse?: string, action: "enter" | "leave" | "muster" = "enter") => {
@@ -271,6 +384,45 @@ export const Step1Scan: React.FC<Step1ScanProps> = ({
         </div>
       </div>
 
+      {/* Ready for Intake Status Banner */}
+      {occupants.length === 0 && (
+        <div className="bg-gradient-to-r from-[#003B70] via-[#005DAA] to-[#003B70] text-white rounded-2xl p-5 border-2 border-sky-300 shadow-md flex flex-col md:flex-row items-start md:items-center justify-between gap-4 animate-fadeIn">
+          <div className="flex items-center gap-3.5">
+            <div className="w-12 h-12 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center text-2xl shrink-0">
+              📥
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="font-black text-sm uppercase tracking-wider">DATABASE READY FOR INTAKE</span>
+                <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-[10px] font-mono font-bold animate-pulse">
+                  0 ENROLLED · CLEAN
+                </span>
+              </div>
+              <p className="text-xs text-sky-100 mt-1 max-w-xl leading-relaxed">
+                Mock names have been removed. The database is in clean standby, ready to intake real employees and visitors. Intake can be completed via QR Code on mobile, Entrance Kiosk, or Quick Register below.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={() => setShowQuickIntake(true)}
+              className="px-4 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-xs font-black uppercase tracking-wider transition cursor-pointer shadow-sm flex items-center gap-1.5"
+            >
+              <span>➕</span>
+              <span>Quick Intake</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsBatchPasteOpen(true)}
+              className="px-3.5 py-2.5 bg-white/15 hover:bg-white/25 text-white rounded-xl text-xs font-bold transition cursor-pointer border border-white/20"
+            >
+              <span>📋 Paste Roster</span>
+            </button>
+          </div>
+        </div>
+      )}
+
       {scanMessage && (
         <div
           className={`p-4 rounded-xl text-sm font-bold flex items-center justify-between transition-all ${
@@ -340,25 +492,115 @@ export const Step1Scan: React.FC<Step1ScanProps> = ({
             </button>
           </div>
 
-          {/* QR Code Container */}
-          <div className="p-4 bg-white rounded-2xl border-2 border-dashed border-[#005DAA]/40 shadow-inner flex flex-col items-center w-full">
-            {qrDataUrl ? (
-              <img
-                src={qrDataUrl}
-                alt="Floor 07 Sign-In QR"
-                className="w-52 h-52 object-contain"
-                referrerPolicy="no-referrer"
-              />
-            ) : (
-              <div className="w-52 h-52 flex items-center justify-center bg-slate-100 rounded-xl text-xs text-slate-500">
-                Generating QR...
+          {/* Super-Size QR Scale Controls */}
+          <div className="w-full flex items-center justify-between text-xs bg-[#F0F6FC] px-3 py-2 rounded-xl border border-[#CBDCEE]">
+            <span className="font-bold text-[#0F2537] flex items-center gap-1.5 text-[11px]">
+              <span className="text-amber-500">📐</span>
+              <span className="font-black">SCALE:</span>
+            </span>
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => setQrDisplaySize("standard")}
+                className={`px-2 py-0.5 rounded-lg text-[10px] font-bold transition cursor-pointer ${
+                  qrDisplaySize === "standard"
+                    ? "bg-[#005DAA] text-white shadow-xs"
+                    : "text-slate-600 hover:text-slate-900 bg-white"
+                }`}
+              >
+                Standard
+              </button>
+              <button
+                type="button"
+                onClick={() => setQrDisplaySize("large")}
+                className={`px-2 py-0.5 rounded-lg text-[10px] font-bold transition cursor-pointer ${
+                  qrDisplaySize === "large"
+                    ? "bg-[#005DAA] text-white shadow-xs"
+                    : "text-slate-600 hover:text-slate-900 bg-white"
+                }`}
+              >
+                Large
+              </button>
+              <button
+                type="button"
+                onClick={() => setQrDisplaySize("supersize")}
+                className={`px-2.5 py-0.5 rounded-lg text-[10px] font-black transition cursor-pointer flex items-center gap-1 ${
+                  qrDisplaySize === "supersize"
+                    ? "bg-amber-600 text-white shadow-xs ring-1 ring-amber-400"
+                    : "text-amber-800 bg-amber-50 hover:bg-amber-100"
+                }`}
+              >
+                <span>⚡ Super-Size</span>
+              </button>
+            </div>
+          </div>
+
+          {/* QR Code Container with Distance Scan Reticles */}
+          <div className="relative p-4 sm:p-5 bg-white rounded-2xl border-2 border-dashed border-[#005DAA]/50 shadow-md flex flex-col items-center w-full transition-all">
+            {/* Targeting Reticle Corners for Distance Optical Alignment */}
+            <div className="absolute top-2 left-2 w-4 h-4 border-t-2 border-l-2 border-amber-500 rounded-tl-sm pointer-events-none" />
+            <div className="absolute top-2 right-2 w-4 h-4 border-t-2 border-r-2 border-amber-500 rounded-tr-sm pointer-events-none" />
+            <div className="absolute bottom-2 left-2 w-4 h-4 border-b-2 border-l-2 border-amber-500 rounded-bl-sm pointer-events-none" />
+            <div className="absolute bottom-2 right-2 w-4 h-4 border-b-2 border-r-2 border-amber-500 rounded-br-sm pointer-events-none" />
+
+            {/* Clickable QR Code with Zoom Hint */}
+            <div
+              onClick={() => setIsSuperSizeModalOpen(true)}
+              className="cursor-zoom-in group relative flex items-center justify-center p-2 bg-white rounded-xl hover:shadow-lg transition-all"
+              title="Click to open Fullscreen Distance Billboard"
+            >
+              {qrDataUrl ? (
+                <img
+                  src={qrDataUrl}
+                  alt="Floor 07 Sign-In QR"
+                  className={`object-contain transition-all duration-200 ${
+                    qrDisplaySize === "standard"
+                      ? "w-48 h-48 sm:w-52 sm:h-52"
+                      : qrDisplaySize === "large"
+                      ? "w-72 h-72 sm:w-80 sm:h-80"
+                      : "w-80 h-80 sm:w-96 sm:h-96 md:w-[380px] md:h-[380px]"
+                  }`}
+                  referrerPolicy="no-referrer"
+                />
+              ) : (
+                <div className="w-52 h-52 flex items-center justify-center bg-slate-100 rounded-xl text-xs text-slate-500">
+                  Generating High-Res QR...
+                </div>
+              )}
+              <div className="absolute inset-0 bg-[#005DAA]/10 opacity-0 group-hover:opacity-100 rounded-xl transition flex items-center justify-center">
+                <span className="bg-black/80 text-white text-[11px] font-bold px-3 py-1.5 rounded-full shadow-lg flex items-center gap-1.5">
+                  <span>🔎</span>
+                  <span>Click for Fullscreen Billboard</span>
+                </span>
               </div>
-            )}
-            <p className="text-[11px] font-mono text-[#003B70] font-semibold mt-2">
-              {networkMode === "cellular"
-                ? "🌐 CELLULAR 5G SCANNABLE (ANY PHONE)"
-                : "🏢 SCAN WITH PHONES ON BUILDING WI-FI"}
-            </p>
+            </div>
+
+            {/* High-Visibility Distance Scan Badge */}
+            <div className="mt-3 flex flex-wrap items-center justify-center gap-1.5 w-full">
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[10px] font-mono font-black bg-amber-50 text-amber-900 border border-amber-300 shadow-2xs">
+                <span>🎯</span>
+                <span>DISTANCE SCAN READY (15–20 FT)</span>
+              </span>
+              <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-mono font-bold border ${
+                networkMode === "cellular"
+                  ? "bg-emerald-50 text-emerald-900 border-emerald-300"
+                  : "bg-sky-50 text-sky-900 border-sky-300"
+              }`}>
+                <span>{networkMode === "cellular" ? "🌐 5G CELLULAR" : "🏢 BUILDING WI-FI"}</span>
+              </span>
+            </div>
+
+            {/* Launch Fullscreen Super-Size Billboard Button */}
+            <button
+              type="button"
+              onClick={() => setIsSuperSizeModalOpen(true)}
+              className="mt-3 w-full py-2 px-3 rounded-xl bg-gradient-to-r from-[#005DAA] to-[#003B70] hover:from-[#004A88] hover:to-[#002B49] text-white text-[11px] font-black uppercase tracking-wider transition shadow-sm flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <span>🖥️</span>
+              <span>Super-Size Fullscreen Billboard</span>
+              <span>↗</span>
+            </button>
+          </div>
 
             {/* Mobile Reachable Network Address Strip */}
             <div className="mt-3 w-full bg-[#F0F6FC] p-2.5 rounded-xl border border-[#CBDCEE] text-left">
@@ -420,7 +662,6 @@ export const Step1Scan: React.FC<Step1ScanProps> = ({
                 </div>
               )}
             </div>
-          </div>
 
           <div className="w-full space-y-2 text-xs">
             <div className="flex gap-2">
@@ -447,6 +688,158 @@ export const Step1Scan: React.FC<Step1ScanProps> = ({
 
         {/* Right Column: Fast Badge Ingestion & Visitor Station (7 cols) */}
         <div className="lg:col-span-7 space-y-6">
+          {/* Quick Personnel Intake & Registration Card */}
+          <div className="bg-white rounded-2xl p-6 border-2 border-[#005DAA] shadow-sm space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <span className="text-[10px] font-mono font-bold text-[#005DAA] uppercase bg-[#EBF3FB] px-2 py-0.5 rounded">
+                  Live Personnel Ingress
+                </span>
+                <h3 className="text-base font-black text-[#0F2537] mt-1 flex items-center gap-2">
+                  <span>➕</span>
+                  <span>Quick Personnel Intake &amp; Ingress</span>
+                </h3>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsBatchPasteOpen(!isBatchPasteOpen)}
+                  className="text-xs font-bold text-[#005DAA] hover:underline cursor-pointer flex items-center gap-1"
+                >
+                  <span>📋 Batch Paste</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowQuickIntake(!showQuickIntake)}
+                  className="text-xs font-mono font-bold text-[#005DAA] bg-[#EBF3FB] px-2.5 py-1 rounded-lg hover:bg-[#D8EAF8] cursor-pointer"
+                >
+                  {showQuickIntake ? "Collapse ▲" : "Intake Person ▼"}
+                </button>
+              </div>
+            </div>
+
+            {/* Quick Intake Form */}
+            {showQuickIntake && (
+              <form onSubmit={handleQuickIntakeSubmit} className="space-y-3 pt-2 border-t border-[#E2E8F0] animate-fadeIn">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-[11px] font-bold text-[#475569] uppercase tracking-wider block mb-1">
+                      Full Name *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={intakeName}
+                      onChange={(e) => setIntakeName(e.target.value)}
+                      placeholder="e.g. John Doe"
+                      className="w-full px-3.5 py-2 bg-[#F8FAFC] border border-[#CBDCEE] rounded-xl text-xs font-bold text-[#0F2537] focus:ring-2 focus:ring-[#005DAA] outline-hidden"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-bold text-[#475569] uppercase tracking-wider block mb-1">
+                      Mobile Phone (for Drill SMS) *
+                    </label>
+                    <input
+                      type="text"
+                      value={intakePhone}
+                      onChange={(e) => setIntakePhone(e.target.value)}
+                      placeholder="e.g. (212) 555-0144"
+                      className="w-full px-3.5 py-2 bg-[#F8FAFC] border border-[#CBDCEE] rounded-xl text-xs font-bold text-[#0F2537] focus:ring-2 focus:ring-[#005DAA] outline-hidden"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="text-[11px] font-bold text-[#475569] uppercase tracking-wider block mb-1">
+                      Role
+                    </label>
+                    <select
+                      value={intakeRole}
+                      onChange={(e) => setIntakeRole(e.target.value)}
+                      className="w-full px-3 py-2 bg-[#F8FAFC] border border-[#CBDCEE] rounded-xl text-xs font-bold text-[#0F2537] outline-hidden cursor-pointer"
+                    >
+                      <option value="Employee">Employee</option>
+                      <option value="Contractor">Contractor</option>
+                      <option value="Visitor">Visitor</option>
+                      <option value="VIP">VIP</option>
+                      <option value="First Responder">First Responder</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-bold text-[#475569] uppercase tracking-wider block mb-1">
+                      Floor 07 Quadrant
+                    </label>
+                    <select
+                      value={intakeQuadrant}
+                      onChange={(e) => setIntakeQuadrant(e.target.value as any)}
+                      className="w-full px-3 py-2 bg-[#F8FAFC] border border-[#CBDCEE] rounded-xl text-xs font-bold text-[#0F2537] outline-hidden cursor-pointer"
+                    >
+                      <option value="NW">NW · Strategic Planning</option>
+                      <option value="NE">NE · Gas Ops &amp; Security</option>
+                      <option value="SW">SW · AMI &amp; Ombudsman</option>
+                      <option value="SE">SE · Steam Operations</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-bold text-[#475569] uppercase tracking-wider block mb-1">
+                      Desk / Workstation
+                    </label>
+                    <input
+                      type="text"
+                      value={intakeDesk}
+                      onChange={(e) => setIntakeDesk(e.target.value)}
+                      placeholder="e.g. 07-840-A2"
+                      className="w-full px-3.5 py-2 bg-[#F8FAFC] border border-[#CBDCEE] rounded-xl text-xs font-medium text-[#0F2537] focus:ring-2 focus:ring-[#005DAA] outline-hidden"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-2 pt-1">
+                  <button
+                    type="submit"
+                    disabled={isIntaking || !intakeName.trim()}
+                    className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-xl text-xs font-black uppercase tracking-wider transition cursor-pointer shadow-xs flex items-center gap-1.5"
+                  >
+                    <span>{isIntaking ? "Saving..." : "✓ Save & Intake Into Roster"}</span>
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {/* Batch Paste Intake Drawer */}
+            {isBatchPasteOpen && (
+              <div className="p-4 bg-[#F0F6FC] rounded-xl border border-[#B8D8F8] space-y-3 animate-fadeIn">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-black text-[#005DAA] uppercase">
+                    📋 Paste Multiple Occupants (One Per Line)
+                  </span>
+                  <span className="text-[10px] text-[#64748B]">Format: Name, Phone, Quadrant, Role</span>
+                </div>
+                <textarea
+                  rows={3}
+                  value={batchPasteText}
+                  onChange={(e) => setBatchPasteText(e.target.value)}
+                  placeholder={`Alice Walker, (212) 555-0101, NW, Employee\nBob Martin, (212) 555-0102, NE, Contractor\nCharlie Chen, (212) 555-0103, SW, Visitor`}
+                  className="w-full p-2.5 bg-white border border-[#CBDCEE] rounded-xl text-xs font-mono focus:ring-2 focus:ring-[#005DAA] outline-hidden"
+                />
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] text-[#475569]">
+                    Lines detected: {batchPasteText.split("\n").filter((l) => l.trim().length > 0).length}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleBatchPasteSubmit}
+                    disabled={isBatchIntaking || !batchPasteText.trim()}
+                    className="px-4 py-2 bg-[#005DAA] hover:bg-[#004884] disabled:opacity-50 text-white rounded-xl text-xs font-bold transition cursor-pointer shadow-xs"
+                  >
+                    {isBatchIntaking ? "Importing..." : "Import & Save All to Database"}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
           {/* Quick Badge Ingestion Card */}
           <div className="bg-white rounded-2xl p-6 border border-[#B8D8F8] shadow-xs space-y-4">
             <div className="flex items-center justify-between">
@@ -489,28 +882,55 @@ export const Step1Scan: React.FC<Step1ScanProps> = ({
 
               {/* Suggestions Dropdown */}
               {filteredOccupants.length > 0 && (
-                <div className="bg-white border border-[#CBDCEE] rounded-xl shadow-lg overflow-hidden divide-y divide-slate-100 max-h-56 overflow-y-auto">
-                  {filteredOccupants.map((occ) => (
-                    <div
-                      key={occ.id}
-                      className="px-4 py-2.5 hover:bg-[#EBF3FB] transition flex items-center justify-between text-xs"
-                    >
-                      <div>
-                        <div className="font-black text-[#0F2537]">{occ.name} <span className="font-mono text-[10px] text-[#005DAA] font-bold">({occ.id})</span></div>
-                        <div className="text-[11px] text-[#64748B]">
-                          {occ.role} · Sector {occ.quadrant} · Desk: {occ.desk || "07-Floor"} · Phone: {occ.phone || "On File"}
+                <div className="bg-white border border-[#CBDCEE] rounded-xl shadow-lg overflow-hidden divide-y divide-slate-100 max-h-64 overflow-y-auto">
+                  {filteredOccupants.map((occ) => {
+                    const isPresent = !occ.badgedOut && !occ.offSiteToday;
+                    return (
+                      <div
+                        key={occ.id}
+                        className="px-4 py-2.5 hover:bg-[#EBF3FB] transition flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs"
+                      >
+                        <div>
+                          <div className="font-black text-[#0F2537] flex items-center gap-1.5">
+                            <span>{occ.name}</span>
+                            <span className="font-mono text-[10px] text-[#005DAA] font-bold">({occ.id})</span>
+                            <span
+                              className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase ${
+                                isPresent
+                                  ? "bg-emerald-100 text-emerald-950 border border-emerald-300"
+                                  : "bg-slate-200 text-slate-700"
+                              }`}
+                            >
+                              {isPresent ? "🟢 In Building" : "⚪ Badged Out"}
+                            </span>
+                          </div>
+                          <div className="text-[11px] text-[#64748B]">
+                            {occ.role} · Sector {occ.quadrant} · Desk: {occ.desk || "07-Floor"} · Phone: {occ.phone || "On File"}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => handleManualScan(occ.id, "enter")}
+                            className="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-black text-[11px] cursor-pointer shadow-xs transition flex items-center gap-1"
+                            title="Record person as In Building"
+                          >
+                            <span>🏢</span>
+                            <span>In-Building</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleManualScan(occ.id, "leave")}
+                            className="px-2.5 py-1.5 bg-slate-700 hover:bg-slate-800 text-white rounded-lg font-black text-[11px] cursor-pointer shadow-xs transition flex items-center gap-1"
+                            title="Record person as Badged Out / Left Building"
+                          >
+                            <span>🚪</span>
+                            <span>Badge Out</span>
+                          </button>
                         </div>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => handleManualScan(occ.id, "enter")}
-                        className="px-3 py-1.5 bg-[#005DAA] hover:bg-[#004884] text-white rounded-lg font-black text-[11px] cursor-pointer shadow-xs transition flex items-center gap-1 shrink-0"
-                      >
-                        <span>⚡</span>
-                        <span>Direct Sign-In</span>
-                      </button>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
               {/* Unregistered occupant notification banner */}
@@ -539,25 +959,36 @@ export const Step1Scan: React.FC<Step1ScanProps> = ({
               )}
             </div>
 
-            <div className="flex items-center gap-3 pt-2">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-2">
               <button
-                onClick={() => handleManualScan()}
+                onClick={() => handleManualScan(undefined, "enter")}
                 disabled={!badgeInput.trim() && filteredOccupants.length === 0}
-                className="flex-1 py-3 px-4 bg-[#005DAA] hover:bg-[#004884] disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold text-xs rounded-xl transition shadow-xs cursor-pointer flex items-center justify-center gap-1.5"
+                className="py-3 px-3 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold text-xs rounded-xl transition shadow-xs cursor-pointer flex items-center justify-center gap-1.5"
+                title="Record person as entering Floor 07 (In Building)"
               >
-                <span>✓</span>
-                <span>Confirm Ingress Badge-In</span>
+                <span>🏢</span>
+                <span>In-Building (Ingress)</span>
+              </button>
+
+              <button
+                onClick={() => handleManualScan(undefined, "leave")}
+                disabled={!badgeInput.trim() && filteredOccupants.length === 0}
+                className="py-3 px-3 bg-slate-700 hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold text-xs rounded-xl transition shadow-xs cursor-pointer flex items-center justify-center gap-1.5"
+                title="Record person as badged out / leaving building"
+              >
+                <span>🚪</span>
+                <span>Badge-Out (Left Bldg)</span>
               </button>
 
               <button
                 onClick={() => {
-                  setSelfSignInInitialName("");
+                  setSelfSignInInitialName(badgeInput.trim());
                   setIsSelfSignInModalOpen(true);
                 }}
-                className="py-3 px-4 bg-[#EBF3FB] hover:bg-[#D6E8F8] text-[#005DAA] border border-[#CBDCEE] font-bold text-xs rounded-xl transition cursor-pointer flex items-center gap-1.5"
+                className="py-3 px-3 bg-[#EBF3FB] hover:bg-[#D6E8F8] text-[#005DAA] border border-[#CBDCEE] font-bold text-xs rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5"
               >
                 <span>+</span>
-                <span>Register / Sign-In Person</span>
+                <span>Register Person</span>
               </button>
             </div>
           </div>
@@ -692,6 +1123,159 @@ export const Step1Scan: React.FC<Step1ScanProps> = ({
           });
         }}
       />
+
+      {/* Super-Size Fullscreen Distance Billboard Modal (Scannable from 15–20 Feet) */}
+      {isSuperSizeModalOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-md p-4 sm:p-6 overflow-y-auto animate-in fade-in duration-200"
+          onClick={() => setIsSuperSizeModalOpen(false)}
+        >
+          <div
+            className="relative bg-white rounded-3xl max-w-3xl w-full border-4 border-amber-400 shadow-2xl p-6 sm:p-8 flex flex-col items-center text-center space-y-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Top Close & Zoom Controls Bar */}
+            <div className="w-full flex items-center justify-between border-b border-slate-200 pb-4">
+              <div className="flex items-center gap-2 text-left">
+                <span className="w-3.5 h-3.5 rounded-full bg-emerald-500 animate-pulse" />
+                <div>
+                  <h2 className="text-lg sm:text-xl font-black text-[#002447] tracking-tight uppercase">
+                    Con Edison Floor 07 · Ingress Billboard
+                  </h2>
+                  <p className="text-xs text-slate-500 font-semibold font-mono">
+                    High-Density Optical QR · Detectable from 15–20 Feet
+                  </p>
+                </div>
+              </div>
+
+              {/* Zoom Buttons & Close */}
+              <div className="flex items-center gap-2">
+                <div className="hidden sm:flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs font-bold">
+                  <span className="px-2 text-slate-500 text-[10px] uppercase font-mono">Zoom:</span>
+                  <button
+                    type="button"
+                    onClick={() => setBillboardZoom(100)}
+                    className={`px-2 py-0.5 rounded-lg text-xs transition cursor-pointer ${
+                      billboardZoom === 100 ? "bg-[#005DAA] text-white" : "text-slate-600 hover:text-slate-900"
+                    }`}
+                  >
+                    100%
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setBillboardZoom(125)}
+                    className={`px-2 py-0.5 rounded-lg text-xs transition cursor-pointer ${
+                      billboardZoom === 125 ? "bg-[#005DAA] text-white" : "text-slate-600 hover:text-slate-900"
+                    }`}
+                  >
+                    125%
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setBillboardZoom(150)}
+                    className={`px-2 py-0.5 rounded-lg text-xs transition cursor-pointer ${
+                      billboardZoom === 150 ? "bg-[#005DAA] text-white" : "text-slate-600 hover:text-slate-900"
+                    }`}
+                  >
+                    150%
+                  </button>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setIsSuperSizeModalOpen(false)}
+                  className="w-10 h-10 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-black text-lg flex items-center justify-center transition cursor-pointer"
+                  title="Close Billboard (Esc)"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+
+            {/* Target Alignment Reticle Container */}
+            <div className="relative p-6 sm:p-8 bg-white rounded-3xl border-4 border-[#002447] shadow-inner flex flex-col items-center justify-center">
+              {/* Corner Brackets */}
+              <div className="absolute top-2 left-2 w-8 h-8 border-t-4 border-l-4 border-amber-500 rounded-tl-lg pointer-events-none" />
+              <div className="absolute top-2 right-2 w-8 h-8 border-t-4 border-r-4 border-amber-500 rounded-tr-lg pointer-events-none" />
+              <div className="absolute bottom-2 left-2 w-8 h-8 border-b-4 border-l-4 border-amber-500 rounded-bl-lg pointer-events-none" />
+              <div className="absolute bottom-2 right-2 w-8 h-8 border-b-4 border-r-4 border-amber-500 rounded-br-lg pointer-events-none" />
+
+              {/* Giant QR Code Image */}
+              {qrDataUrl ? (
+                <img
+                  src={qrDataUrl}
+                  alt="Floor 07 Super-Size Sign-In QR"
+                  style={{
+                    width: billboardZoom === 150 ? "580px" : billboardZoom === 125 ? "480px" : "380px",
+                    height: billboardZoom === 150 ? "580px" : billboardZoom === 125 ? "480px" : "380px",
+                    maxWidth: "85vw",
+                    maxHeight: "60vh",
+                  }}
+                  className="object-contain transition-all duration-200 rounded-xl"
+                  referrerPolicy="no-referrer"
+                />
+              ) : (
+                <div className="w-80 h-80 flex items-center justify-center bg-slate-100 rounded-2xl text-sm text-slate-500 font-mono">
+                  Rendering 800px Billboard QR...
+                </div>
+              )}
+
+              {/* Scanning Reticle Tag */}
+              <div className="mt-4 px-4 py-1.5 rounded-full bg-amber-100 text-amber-950 border border-amber-300 text-xs font-black font-mono tracking-wider shadow-xs">
+                🎯 STAND BACK 15–20 FT · AIM PHONE CAMERA AT CENTER
+              </div>
+            </div>
+
+            {/* Network Pathway Controls & Direct URL Strip */}
+            <div className="w-full bg-[#F0F6FC] p-4 rounded-2xl border border-[#CBDCEE] space-y-3">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-[#0F2537]">Active Ingress Route:</span>
+                  <div className="inline-flex rounded-lg border border-slate-200 bg-white p-0.5 text-xs font-bold">
+                    <button
+                      type="button"
+                      onClick={handleSwitchToLocalWifi}
+                      className={`px-3 py-1 rounded-md transition cursor-pointer ${
+                        networkMode === "lan" ? "bg-[#005DAA] text-white" : "text-slate-600 hover:text-slate-900"
+                      }`}
+                    >
+                      🏢 Building Wi-Fi
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleActivateCellular}
+                      className={`px-3 py-1 rounded-md transition cursor-pointer ${
+                        networkMode === "cellular" ? "bg-emerald-600 text-white" : "text-slate-600 hover:text-slate-900"
+                      }`}
+                    >
+                      🌐 Cellular 5G
+                    </button>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (navigator.clipboard) {
+                      navigator.clipboard.writeText(`${mobileOrigin}/?mode=signin&scan=1`);
+                      alert("Copied mobile sign-in URL to clipboard!");
+                    }
+                  }}
+                  className="px-4 py-1.5 rounded-xl bg-white border border-[#CBDCEE] text-[#005DAA] text-xs font-black hover:bg-slate-50 transition shadow-2xs flex items-center gap-1.5 cursor-pointer"
+                >
+                  <span>📋</span>
+                  <span>Copy Web Link</span>
+                </button>
+              </div>
+
+              <div className="font-mono text-xs text-[#003B70] bg-white p-2.5 rounded-xl border border-[#CBDCEE] break-all select-all font-bold text-left flex items-center justify-between">
+                <span>{mobileOrigin}/?mode=signin&scan=1</span>
+                <span className="text-[10px] font-mono text-slate-400 shrink-0 ml-2">PORT 3000</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
