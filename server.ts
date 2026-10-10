@@ -1598,7 +1598,7 @@ app.get("/api/system/tunnel/status", (req, res) => {
   });
 });
 
-app.post("/api/system/tunnel/start", async (req, res) => {
+app.post("/api/system/tunnel/start", requireCommanderAuth, async (req, res) => {
   try {
     if (activeTunnelChild && activeTunnelUrl) {
       return res.json({ ok: true, active: true, url: activeTunnelUrl, message: "Tunnel already active" });
@@ -1611,7 +1611,7 @@ app.post("/api/system/tunnel/start", async (req, res) => {
   }
 });
 
-app.post("/api/system/tunnel/stop", (req, res) => {
+app.post("/api/system/tunnel/stop", requireCommanderAuth, (req, res) => {
   try {
     if (activeTunnelChild) {
       if (typeof activeTunnelChild.kill === "function") {
@@ -2564,10 +2564,15 @@ app.post("/api/incident/declare", requireCommanderAuth, (req, res) => {
   hazardType = type || "office-fire";
   declaredAt = new Date().toISOString();
 
-  // Reset unaccounted occupants
+  // Reset unaccounted occupants: Absence of a signal is never safety.
+  // When an alarm is declared, all in-building occupants default to unaccounted
+  // unless they are marked awaiting-evac-chair. Status changes to 'safe' ONLY
+  // upon positive check-in verification.
   occupantsRoster.forEach((o) => {
-    if (!o.badgedOut && !o.offSiteToday && o.status !== "awaiting-evac-chair") {
-      o.status = Math.random() > 0.85 ? "unaccounted" : "safe";
+    if (!o.badgedOut && !o.offSiteToday) {
+      if (o.status !== "awaiting-evac-chair") {
+        o.status = "unaccounted";
+      }
     }
   });
 
