@@ -13,6 +13,9 @@ interface Step4BroadcastProps {
   }) => Promise<EmergencyAlertPayload | void>;
   onProceedNext: () => void;
   onOpenWalkieTalkie?: () => void;
+  onBackToStep3?: () => void;
+  stairwell?: string;
+  assemblyPoint?: string;
 }
 
 export const Step4Broadcast: React.FC<Step4BroadcastProps> = ({
@@ -20,18 +23,24 @@ export const Step4Broadcast: React.FC<Step4BroadcastProps> = ({
   onSendAlert,
   onProceedNext,
   onOpenWalkieTalkie,
+  onBackToStep3,
+  stairwell,
+  assemblyPoint,
 }) => {
   const hazard = snapshot?.hazardType || "office-fire";
   const isIncident = snapshot?.mode === "incident";
   const [isPlayingTestVoice, setIsPlayingTestVoice] = useState(false);
 
+  const resolvedStairwell = stairwell || "Stairwell A (East Core - Union Sq East)";
+  const resolvedAssembly = assemblyPoint || "Assembly Point A (Union Sq East / Park Plaza)";
+
   const defaultTitle = isIncident
     ? `🚨 EMERGENCY EVACUATION: ${hazard.toUpperCase().replace("-", " ")} ON FLOOR 07`
-    : `🎯 LIFE-SAFETY DRILL: FLOOR 07 EVACUATION EXERCISE`;
+    : `🎯 LIFE-SAFETY DRILL: ${hazard.toUpperCase().replace("-", " ")} EVACUATION EXERCISE`;
 
   const defaultNarrative = isIncident
-    ? `FSD Directive: Immediate evacuation ordered for all Floor 07 personnel. Please proceed calmly to designated Stairwell A. Do not use elevators. Assemble at Union Sq East / Park Plaza.`
-    : `FSD Drill Announcement: Scheduled emergency evacuation drill is now in progress. All occupants please badge out or self-check-in at external muster point.`;
+    ? `FSD Directive: Immediate evacuation ordered for all Floor 07 personnel due to ${hazard.replace("-", " ")}. Please proceed immediately via ${resolvedStairwell} to ${resolvedAssembly}. Do not use elevators.`
+    : `FSD Drill Announcement: Scheduled emergency evacuation drill is now in progress for Floor 07 (${hazard.replace("-", " ")}). Please proceed via ${resolvedStairwell} to ${resolvedAssembly}. All occupants please badge out or self-report safe upon arrival.`;
 
   const [title, setTitle] = useState<string>(defaultTitle);
   const [narrative, setNarrative] = useState<string>(defaultNarrative);
@@ -142,6 +151,18 @@ export const Step4Broadcast: React.FC<Step4BroadcastProps> = ({
             </div>
           </div>
 
+          {onBackToStep3 && (
+            <button
+              type="button"
+              id="step4-back-to-step3-btn"
+              onClick={onBackToStep3}
+              className="px-4 py-3 rounded-xl border border-[#CBDCEE] bg-white hover:bg-[#F0F6FC] text-[#0F2537] font-bold text-xs tracking-wide transition shadow-xs flex items-center gap-1.5 cursor-pointer"
+            >
+              <span>←</span>
+              <span>Step 03 Alarm</span>
+            </button>
+          )}
+
           <button
             id="step4-proceed-btn"
             onClick={onProceedNext}
@@ -152,6 +173,50 @@ export const Step4Broadcast: React.FC<Step4BroadcastProps> = ({
           </button>
         </div>
       </div>
+
+      {/* Step 3 Active Alarm Coupling Banner */}
+      {snapshot?.incidentActive && (
+        <div className="bg-linear-to-r from-red-50 via-amber-50 to-blue-50 border border-amber-300 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
+          <div className="flex items-center gap-3">
+            <span className="text-2xl shrink-0">🚨</span>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-mono font-bold uppercase tracking-wider bg-red-600 text-white px-2 py-0.5 rounded">
+                  {isIncident ? "LIVE EMERGENCY" : "ACTIVE DRILL"}
+                </span>
+                <span className="text-xs font-black text-[#0F2537] uppercase">
+                  {hazard.replace("-", " ")}
+                </span>
+              </div>
+              <p className="text-xs text-[#475569] mt-0.5">
+                Designated Egress: <strong>{resolvedStairwell}</strong> · Assembly Point: <strong>{resolvedAssembly}</strong>
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={() => {
+                setTitle(defaultTitle);
+                setNarrative(defaultNarrative);
+              }}
+              className="px-3 py-1.5 text-xs font-bold text-[#005DAA] hover:bg-blue-100/60 rounded-lg transition border border-blue-200 cursor-pointer"
+            >
+              Sync Form with Alarm
+            </button>
+            {onBackToStep3 && (
+              <button
+                type="button"
+                onClick={onBackToStep3}
+                className="px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-200/60 rounded-lg transition border border-slate-300 cursor-pointer"
+              >
+                Edit in Step 03
+              </button>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Industrial Walkie-Talkie (PTT) & Natural Voice Station */}
       <div className="grid grid-cols-1 md:grid-cols-12 gap-4">

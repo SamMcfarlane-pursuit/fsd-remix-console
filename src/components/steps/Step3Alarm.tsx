@@ -7,6 +7,9 @@ interface Step3AlarmProps {
   onDeclareIncident: (mode: "drill" | "incident", type: string) => Promise<void>;
   onClearIncident: () => Promise<void>;
   onProceedNext: () => void;
+  stairwell?: string;
+  assemblyPoint?: string;
+  onUpdateEvacRoute?: (stairwell: string, assemblyPoint: string) => void;
 }
 
 const HAZARD_OPTIONS = [
@@ -57,6 +60,9 @@ export const Step3Alarm: React.FC<Step3AlarmProps> = ({
   onDeclareIncident,
   onClearIncident,
   onProceedNext,
+  stairwell: initialStairwell,
+  assemblyPoint: initialAssemblyPoint,
+  onUpdateEvacRoute,
 }) => {
   const isIncidentActive = snapshot?.incidentActive || false;
   const currentMode = snapshot?.mode || "drill";
@@ -64,19 +70,29 @@ export const Step3Alarm: React.FC<Step3AlarmProps> = ({
 
   const [selectedMode, setSelectedMode] = useState<"drill" | "incident">(currentMode);
   const [selectedHazard, setSelectedHazard] = useState<string>(currentHazard);
-  const [selectedStairwell, setSelectedStairwell] = useState<string>("Stairwell A (East Core)");
-  const [assemblyPoint, setAssemblyPoint] = useState<string>("Assembly Point A (Union Sq East / Park Plaza)");
+  const [selectedStairwell, setSelectedStairwell] = useState<string>(
+    initialStairwell || "Stairwell A (East Core - Union Sq East)"
+  );
+  const [assemblyPoint, setAssemblyPoint] = useState<string>(
+    initialAssemblyPoint || "Assembly Point A (Union Sq East / Park Plaza)"
+  );
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
 
-  const handleDeclare = async () => {
+  const handleDeclare = async (autoProceedToBroadcast = true) => {
     setIsProcessing(true);
     try {
+      if (onUpdateEvacRoute) {
+        onUpdateEvacRoute(selectedStairwell, assemblyPoint);
+      }
       await onDeclareIncident(selectedMode, selectedHazard);
       playAlarmSiren(6);
       speakEmergencyBroadcast(
         `Attention Floor 07 occupants: A ${selectedMode === "drill" ? "life-safety evacuation drill" : "live emergency evacuation"} has been declared due to ${selectedHazard.replace("-", " ")}. Please evacuate immediately via ${selectedStairwell} and report to ${assemblyPoint}.`,
         selectedMode === "drill" ? "HIGH" : "CRITICAL"
       );
+      if (autoProceedToBroadcast) {
+        onProceedNext();
+      }
     } finally {
       setIsProcessing(false);
     }
@@ -164,13 +180,22 @@ export const Step3Alarm: React.FC<Step3AlarmProps> = ({
             </div>
           </div>
 
-          <div className="flex items-center gap-3 shrink-0">
+          <div className="flex flex-wrap items-center gap-3 shrink-0">
+            <button
+              id="step3-banner-proceed-btn"
+              onClick={onProceedNext}
+              className="px-5 py-3 bg-white hover:bg-slate-100 text-[#005DAA] font-black rounded-xl text-xs uppercase tracking-wider transition cursor-pointer shadow-md flex items-center gap-1.5"
+            >
+              <span>Proceed to Step 04 Broadcast</span>
+              <span>→</span>
+            </button>
+
             <button
               onClick={handleClear}
               disabled={isProcessing}
-              className="px-5 py-3 bg-white hover:bg-slate-100 text-red-700 font-black rounded-xl text-xs uppercase tracking-wider transition cursor-pointer shadow-md"
+              className="px-4 py-3 bg-red-800/80 hover:bg-red-900 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition cursor-pointer border border-red-500/50"
             >
-              Stand Down / Clear Alarm
+              Stand Down / Clear
             </button>
           </div>
         </div>
@@ -314,26 +339,41 @@ export const Step3Alarm: React.FC<Step3AlarmProps> = ({
         {/* Declaration Action Button */}
         <div className="pt-4 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-slate-100">
           <div className="text-xs text-[#64748B]">
-            Activating this alarm notifies the FSD command deck and updates the official Floor 07 life-safety status.
+            {isIncidentActive
+              ? "Alarm is currently active on Floor 07. Update evacuation settings or proceed directly to Step 04 broadcast."
+              : "Activating this alarm sets floor life-safety status, sounds sirens, and seamlessly arms Step 04 broadcast directives."}
           </div>
 
-          <button
-            type="button"
-            onClick={handleDeclare}
-            disabled={isProcessing}
-            className={`w-full sm:w-auto px-8 py-3.5 rounded-xl font-black text-sm uppercase tracking-wider shadow-md transition cursor-pointer flex items-center justify-center gap-2 ${
-              selectedMode === "incident"
-                ? "bg-red-600 hover:bg-red-700 text-white"
-                : "bg-[#005DAA] hover:bg-[#004884] text-white"
-            }`}
-          >
-            <span>⚡</span>
-            <span>
-              {isIncidentActive
-                ? `Update ${selectedMode.toUpperCase()} Alarm`
-                : `Declare ${selectedMode.toUpperCase()} & Sound Alarm`}
-            </span>
-          </button>
+          <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
+            <button
+              type="button"
+              onClick={() => handleDeclare(false)}
+              disabled={isProcessing}
+              className="w-full sm:w-auto px-5 py-3 rounded-xl border border-slate-300 hover:bg-slate-50 text-slate-700 font-bold text-xs uppercase tracking-wider transition cursor-pointer flex items-center justify-center gap-1.5"
+            >
+              <span>🔔</span>
+              <span>{isIncidentActive ? "Update Alarm Only" : "Sound Alarm Only"}</span>
+            </button>
+
+            <button
+              type="button"
+              id="step3-declare-and-proceed-btn"
+              onClick={() => handleDeclare(true)}
+              disabled={isProcessing}
+              className={`w-full sm:w-auto px-8 py-3.5 rounded-xl font-black text-sm uppercase tracking-wider shadow-md transition cursor-pointer flex items-center justify-center gap-2 ${
+                selectedMode === "incident"
+                  ? "bg-red-600 hover:bg-red-700 text-white"
+                  : "bg-[#005DAA] hover:bg-[#004884] text-white"
+              }`}
+            >
+              <span>⚡</span>
+              <span>
+                {isIncidentActive
+                  ? "Proceed to Step 04 Broadcast →"
+                  : `Declare & Proceed to Step 04 Broadcast →`}
+              </span>
+            </button>
+          </div>
         </div>
       </div>
     </div>

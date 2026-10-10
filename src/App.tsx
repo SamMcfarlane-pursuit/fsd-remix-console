@@ -113,6 +113,8 @@ export default function App() {
   const [isPinModalOpen, setIsPinModalOpen] = useState<boolean>(false);
   const [targetPinRole, setTargetPinRole] = useState<UserRole>("commander");
   const [isWalkieTalkieOpen, setIsWalkieTalkieOpen] = useState<boolean>(false);
+  const [stairwell, setStairwell] = useState<string>("Stairwell A (East Core - Union Sq East)");
+  const [assemblyPoint, setAssemblyPoint] = useState<string>("Assembly Point A (Union Sq East / Park Plaza)");
 
   // Check URL query parameters on initial load (e.g. ?mode=signin or mobile scan)
   useEffect(() => {
@@ -934,6 +936,12 @@ export default function App() {
                 onDeclareIncident={handleDeclareIncident}
                 onClearIncident={handleClearIncident}
                 onProceedNext={() => setCurrentStep(4)}
+                stairwell={stairwell}
+                assemblyPoint={assemblyPoint}
+                onUpdateEvacRoute={(sw, ap) => {
+                  setStairwell(sw);
+                  setAssemblyPoint(ap);
+                }}
               />
             )}
 
@@ -943,6 +951,9 @@ export default function App() {
                 onSendAlert={handleSendEmergencyAlert}
                 onProceedNext={() => setCurrentStep(5)}
                 onOpenWalkieTalkie={() => setIsWalkieTalkieOpen(true)}
+                onBackToStep3={() => setCurrentStep(3)}
+                stairwell={stairwell}
+                assemblyPoint={assemblyPoint}
               />
             )}
 
