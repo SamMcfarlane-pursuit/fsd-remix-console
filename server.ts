@@ -95,6 +95,8 @@ let incidentActive = false;
 let incidentMode: "drill" | "incident" | null = null;
 let hazardType: string | null = null;
 let declaredAt: string | null = null;
+let drillAllSafeAt: string | null = null;
+let drillP95ClearedAt: string | null = null;
 let latestNarrative: DrillNarrativeDraft | null = null;
 let latestWalkieTalkieBroadcast: {
   id: string;
@@ -158,26 +160,47 @@ const QUADRANT_DESK_PREFIXES: Record<QuadrantId, string[]> = {
   SE: ["07-500", "07-520", "07-550", "07-574", "07-580", "07-SteamCtrl", "VP-SteamOps", "07-560", "07-565", "07-590"],
 };
 
-function generateInitialRoster(targetCount: number = 194): Occupant[] {
+function generateInitialRoster(targetCount: number = 195): Occupant[] {
   const occupants: Occupant[] = [];
   let idCounter = 101;
-  const countPerQuad = Math.floor(targetCount / 4);
 
-  QUADRANT_IDS.forEach((quad, qIndex) => {
-    const count = qIndex === 3 ? targetCount - countPerQuad * 3 : countPerQuad;
+  // Standardized Con Edison Floor 07 headcount: NW: 49, NE: 49, SW: 49, SE: 48 (Total: 195)
+  const quadCounts: Record<QuadrantId, number> = {
+    NW: 49,
+    NE: 49,
+    SW: 49,
+    SE: 48,
+  };
+
+  QUADRANT_IDS.forEach((quad) => {
+    const count = quadCounts[quad];
     const deskPrefixes = QUADRANT_DESK_PREFIXES[quad];
 
     for (let i = 0; i < count; i++) {
       const id = `OCC-${idCounter++}`;
-      const name = NAMES[(i + idCounter) % NAMES.length];
+      let name = NAMES[(i + idCounter) % NAMES.length];
       let role: Occupant["role"] = "Employee";
-      if (i % 7 === 0) role = "Contractor";
-      if (i % 11 === 0 && quad === "SE") role = "Visitor";
-      if (i % 19 === 0) role = "VIP";
+      let deskPrefix = deskPrefixes[i % deskPrefixes.length];
+      let deskBay = `${String.fromCharCode(65 + (i % 8))}${1 + (i % 12)}`;
+      let desk = `${deskPrefix}-${deskBay}`;
+      let phone = `(212) 555-01${String(10 + (i % 89))}`;
 
-      const deskPrefix = deskPrefixes[i % deskPrefixes.length];
-      const deskBay = `${String.fromCharCode(65 + (i % 8))}${1 + (i % 12)}`;
-      const desk = `${deskPrefix}-${deskBay}`;
+      // VIP / Leadership Overrides
+      if (id === "OCC-101") {
+        name = "Robert Petillo";
+        role = "Staff Lead";
+        desk = "07-800-A1";
+        phone = "(212) 555-0195";
+      } else if (id === "OCC-102") {
+        name = "Samuel McFarlane";
+        role = "Systems Architect";
+        desk = "07-700-A1";
+        phone = "(212) 555-0196";
+      } else {
+        if (i % 7 === 0) role = "Contractor";
+        if (i % 11 === 0 && quad === "SE") role = "Visitor";
+        if (i % 19 === 0) role = "VIP";
+      }
 
       // Pre-seed status variations
       let status: Occupant["status"] = "safe";
@@ -187,29 +210,22 @@ function generateInitialRoster(targetCount: number = 194): Occupant[] {
       let notes = "";
       let araAssigned = false;
 
-      if (idCounter === 105) {
+      if (id === "OCC-105") {
         status = "awaiting-evac-chair";
         araAssigned = true;
-        notes = "Stair A landing, Floor 07 ARA chair required (mobility assistance)";
-      } else if (idCounter === 109) {
+        notes = "Stair A landing, Floor 07 ARA chair required (mobility assistance partner assigned)";
+      } else if (id === "OCC-109") {
         status = "awaiting-evac-chair";
         araAssigned = true;
         notes = "Stair A landing, Floor 07 knee brace evacuation partner assigned";
-      } else if (idCounter === 115) {
+      } else if (id === "OCC-115") {
         status = "need-help";
         unaccountedMinutes = 4;
         notes = "Wearable fall sensor trigger in SW corridor";
-      } else if (idCounter === 141) {
+      } else if (id === "OCC-141") {
         status = "mia";
         unaccountedMinutes = 5;
         notes = "Unaccounted past 5-min MIA threshold";
-      } else if (idCounter === 150 || idCounter === 180 || idCounter === 250 || idCounter === 350) {
-        badgedOut = true;
-      } else if (idCounter === 160 || idCounter === 190 || idCounter === 260 || idCounter === 360) {
-        offSiteToday = true;
-      } else if (i % 5 === 0 && idCounter > 160) {
-        status = "unaccounted";
-        unaccountedMinutes = Math.floor(Math.random() * 4) + 1;
       }
 
       // Assign locationCategory and assemblyPoint
@@ -431,6 +447,11 @@ function getDerivedSnapshot(): StatusSnapshot {
     }
   });
 
+  const accountedCount = present.filter((o) => o.status === "safe").length;
+  const needHelpCount = present.filter((o) => o.status === "need-help").length;
+  const miaCount = present.filter((o) => o.status === "mia" || (o.status === "unaccounted" && o.likelyMia)).length;
+  const awaitingEvacChairCount = present.filter((o) => o.needsAssistance && o.status !== "safe").length;
+
   const quadrants: QuadrantStat[] = QUADRANT_IDS.map((id) => {
     const inQuad = present.filter((o) => o.quadrant === id);
     return {
@@ -444,10 +465,99 @@ function getDerivedSnapshot(): StatusSnapshot {
     };
   });
 
-  const accountedCount = present.filter((o) => o.status === "safe").length;
-  const needHelpCount = present.filter((o) => o.status === "need-help").length;
-  const miaCount = present.filter((o) => o.status === "mia").length;
-  const awaitingEvacChairCount = present.filter((o) => o.status === "awaiting-evac-chair").length;
+  // Operational Drill Performance & Egress Velocity Metrics
+  let drillMetrics: any = null;
+  if (incidentActive && declaredAt) {
+    const totalExpected = present.length;
+    const isAllSafe = totalExpected > 0 && accountedCount >= totalExpected && needHelpCount === 0 && miaCount === 0;
+
+    if (totalExpected > 0 && accountedCount >= Math.ceil(totalExpected * 0.95) && !drillP95ClearedAt) {
+      drillP95ClearedAt = new Date().toISOString();
+    }
+
+    if (isAllSafe && !drillAllSafeAt) {
+      drillAllSafeAt = new Date().toISOString();
+    } else if (!isAllSafe && drillAllSafeAt) {
+      drillAllSafeAt = null;
+    }
+
+    const declaredMs = new Date(declaredAt).getTime();
+    const endMs = drillAllSafeAt ? new Date(drillAllSafeAt).getTime() : Date.now();
+    const elapsedSeconds = Math.max(0, Math.round((endMs - declaredMs) / 1000));
+    const timeToAllSafeSec = drillAllSafeAt ? elapsedSeconds : null;
+    const p95TimeToSafeSec = drillP95ClearedAt ? Math.max(0, Math.round((new Date(drillP95ClearedAt).getTime() - declaredMs) / 1000)) : null;
+    const egressVelocityRate = elapsedSeconds > 0 ? Math.round((accountedCount / elapsedSeconds) * 60 * 10) / 10 : 0;
+    const complianceStatus = isAllSafe ? (timeToAllSafeSec! <= 240 ? "COMPLIANT" : "NON_COMPLIANT") : "IN_PROGRESS";
+
+    const quadrantMetrics: any = {};
+    QUADRANT_IDS.forEach((qid) => {
+      const qOccs = present.filter((o) => o.quadrant === qid);
+      const qSafe = qOccs.filter((o) => o.status === "safe").length;
+      quadrantMetrics[qid] = {
+        expected: qOccs.length,
+        accounted: qSafe,
+        percentSafe: qOccs.length > 0 ? Math.round((qSafe / qOccs.length) * 100) : 100,
+        cleared: qOccs.length > 0 && qSafe === qOccs.length,
+      };
+    });
+
+    const milestones: any[] = [
+      {
+        id: "M1",
+        timestamp: declaredAt,
+        elapsedSeconds: 0,
+        title: "Alarm Declared & Directives Dispatched",
+        description: `Egress initiated for ${hazardType || "Drill"} on Floor 07. Multi-channel alerts sent.`,
+        type: "ALARM_DECLARED",
+      },
+    ];
+
+    if (accountedCount >= Math.ceil(totalExpected * 0.5) && totalExpected > 0) {
+      milestones.push({
+        id: "M2",
+        timestamp: new Date(declaredMs + Math.round(elapsedSeconds * 0.5) * 1000).toISOString(),
+        elapsedSeconds: Math.round(elapsedSeconds * 0.5),
+        title: "50% Evacuation Milestone",
+        description: `${Math.ceil(totalExpected * 0.5)} of ${totalExpected} occupants cleared floor egress.`,
+        type: "50_PERCENT",
+      });
+    }
+
+    if (drillP95ClearedAt && p95TimeToSafeSec !== null) {
+      milestones.push({
+        id: "M3",
+        timestamp: drillP95ClearedAt,
+        elapsedSeconds: p95TimeToSafeSec,
+        title: "P95 Egress Milestone (95% Cleared)",
+        description: `${Math.ceil(totalExpected * 0.95)} of ${totalExpected} occupants verified safe at exterior assembly points.`,
+        type: "P95_CLEARED",
+      });
+    }
+
+    if (drillAllSafeAt) {
+      milestones.push({
+        id: "M4",
+        timestamp: drillAllSafeAt,
+        elapsedSeconds: timeToAllSafeSec!,
+        title: "100% All-Safe Verified & Closed",
+        description: `All ${totalExpected} personnel 100% accounted for. Cryptographic ledger ready to seal.`,
+        type: "ALL_SAFE",
+      });
+    }
+
+    drillMetrics = {
+      declaredAt,
+      allSafeAt: drillAllSafeAt,
+      elapsedSeconds,
+      timeToAllSafeSec,
+      p95TimeToSafeSec,
+      egressVelocityRate,
+      isAllSafe,
+      complianceStatus,
+      quadrantMetrics,
+      milestones,
+    };
+  }
 
   return {
     incidentActive,
@@ -467,6 +577,7 @@ function getDerivedSnapshot(): StatusSnapshot {
     latestNarrative,
     latestWalkieTalkie: latestWalkieTalkieBroadcast,
     latestEmergencyAlert,
+    drillMetrics,
   };
 }
 
@@ -2411,7 +2522,7 @@ app.post(["/api/database/clean", "/api/system/reset"], requireCommanderAuth, (re
 
 // Optional Demo Seed Helper Endpoint
 app.post("/api/roster/seed-demo", requireCommanderAuth, (req, res) => {
-  const count = typeof req.body.count === "number" ? req.body.count : 194;
+  const count = typeof req.body.count === "number" ? req.body.count : 195;
   occupantsRoster = generateInitialRoster(count);
   savePersistedRoster(occupantsRoster);
   syncInitialRosterToEvents();
@@ -2426,6 +2537,85 @@ app.post("/api/roster/seed-demo", requireCommanderAuth, (req, res) => {
     totalOccupants: occupantsRoster.length,
     ledgerEntry: entry,
     snapshot: getDerivedSnapshot(),
+  });
+});
+
+// Dedicated Drill Generation Endpoint with 195 Floor 07 Personnel
+app.post("/api/drill/generate", requireCommanderAuth, (req, res) => {
+  const { hazard = "office-fire", stairwell = "Stairwell A (East Core - Union Sq East)" } = req.body;
+  occupantsRoster = generateInitialRoster(195);
+  // All 195 occupants start in-building and unaccounted for the drill
+  occupantsRoster.forEach((o) => {
+    o.badgedOut = false;
+    o.offSiteToday = false;
+    o.locationCategory = "inside-building";
+    if (o.status !== "awaiting-evac-chair") {
+      o.status = "unaccounted";
+      o.unaccountedMinutes = 0;
+    }
+  });
+
+  incidentActive = true;
+  incidentMode = "drill";
+  hazardType = hazard;
+  declaredAt = new Date().toISOString();
+  drillAllSafeAt = null;
+  drillP95ClearedAt = null;
+
+  savePersistedRoster(occupantsRoster);
+  syncInitialRosterToEvents();
+
+  const entry = appendLedger("drill-generated-and-declared", {
+    totalOccupants: 195,
+    mode: "drill",
+    hazardType,
+    stairwell,
+    declaredAt,
+    quadrantBreakdown: { NW: 49, NE: 49, SW: 49, SE: 48 },
+  });
+
+  notifySseClients();
+
+  res.json({
+    ok: true,
+    message: "Floor 07 Life-Safety Drill successfully generated with 195 occupants.",
+    totalOccupants: occupantsRoster.length,
+    ledgerEntry: entry,
+    snapshot: getDerivedSnapshot(),
+  });
+});
+
+// Real-Time Egress Simulation Endpoint (Progressively moves personnel to safe exterior assembly)
+app.post("/api/drill/egress-simulate", requireCommanderAuth, (req, res) => {
+  const { batchSize = 25, quadrant } = req.body;
+  const unaccountedList = occupantsRoster.filter((o) => {
+    if (quadrant && o.quadrant !== quadrant) return false;
+    return o.status !== "safe" && !o.badgedOut && !o.offSiteToday;
+  });
+
+  const toAccount = unaccountedList.slice(0, batchSize);
+  const now = new Date();
+  const timeStr = now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+
+  toAccount.forEach((o) => {
+    o.status = "safe";
+    o.unaccountedMinutes = 0;
+    o.locationCategory = "outside-assembly";
+    o.assemblyPoint = "Assembly Point A (Union Sq East / Park Plaza)";
+    o.lastLocation = "Outside Assembly Point A";
+    o.lastBadgeTime = timeStr;
+    o.checkInMethod = "simulated-egress-stream";
+  });
+
+  savePersistedRoster(occupantsRoster);
+  notifySseClients();
+
+  const snapshot = getDerivedSnapshot();
+  res.json({
+    ok: true,
+    accountedInBatch: toAccount.length,
+    remainingUnaccounted: snapshot.expectedOnFloor - snapshot.accounted,
+    snapshot,
   });
 });
 
@@ -2447,7 +2637,7 @@ app.get("/api/database/status", (req, res) => {
 
 // Rapid 1-Click Digital Muster Sweep Endpoint ("Process Round in Seconds")
 app.post("/api/muster/sweep", requireCommanderAuth, (req, res) => {
-  const { quadrant, sweepAll, via, wardenName } = req.body;
+  const { quadrant, sweepAll, via, wardenName, includeEvacChair = false } = req.body;
   const startTime = Date.now();
   const sweptOccupants: Occupant[] = [];
   const sweepMethod = via || "1-CLICK-WARDEN-ROUND-SWEEP";
@@ -2456,11 +2646,13 @@ app.post("/api/muster/sweep", requireCommanderAuth, (req, res) => {
     // Only sweep present occupants who are not already safe
     if (!o.badgedOut && !o.offSiteToday) {
       if (sweepAll || (quadrant && o.quadrant === quadrant)) {
-        if (o.status !== "safe" && o.status !== "awaiting-evac-chair") {
-          const prevStatus = o.status;
+        if (o.status !== "safe" && (includeEvacChair || sweepAll || o.status !== "awaiting-evac-chair")) {
           o.status = "safe";
           o.unaccountedMinutes = 0;
           o.checkInMethod = sweepMethod;
+          o.locationCategory = "outside-assembly";
+          o.assemblyPoint = "Assembly Point A (Union Sq East / Park Plaza)";
+          o.lastLocation = "Outside Assembly Point A";
           o.lastBadgeTime = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
           sweptOccupants.push(o);
         }
@@ -2563,6 +2755,8 @@ app.post("/api/incident/declare", requireCommanderAuth, (req, res) => {
   incidentMode = mode === "incident" ? "incident" : "drill";
   hazardType = type || "office-fire";
   declaredAt = new Date().toISOString();
+  drillAllSafeAt = null;
+  drillP95ClearedAt = null;
 
   // Reset unaccounted occupants: Absence of a signal is never safety.
   // When an alarm is declared, all in-building occupants default to unaccounted
@@ -2589,6 +2783,8 @@ app.post("/api/incident/declare", requireCommanderAuth, (req, res) => {
 // Incident Clear endpoint
 app.post("/api/incident/clear", requireCommanderAuth, (req, res) => {
   incidentActive = false;
+  drillAllSafeAt = null;
+  drillP95ClearedAt = null;
   const durationSec = declaredAt ? Math.round((Date.now() - new Date(declaredAt).getTime()) / 1000) : 0;
 
   const entry = appendLedger("incident-cleared", {

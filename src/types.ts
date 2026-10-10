@@ -71,6 +71,35 @@ export interface WalkieTalkieBroadcast {
   durationSeconds?: number;
 }
 
+export interface DrillPerformanceMetrics {
+  declaredAt: string | null;
+  allSafeAt: string | null;
+  elapsedSeconds: number;
+  timeToAllSafeSec: number | null;
+  p95TimeToSafeSec: number | null;
+  egressVelocityRate: number; // occupants / minute
+  isAllSafe: boolean;
+  complianceStatus: "COMPLIANT" | "NON_COMPLIANT" | "IN_PROGRESS";
+  quadrantMetrics?: Record<
+    QuadrantId,
+    {
+      expected: number;
+      accounted: number;
+      percentSafe: number;
+      cleared: boolean;
+      clearedAt?: string | null;
+    }
+  >;
+  milestones?: Array<{
+    id: string;
+    timestamp: string;
+    elapsedSeconds: number;
+    title: string;
+    description: string;
+    type: "ALARM_DECLARED" | "FIRST_EGRESS" | "50_PERCENT" | "P95_CLEARED" | "ALL_SAFE";
+  }>;
+}
+
 export interface StatusSnapshot {
   incidentActive: boolean;
   mode: "drill" | "incident" | null;
@@ -89,6 +118,7 @@ export interface StatusSnapshot {
   latestNarrative?: DrillNarrativeDraft | null;
   latestWalkieTalkie?: WalkieTalkieBroadcast | null;
   latestEmergencyAlert?: EmergencyAlertPayload | null;
+  drillMetrics?: DrillPerformanceMetrics | null;
 }
 
 export interface LedgerEntry {
