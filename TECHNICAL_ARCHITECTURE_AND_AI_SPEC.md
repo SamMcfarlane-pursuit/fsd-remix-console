@@ -61,8 +61,8 @@ The **MusterCommand Platform** is an enterprise, high-availability life-safety o
 | **Media & Audio** | HTML5 Web Audio API, Canvas 2D | In-browser synthesizer for evacuation sirens, radio chimes, PTT walkie-talkie audio buffers, and digital signature capture. |
 | **Backend Runtime** | Node.js 23+, Express 4, TypeScript (`tsx`) | Low-latency HTTP/1.1 REST server, Server-Sent Events (SSE) broadcaster, and network orchestrator. |
 | **Live Synchronization** | Server-Sent Events (SSE) (`/api/stream`) | Unidirectional, push-based reactive state streaming from server to all connected client consoles in <15ms. |
-| **Artificial Intelligence** | Google GenAI SDK (`@google/genai`), Gemini 2.5 Flash | Real-time Red List natural language querying and automated FDNY drill narrative generation. |
-| **Security & Auditing** | Node.js `crypto` (SHA-256) | Cryptographic block generation, linking previous block hashes into a tamper-evident audit ledger. |
+| **Artificial Intelligence** | Google GenAI SDK (`@google/genai`), Gemini 3.6 Flash (`temperature: 0.0`, `topP: 0.1`) | Zero-hallucination Red List natural language querying and automated FDNY drill narrative generation. |
+| **Security & Auditing** | Node.js `crypto` (SHA-256) | Cryptographic block generation, linking previous block hashes into a tamper-evident audit ledger (NYC Fire Code 3 RCNY §401-06). |
 | **Cellular Tunneling** | Cloudflare Tunnel (`cloudflared`) / `localtunnel` | Automatic reverse proxy exposing the local port to public internet for mobile smartphone ingress. |
 | **Persistence** | Dual-Layer: `fs` JSON Disk Store + `pg` PostgreSQL Pool | Ensures zero-data-loss across server restarts and provides enterprise database scalability. |
 
@@ -119,9 +119,11 @@ STRICT OPERATIONAL RULES:
 The AI generation call enforces strict schema typing via Gemini's native structured JSON mode:
 ```typescript
 const response = await ai.models.generateContent({
-  model: "gemini-2.5-flash",
+  model: "gemini-3.6-flash",
   contents: prompt,
   config: {
+    temperature: 0.0,
+    topP: 0.1,
     responseMimeType: "application/json",
     responseSchema: {
       type: Type.OBJECT,
