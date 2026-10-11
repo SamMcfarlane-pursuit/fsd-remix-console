@@ -450,7 +450,9 @@ function getDerivedSnapshot(): StatusSnapshot {
   const accountedCount = present.filter((o) => o.status === "safe").length;
   const needHelpCount = present.filter((o) => o.status === "need-help").length;
   const miaCount = present.filter((o) => o.status === "mia" || (o.status === "unaccounted" && o.likelyMia)).length;
-  const awaitingEvacChairCount = present.filter((o) => o.needsAssistance && o.status !== "safe").length;
+  const awaitingEvacChairCount = present.filter(
+    (o) => o.status === "awaiting-evac-chair" || (o.needsAssistance && o.status !== "safe")
+  ).length;
 
   const quadrants: QuadrantStat[] = QUADRANT_IDS.map((id) => {
     const inQuad = present.filter((o) => o.quadrant === id);
@@ -1868,6 +1870,20 @@ app.get(["/api/state", "/api/status", "/api/muster/state"], (req, res) => {
   res.json(getDerivedSnapshot());
 });
 
+/**
+ * Accountability rule: "absence of a signal is never safety".
+ * While an alarm/drill is active, simply being (or arriving) inside the building
+ * does NOT make someone accounted-for. Only positive evidence at an exterior
+ * assembly point, an off-site badge-out, or a warden/commander verification does.
+ */
+function statusForInBuildingPresence(occupant: Occupant): Occupant["status"] {
+  if (!incidentActive) return "safe";
+  if (occupant.status === "awaiting-evac-chair" || occupant.status === "need-help") return occupant.status;
+  return "unaccounted";
+}
+
+const SELF_REPORT_VIA = /mobile|qr-code|qr-station|self|geofence|biometric|occupant/i;
+
 // Check-in / Status update endpoint with Geo-Fence validation check
 app.post("/api/check-in", (req, res) => {
   const { occupantId, status, quadrant, via, notes, locationCategory, assemblyPoint, locationMetadata, geoValidation, action } = req.body;
@@ -1879,7 +1895,18 @@ app.post("/api/check-in", (req, res) => {
   }
 
   const oldStatus = occupant.status;
-  occupant.status = status || "safe";
+  let effectiveStatus: Occupant["status"] = status || "safe";
+  // During an active alarm, an occupant self-reporting "safe" while still INSIDE
+  // the building is a claim, not verified accountability.
+  if (
+    incidentActive &&
+    effectiveStatus === "safe" &&
+    locationCategory === "inside-building" &&
+    SELF_REPORT_VIA.test(via || "")
+  ) {
+    effectiveStatus = "claimed-unverified";
+  }
+  occupant.status = effectiveStatus;
   occupant.unaccountedMinutes = 0;
   occupant.lastBadgeTime = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
 
@@ -2027,14 +2054,34 @@ app.post("/api/kiosk/scan", (req, res) => {
   }
 
   const cleanCode = code.trim().toUpperCase();
-  // Search by exact ID, or substring ID, or name match, or phone
-  let occupant = occupantsRoster.find(
-    (o) =>
-      o.id.toUpperCase() === cleanCode ||
-      o.id.toUpperCase().replace("OCC-", "") === cleanCode ||
-      o.name.toUpperCase().includes(cleanCode) ||
-      (o.phone && o.phone.replace(/\D/g, "").includes(cleanCode.replace(/\D/g, "")))
-  );
+  const codeDigits = cleanCode.replace(/\D/g, "");
+  // Badge payloads look like "CONED-BADGE-OCC-123-NW" — extract the OCC id if present.
+  const embeddedId = cleanCode.match(/OCC-\d+/)?.[0];
+
+  // Tiered, unambiguous lookup. Never fall through to a fuzzy match that could
+  // check in the wrong person during a drill.
+  let occupant: Occupant | undefined =
+    occupantsRoster.find((o) => o.id.toUpperCase() === cleanCode) ||
+    (embeddedId ? occupantsRoster.find((o) => o.id.toUpperCase() === embeddedId) : undefined) ||
+    (/^\d+$/.test(cleanCode) ? occupantsRoster.find((o) => o.id.toUpperCase() === `OCC-${cleanCode}`) : undefined) ||
+    occupantsRoster.find((o) => o.name.toUpperCase() === cleanCode) ||
+    (codeDigits.length >= 7
+      ? occupantsRoster.find((o) => !!o.phone && o.phone.replace(/\D/g, "").endsWith(codeDigits.slice(-10)))
+      : undefined);
+
+  if (!occupant && cleanCode.length >= 3) {
+    const partial = occupantsRoster.filter((o) => o.name.toUpperCase().includes(cleanCode));
+    if (partial.length === 1) {
+      occupant = partial[0];
+    } else if (partial.length > 1) {
+      res.status(409).json({
+        error: `"${code}" matches ${partial.length} people. Scan the badge QR or enter the full name / OCC #.`,
+        code: "BADGE_AMBIGUOUS",
+        candidates: partial.slice(0, 8).map((o) => ({ id: o.id, name: o.name, quadrant: o.quadrant })),
+      });
+      return;
+    }
+  }
 
   if (!occupant) {
     res.status(404).json({
@@ -2084,8 +2131,9 @@ app.post("/api/kiosk/scan", (req, res) => {
     return;
   }
 
-  // Entering building / In-Building sign-in
-  occupant.status = status || "safe";
+  // Entering building / In-Building sign-in. A muster scan (outside) is positive
+  // accountability; an in-building scan during an alarm is not.
+  occupant.status = action === "muster" ? (status || "safe") : statusForInBuildingPresence(occupant);
   occupant.badgedOut = false;
   occupant.offSiteToday = false;
   occupant.locationCategory = action === "muster" ? "outside-assembly" : "inside-building";
@@ -2131,12 +2179,16 @@ app.post("/api/occupant/sign-in-register", (req, res) => {
   const cleanPhone = (phone || "").trim();
   const cleanDigits = cleanPhone.replace(/\D/g, "");
 
-  // Check if occupant exists by exact phone, or exact name, or partial match
-  let occupant = occupantsRoster.find((o) => {
-    if (cleanDigits && o.phone && o.phone.replace(/\D/g, "") === cleanDigits) return true;
-    if (o.name.toLowerCase() === cleanName.toLowerCase()) return true;
-    return false;
-  });
+  // Identity match: phone is the primary key. A name match alone is only accepted
+  // when it cannot conflict with a different phone number (two people can share a name).
+  const phoneKey = (p?: string) => (p || "").replace(/\D/g, "").slice(-10);
+  let occupant =
+    (cleanDigits.length >= 7 ? occupantsRoster.find((o) => phoneKey(o.phone) === phoneKey(cleanPhone)) : undefined) ||
+    occupantsRoster.find((o) => {
+      if (o.name.toLowerCase() !== cleanName.toLowerCase()) return false;
+      const existingKey = phoneKey(o.phone);
+      return !cleanDigits || !existingKey || existingKey === phoneKey(cleanPhone);
+    });
 
   let isNew = false;
   const isLeaving = action === "leave";
@@ -2210,7 +2262,7 @@ app.post("/api/occupant/sign-in-register", (req, res) => {
     occupant.badgedOut = false;
     occupant.offSiteToday = false;
     occupant.locationCategory = action === "muster" ? "outside-assembly" : "inside-building";
-    occupant.status = "safe";
+    occupant.status = action === "muster" ? "safe" : statusForInBuildingPresence(occupant);
     occupant.lastBadgeTime = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
     occupant.lastLocation = action === "muster" ? "Outside Assembly Point" : `${occupant.desk || "Floor 07"} (${occupant.quadrant})`;
   }
@@ -2271,7 +2323,7 @@ app.post("/api/occupant/presence", (req, res) => {
     occupant.badgedOut = false;
     occupant.offSiteToday = false;
     occupant.locationCategory = "inside-building";
-    occupant.status = "safe";
+    occupant.status = statusForInBuildingPresence(occupant);
     occupant.lastLocation = `${occupant.desk || "Floor 07"} (${occupant.quadrant})`;
     occupant.lastBadgeTime = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   }
@@ -2707,13 +2759,16 @@ app.get("/api/building/status-report", (req, res) => {
   );
 
   // Determine safest evacuation staircase based on hazard location
+  // Stairwell naming must match the occupant portal and Step 3/4:
+  // Stairwell A = East Core (Union Sq East) → Assembly Point A; Stairwell B = West Core (Irving Pl) → Assembly Point B.
+  // Stair condition is NOT sensed by this system; wardens must confirm it.
   const isWestHazard = hazardType === "office-fire" || hazardType === "hazmat";
   const safestStaircase = {
-    primaryRecommended: isWestHazard ? "Stairwell B (East / Irving Place)" : "Stairwell A (West / 14th St)",
-    primaryStatus: "100% CLEAR & SECURE · Pressurized Smoke-Free Shaft",
-    secondaryCaution: isWestHazard ? "Stairwell A (West Landing)" : "Stairwell B (East Landing)",
-    secondaryStatus: isWestHazard ? "CAUTION: Thermal / Smoke Drift in Corridor 7A" : "CLEAR ALTERNATE",
-    primaryAssembly: isWestHazard ? "Assembly Point B (East Courtyard - Irving Pl)" : "Assembly Point A (Park Plaza - East 14th St)",
+    primaryRecommended: isWestHazard ? "Stairwell A (East Core · Union Sq East)" : "Stairwell B (West Core · Irving Pl)",
+    primaryStatus: "Recommended by hazard type — condition must be confirmed by warden",
+    secondaryCaution: isWestHazard ? "Stairwell B (West Core · Irving Pl)" : "Stairwell A (East Core · Union Sq East)",
+    secondaryStatus: isWestHazard ? "Use only if warden confirms clear" : "Clear alternate (unconfirmed)",
+    primaryAssembly: isWestHazard ? "Assembly Point A (Park Plaza - East 14th St)" : "Assembly Point B (East Courtyard - Irving Pl)",
   };
 
   res.json({
@@ -2806,38 +2861,47 @@ app.post(["/api/emergency-alert", "/api/drill/broadcast"], requireCommanderAuth,
   const alertId = `ALERT-${Date.now().toString(36).toUpperCase()}`;
   const timestamp = new Date().toISOString();
 
-  // Create full alert payload
+  // Filter occupants if specific quadrants are targeted (or all floor occupants)
+  const targetedOccupants = (targetQuadrants && !targetQuadrants.includes("ALL"))
+    ? occupantsRoster.filter((o) => targetQuadrants.includes(o.quadrant))
+    : occupantsRoster;
+
+  const activeChannels = channels || ["PUSH_NOTIFICATION", "SMS_DIRECT", "MESH_AUDIO_BEACON", "KIOSK_POPUP"];
+  const hasSms = activeChannels.some((c: string) => /sms/i.test(c));
+
+  const dispatchedList = targetedOccupants.map((occ) => ({
+    occupantId: occ.id,
+    name: occ.name,
+    phone: occ.phone || "(212) 555-0100",
+    quadrant: occ.quadrant,
+    channel: hasSms ? "SMS_AND_PORTAL" : "PORTAL_PUSH",
+    deliveryStatus: "DISPATCHED",
+    dispatchedAt: timestamp,
+  }));
+
+  // Create full alert payload with real phone numbers and accurate recipient counts
   const alertPayload: EmergencyAlertPayload = {
     alertId,
     title: title || (incidentMode === "incident" ? "🚨 CRITICAL EVACUATION ORDER" : "🎯 LIFE-SAFETY EVACUATION DRILL ALERT"),
     narrative: narrative || "FSD Directive: Scheduled Floor 07 evacuation drill. All occupants please proceed calmly to designated Stairwell A/B exits. Do not use elevators.",
     priority: (priority || (incidentMode === "incident" ? "CRITICAL" : "HIGH")) as any,
     targetQuadrants: targetQuadrants || ["ALL"],
-    channels: channels || ["PUSH_NOTIFICATION", "SMS_DIRECT", "MESH_AUDIO_BEACON", "KIOSK_POPUP"],
+    channels: activeChannels,
     senderRole: "FSD COMMANDER",
     timestamp,
-    deliveredCount: totalRegistered,
-    ackCount: totalRegistered > 0 ? Math.max(1, Math.round(totalRegistered * 0.94)) : 0,
+    deliveredCount: targetedOccupants.length,
+    ackCount: targetedOccupants.filter((o) => !o.badgedOut && !o.offSiteToday && o.status === "safe").length,
+    dispatchedList,
   };
 
   latestEmergencyAlert = alertPayload;
-
-  // Log SMS and mobile push dispatch for all intaken occupants
-  const dispatchedList = occupantsRoster.map((occ) => ({
-    occupantId: occ.id,
-    name: occ.name,
-    phone: occ.phone || "No phone registered",
-    channel: occ.phone ? "SMS_AND_MOBILE_PUSH" : "PORTAL_PUSH_ONLY",
-    deliveryStatus: "DELIVERED",
-    dispatchedAt: timestamp,
-  }));
 
   const entry = appendLedger("emergency-drill-alert-broadcast", {
     alertId,
     title: alertPayload.title,
     narrative: alertPayload.narrative,
     priority: alertPayload.priority,
-    totalRecipients: totalRegistered,
+    totalRecipients: targetedOccupants.length,
     inBuildingCount: inBuildingDevices,
     dispatchedList: dispatchedList.slice(0, 50),
     timestamp,
@@ -2848,7 +2912,7 @@ app.post(["/api/emergency-alert", "/api/drill/broadcast"], requireCommanderAuth,
   res.json({
     ok: true,
     alertPayload,
-    dispatchedCount: totalRegistered,
+    dispatchedCount: targetedOccupants.length,
     dispatchedList,
     ledgerEntry: entry,
     snapshot: getDerivedSnapshot(),

@@ -899,6 +899,18 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
         </div>
 
         <div className="flex items-center gap-1.5 shrink-0">
+          {onSwitchToAdmin && (
+            <button
+              type="button"
+              onClick={onSwitchToAdmin}
+              className="bg-white hover:bg-sky-50 border border-[#005DAA] text-[#005DAA] px-2.5 sm:px-3 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1.5 transition cursor-pointer shadow-xs"
+              title="Return to FSD Commander Console"
+            >
+              <span>🛡️</span>
+              <span className="hidden xs:inline">Commander Deck</span>
+              <span className="xs:hidden">Console</span>
+            </button>
+          )}
 
           {onLogout && (
             <button

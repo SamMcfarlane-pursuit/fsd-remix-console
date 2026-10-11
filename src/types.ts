@@ -179,6 +179,16 @@ export interface RedListQueryResponse {
   };
 }
 
+export interface EmergencyAlertRecipient {
+  occupantId: string;
+  name: string;
+  phone: string;
+  quadrant?: QuadrantId;
+  channel?: string;
+  deliveryStatus?: string;
+  dispatchedAt?: string;
+}
+
 export interface EmergencyAlertPayload {
   alertId: string;
   title: string;
@@ -190,6 +200,7 @@ export interface EmergencyAlertPayload {
   timestamp: string;
   deliveredCount: number;
   ackCount: number;
+  dispatchedList?: EmergencyAlertRecipient[];
 }
 
 export type UserRole = "fsd_director" | "warden" | "auditor" | "kiosk" | "occupant";

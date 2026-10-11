@@ -1009,6 +1009,7 @@ export default function App() {
         isOpen={isAlertModalOpen}
         onClose={() => setIsAlertModalOpen(false)}
         expectedOnFloor={snapshot?.expectedOnFloor ?? snapshot?.occupants?.length ?? 0}
+        occupants={occupantsList}
         onSendAlert={handleSendEmergencyAlert}
       />
 

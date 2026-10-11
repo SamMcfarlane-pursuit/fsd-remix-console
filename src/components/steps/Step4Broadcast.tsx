@@ -464,8 +464,20 @@ export const Step4Broadcast: React.FC<Step4BroadcastProps> = ({
                         <span>{occ.name}</span>
                         <span className="text-[10px] text-slate-500 font-mono">({occ.id})</span>
                       </div>
-                      <div className="text-[10px] text-slate-500 font-mono">
-                        {occ.phone || "No phone registered"} · Sector {occ.quadrant}
+                      <div className="text-[10px] text-slate-500 font-mono flex items-center gap-1.5">
+                        {occ.phone && occ.phone !== "No phone registered" ? (
+                          <a
+                            href={`tel:${occ.phone.replace(/[^0-9+]/g, "")}`}
+                            className="text-[#005DAA] hover:underline font-bold flex items-center gap-0.5 cursor-pointer"
+                            title="Direct Dial Real Phone Number"
+                          >
+                            <span>📞</span>
+                            <span>{occ.phone}</span>
+                          </a>
+                        ) : (
+                          <span className="text-slate-400">No phone registered</span>
+                        )}
+                        <span>· Sector {occ.quadrant}</span>
                       </div>
                     </div>
                     <span className="text-[9px] font-mono font-bold bg-emerald-50 text-emerald-800 border border-emerald-300 px-1.5 py-0.5 rounded">

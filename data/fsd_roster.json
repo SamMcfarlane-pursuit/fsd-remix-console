@@ -14,12 +14,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:16 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 14,
     "yCoord": 14,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-102",
@@ -36,12 +36,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:16 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 19.5,
     "yCoord": 14,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-103",
@@ -58,12 +58,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:16 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 25,
     "yCoord": 14,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-104",
@@ -80,12 +80,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:16 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 30.5,
     "yCoord": 14,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-105",
@@ -102,12 +102,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:16 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "Stair A landing, Floor 07 ARA chair required (mobility assistance partner assigned)",
     "xCoord": 36,
     "yCoord": 14,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-106",
@@ -124,12 +124,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:16 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 41.5,
     "yCoord": 14,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-107",
@@ -146,12 +146,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:16 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 14,
     "yCoord": 20.5,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-108",
@@ -168,12 +168,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:16 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 19.5,
     "yCoord": 20.5,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-109",
@@ -190,12 +190,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:16 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "Stair A landing, Floor 07 knee brace evacuation partner assigned",
     "xCoord": 25,
     "yCoord": 20.5,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-110",
@@ -212,12 +212,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:16 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 30.5,
     "yCoord": 20.5,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-111",
@@ -234,12 +234,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:16 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 36,
     "yCoord": 20.5,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-112",
@@ -256,12 +256,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:16 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 41.5,
     "yCoord": 20.5,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-113",
@@ -278,12 +278,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:16 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 14,
     "yCoord": 27,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-114",
@@ -300,12 +300,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:16 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 19.5,
     "yCoord": 27,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-115",
@@ -322,12 +322,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:16 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "Wearable fall sensor trigger in SW corridor",
     "xCoord": 25,
     "yCoord": 27,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-116",
@@ -344,12 +344,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:16 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 30.5,
     "yCoord": 27,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-117",
@@ -366,12 +366,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:16 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 36,
     "yCoord": 27,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-118",
@@ -388,12 +388,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:16 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 41.5,
     "yCoord": 27,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-119",
@@ -410,12 +410,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:16 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 14,
     "yCoord": 33.5,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-120",
@@ -432,12 +432,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:16 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 19.5,
     "yCoord": 33.5,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-121",
@@ -454,12 +454,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:16 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 25,
     "yCoord": 33.5,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-122",
@@ -476,12 +476,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:16 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 30.5,
     "yCoord": 33.5,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-123",
@@ -498,12 +498,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:16 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 36,
     "yCoord": 33.5,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-124",
@@ -520,12 +520,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:16 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 41.5,
     "yCoord": 33.5,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-125",
@@ -542,12 +542,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:16 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 14,
     "yCoord": 40,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-126",
@@ -564,12 +564,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:16 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 19.5,
     "yCoord": 40,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-127",
@@ -586,12 +586,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:16 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 25,
     "yCoord": 40,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-128",
@@ -608,12 +608,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:16 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 30.5,
     "yCoord": 40,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-129",
@@ -630,12 +630,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:16 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 36,
     "yCoord": 40,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-130",
@@ -652,12 +652,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:16 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 41.5,
     "yCoord": 40,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-131",
@@ -674,12 +674,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:16 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 14,
     "yCoord": 46.5,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-132",
@@ -696,12 +696,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:16 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 19.5,
     "yCoord": 46.5,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-133",
@@ -718,12 +718,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:16 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 25,
     "yCoord": 46.5,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-134",
@@ -740,12 +740,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:16 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 30.5,
     "yCoord": 46.5,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-135",
@@ -762,12 +762,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:16 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 36,
     "yCoord": 46.5,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-136",
@@ -784,12 +784,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:16 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 41.5,
     "yCoord": 46.5,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-137",
@@ -806,12 +806,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:16 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 14,
     "yCoord": 53,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-138",
@@ -828,12 +828,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:16 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 19.5,
     "yCoord": 53,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-139",
@@ -850,12 +850,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:16 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 25,
     "yCoord": 53,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-140",
@@ -872,12 +872,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:16 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 30.5,
     "yCoord": 53,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-141",
@@ -894,12 +894,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:16 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "Unaccounted past 5-min MIA threshold",
     "xCoord": 36,
     "yCoord": 53,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-142",
@@ -916,12 +916,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:16 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 41.5,
     "yCoord": 53,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-143",
@@ -938,12 +938,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:16 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 14,
     "yCoord": 59.5,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-144",
@@ -960,12 +960,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:16 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 19.5,
     "yCoord": 59.5,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-145",
@@ -982,12 +982,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:16 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 25,
     "yCoord": 59.5,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-146",
@@ -1004,12 +1004,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:16 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 30.5,
     "yCoord": 59.5,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-147",
@@ -1026,12 +1026,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:16 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 36,
     "yCoord": 59.5,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-148",
@@ -1048,12 +1048,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:16 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 41.5,
     "yCoord": 59.5,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-149",
@@ -1070,12 +1070,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:16 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 14,
     "yCoord": 66,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-150",
@@ -1092,12 +1092,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 60,
     "yCoord": 14,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-151",
@@ -1114,12 +1114,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 65.5,
     "yCoord": 14,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-152",
@@ -1136,12 +1136,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 71,
     "yCoord": 14,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-153",
@@ -1158,12 +1158,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 76.5,
     "yCoord": 14,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-154",
@@ -1180,12 +1180,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 82,
     "yCoord": 14,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-155",
@@ -1202,12 +1202,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 87.5,
     "yCoord": 14,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-156",
@@ -1224,12 +1224,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 60,
     "yCoord": 20.5,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-157",
@@ -1246,12 +1246,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 65.5,
     "yCoord": 20.5,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-158",
@@ -1268,12 +1268,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 71,
     "yCoord": 20.5,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-159",
@@ -1290,12 +1290,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 76.5,
     "yCoord": 20.5,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-160",
@@ -1312,12 +1312,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 82,
     "yCoord": 20.5,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-161",
@@ -1334,12 +1334,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 87.5,
     "yCoord": 20.5,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-162",
@@ -1356,12 +1356,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 60,
     "yCoord": 27,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-163",
@@ -1378,12 +1378,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 65.5,
     "yCoord": 27,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-164",
@@ -1400,12 +1400,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 71,
     "yCoord": 27,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-165",
@@ -1422,12 +1422,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 76.5,
     "yCoord": 27,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-166",
@@ -1444,12 +1444,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 82,
     "yCoord": 27,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-167",
@@ -1466,12 +1466,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 87.5,
     "yCoord": 27,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-168",
@@ -1488,12 +1488,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 60,
     "yCoord": 33.5,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-169",
@@ -1510,12 +1510,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 65.5,
     "yCoord": 33.5,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-170",
@@ -1532,12 +1532,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 71,
     "yCoord": 33.5,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-171",
@@ -1554,12 +1554,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 76.5,
     "yCoord": 33.5,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-172",
@@ -1576,12 +1576,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 82,
     "yCoord": 33.5,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-173",
@@ -1598,12 +1598,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 87.5,
     "yCoord": 33.5,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-174",
@@ -1620,12 +1620,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 60,
     "yCoord": 40,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-175",
@@ -1642,12 +1642,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 65.5,
     "yCoord": 40,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-176",
@@ -1664,12 +1664,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 71,
     "yCoord": 40,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-177",
@@ -1686,12 +1686,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 76.5,
     "yCoord": 40,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-178",
@@ -1708,12 +1708,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 82,
     "yCoord": 40,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-179",
@@ -1730,12 +1730,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 87.5,
     "yCoord": 40,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-180",
@@ -1752,12 +1752,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 60,
     "yCoord": 46.5,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-181",
@@ -1774,12 +1774,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 65.5,
     "yCoord": 46.5,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-182",
@@ -1796,12 +1796,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 71,
     "yCoord": 46.5,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-183",
@@ -1818,12 +1818,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 76.5,
     "yCoord": 46.5,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-184",
@@ -1840,12 +1840,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 82,
     "yCoord": 46.5,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-185",
@@ -1862,12 +1862,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 87.5,
     "yCoord": 46.5,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-186",
@@ -1884,12 +1884,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 60,
     "yCoord": 53,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-187",
@@ -1906,12 +1906,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 65.5,
     "yCoord": 53,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-188",
@@ -1928,12 +1928,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 71,
     "yCoord": 53,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-189",
@@ -1950,12 +1950,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 76.5,
     "yCoord": 53,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-190",
@@ -1972,12 +1972,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 82,
     "yCoord": 53,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-191",
@@ -1994,12 +1994,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 87.5,
     "yCoord": 53,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-192",
@@ -2016,12 +2016,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 60,
     "yCoord": 59.5,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-193",
@@ -2038,12 +2038,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 65.5,
     "yCoord": 59.5,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-194",
@@ -2060,12 +2060,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 71,
     "yCoord": 59.5,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-195",
@@ -2082,12 +2082,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 76.5,
     "yCoord": 59.5,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-196",
@@ -2104,12 +2104,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 82,
     "yCoord": 59.5,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-197",
@@ -2126,12 +2126,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 87.5,
     "yCoord": 59.5,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-198",
@@ -2148,12 +2148,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 60,
     "yCoord": 66,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-199",
@@ -2170,12 +2170,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 14,
     "yCoord": 58,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-200",
@@ -2192,12 +2192,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 19.5,
     "yCoord": 58,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-201",
@@ -2214,12 +2214,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 25,
     "yCoord": 58,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-202",
@@ -2236,12 +2236,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 30.5,
     "yCoord": 58,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-203",
@@ -2258,12 +2258,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 36,
     "yCoord": 58,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-204",
@@ -2280,12 +2280,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 41.5,
     "yCoord": 58,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-205",
@@ -2302,12 +2302,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 14,
     "yCoord": 64.5,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-206",
@@ -2324,12 +2324,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 19.5,
     "yCoord": 64.5,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-207",
@@ -2346,12 +2346,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 25,
     "yCoord": 64.5,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-208",
@@ -2368,12 +2368,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 30.5,
     "yCoord": 64.5,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-209",
@@ -2390,12 +2390,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 36,
     "yCoord": 64.5,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-210",
@@ -2412,12 +2412,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 41.5,
     "yCoord": 64.5,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-211",
@@ -2434,12 +2434,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 14,
     "yCoord": 71,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-212",
@@ -2456,12 +2456,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 19.5,
     "yCoord": 71,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-213",
@@ -2478,12 +2478,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 25,
     "yCoord": 71,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-214",
@@ -2500,12 +2500,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 30.5,
     "yCoord": 71,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-215",
@@ -2522,12 +2522,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 36,
     "yCoord": 71,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-216",
@@ -2544,12 +2544,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 41.5,
     "yCoord": 71,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-217",
@@ -2566,12 +2566,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 14,
     "yCoord": 77.5,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-218",
@@ -2588,12 +2588,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 19.5,
     "yCoord": 77.5,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-219",
@@ -2610,12 +2610,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 25,
     "yCoord": 77.5,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-220",
@@ -2632,12 +2632,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 30.5,
     "yCoord": 77.5,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-221",
@@ -2654,12 +2654,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 36,
     "yCoord": 77.5,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-222",
@@ -2676,12 +2676,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 41.5,
     "yCoord": 77.5,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-223",
@@ -2698,12 +2698,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 14,
     "yCoord": 84,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-224",
@@ -2720,12 +2720,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 19.5,
     "yCoord": 84,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-225",
@@ -2742,12 +2742,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 25,
     "yCoord": 84,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-226",
@@ -2764,12 +2764,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 30.5,
     "yCoord": 84,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-227",
@@ -2786,12 +2786,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 36,
     "yCoord": 84,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-228",
@@ -2808,12 +2808,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 41.5,
     "yCoord": 84,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-229",
@@ -2830,12 +2830,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 14,
     "yCoord": 90.5,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-230",
@@ -2852,12 +2852,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 19.5,
     "yCoord": 90.5,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-231",
@@ -2874,12 +2874,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 25,
     "yCoord": 90.5,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-232",
@@ -2896,12 +2896,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 30.5,
     "yCoord": 90.5,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-233",
@@ -2918,12 +2918,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 36,
     "yCoord": 90.5,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-234",
@@ -2940,12 +2940,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 41.5,
     "yCoord": 90.5,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-235",
@@ -2962,12 +2962,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 14,
     "yCoord": 97,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-236",
@@ -2984,12 +2984,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 19.5,
     "yCoord": 97,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-237",
@@ -3006,12 +3006,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 25,
     "yCoord": 97,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-238",
@@ -3028,12 +3028,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 30.5,
     "yCoord": 97,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-239",
@@ -3050,12 +3050,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 36,
     "yCoord": 97,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-240",
@@ -3072,12 +3072,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 41.5,
     "yCoord": 97,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-241",
@@ -3094,12 +3094,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 14,
     "yCoord": 103.5,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-242",
@@ -3116,12 +3116,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 19.5,
     "yCoord": 103.5,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-243",
@@ -3138,12 +3138,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 25,
     "yCoord": 103.5,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-244",
@@ -3160,12 +3160,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 30.5,
     "yCoord": 103.5,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-245",
@@ -3182,12 +3182,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 36,
     "yCoord": 103.5,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-246",
@@ -3204,12 +3204,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 41.5,
     "yCoord": 103.5,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-247",
@@ -3226,12 +3226,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 14,
     "yCoord": 110,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-248",
@@ -3248,12 +3248,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 60,
     "yCoord": 58,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-249",
@@ -3270,12 +3270,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 65.5,
     "yCoord": 58,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-250",
@@ -3292,12 +3292,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 71,
     "yCoord": 58,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-251",
@@ -3314,12 +3314,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 76.5,
     "yCoord": 58,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-252",
@@ -3336,12 +3336,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 82,
     "yCoord": 58,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-253",
@@ -3358,12 +3358,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 87.5,
     "yCoord": 58,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-254",
@@ -3380,12 +3380,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 60,
     "yCoord": 64.5,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-255",
@@ -3402,12 +3402,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 65.5,
     "yCoord": 64.5,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-256",
@@ -3424,12 +3424,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 71,
     "yCoord": 64.5,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-257",
@@ -3446,12 +3446,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 76.5,
     "yCoord": 64.5,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-258",
@@ -3468,12 +3468,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 82,
     "yCoord": 64.5,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-259",
@@ -3490,12 +3490,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 87.5,
     "yCoord": 64.5,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-260",
@@ -3512,12 +3512,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 60,
     "yCoord": 71,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-261",
@@ -3534,12 +3534,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 65.5,
     "yCoord": 71,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-262",
@@ -3556,12 +3556,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 71,
     "yCoord": 71,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-263",
@@ -3578,12 +3578,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 76.5,
     "yCoord": 71,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-264",
@@ -3600,12 +3600,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 82,
     "yCoord": 71,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-265",
@@ -3622,12 +3622,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 87.5,
     "yCoord": 71,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-266",
@@ -3644,12 +3644,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 60,
     "yCoord": 77.5,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-267",
@@ -3666,12 +3666,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 65.5,
     "yCoord": 77.5,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-268",
@@ -3688,12 +3688,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 71,
     "yCoord": 77.5,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-269",
@@ -3710,12 +3710,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 76.5,
     "yCoord": 77.5,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-270",
@@ -3732,12 +3732,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 82,
     "yCoord": 77.5,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-271",
@@ -3754,12 +3754,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 87.5,
     "yCoord": 77.5,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-272",
@@ -3776,12 +3776,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 60,
     "yCoord": 84,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-273",
@@ -3798,12 +3798,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 65.5,
     "yCoord": 84,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-274",
@@ -3820,12 +3820,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 71,
     "yCoord": 84,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-275",
@@ -3842,12 +3842,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 76.5,
     "yCoord": 84,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-276",
@@ -3864,12 +3864,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 82,
     "yCoord": 84,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-277",
@@ -3886,12 +3886,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 87.5,
     "yCoord": 84,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-278",
@@ -3908,12 +3908,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 60,
     "yCoord": 90.5,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-279",
@@ -3930,12 +3930,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 65.5,
     "yCoord": 90.5,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-280",
@@ -3952,12 +3952,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 71,
     "yCoord": 90.5,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-281",
@@ -3974,12 +3974,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 76.5,
     "yCoord": 90.5,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-282",
@@ -3996,12 +3996,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 82,
     "yCoord": 90.5,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-283",
@@ -4018,12 +4018,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 87.5,
     "yCoord": 90.5,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-284",
@@ -4040,12 +4040,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 60,
     "yCoord": 97,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-285",
@@ -4062,12 +4062,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 65.5,
     "yCoord": 97,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-286",
@@ -4084,12 +4084,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 71,
     "yCoord": 97,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-287",
@@ -4106,12 +4106,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 76.5,
     "yCoord": 97,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-288",
@@ -4128,12 +4128,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 82,
     "yCoord": 97,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-289",
@@ -4150,12 +4150,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 87.5,
     "yCoord": 97,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-290",
@@ -4172,12 +4172,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 60,
     "yCoord": 103.5,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-291",
@@ -4194,12 +4194,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 65.5,
     "yCoord": 103.5,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-292",
@@ -4216,12 +4216,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 71,
     "yCoord": 103.5,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-293",
@@ -4238,12 +4238,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 76.5,
     "yCoord": 103.5,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-294",
@@ -4260,12 +4260,12 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 82,
     "yCoord": 103.5,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   },
   {
     "id": "OCC-295",
@@ -4282,11 +4282,11 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "lastLocation": "Outside Assembly Point A",
-    "lastBadgeTime": "06:07:31 PM",
+    "lastBadgeTime": "04:30:02 AM",
     "notes": "",
     "xCoord": 87.5,
     "yCoord": 103.5,
     "likelyMia": false,
-    "checkInMethod": "1-CLICK-WARDEN-ROUND-SWEEP"
+    "checkInMethod": "simulated-egress-stream"
   }
 ]
