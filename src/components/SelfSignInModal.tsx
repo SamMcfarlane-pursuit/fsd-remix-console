@@ -3,6 +3,7 @@ import QRCode from "qrcode";
 import { Occupant, QuadrantId } from "../types";
 import { syncOccupantToFirestore } from "../lib/firebase";
 import { DigitalSignaturePad } from "./DigitalSignaturePad";
+import { QRCameraScanner } from "./QRCameraScanner";
 import { generateOccupantBadgePayload, parseQRData } from "../lib/qr";
 import { queueOfflineAction, createOfflineOccupant } from "../lib/offlineQueue";
 
@@ -37,6 +38,7 @@ export const SelfSignInModal: React.FC<SelfSignInModalProps> = ({
   const [signatureData, setSignatureData] = useState<string | null>(null);
   const [signatureType, setSignatureType] = useState<"drawn" | "typed">("drawn");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isScanningBadge, setIsScanningBadge] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [directNotifyMsg, setDirectNotifyMsg] = useState<string | null>(null);
 
@@ -97,6 +99,32 @@ export const SelfSignInModal: React.FC<SelfSignInModalProps> = ({
       setErrorMsg(err.message || "Network error performing direct sign in.");
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleBadgeScanned = (decodedText: string) => {
+    setIsScanningBadge(false);
+    const parsed = parseQRData(decodedText);
+    const targetId = (parsed.occupantId || parsed.phone || parsed.name || decodedText).trim();
+
+    const matched = occupants.find(
+      (o) =>
+        (parsed.occupantId && o.id.toLowerCase() === parsed.occupantId.toLowerCase()) ||
+        o.id.toLowerCase() === targetId.toLowerCase() ||
+        (parsed.phone && o.phone && o.phone.replace(/\D/g, "") === parsed.phone.replace(/\D/g, "")) ||
+        (parsed.name && o.name.toLowerCase() === parsed.name.toLowerCase()) ||
+        (targetId.length >= 4 && o.name.toLowerCase().includes(targetId.toLowerCase()))
+    );
+
+    if (matched) {
+      handleDirectSignInExisting(matched);
+    } else {
+      if (parsed.name) setName(parsed.name);
+      if (parsed.phone) setPhone(parsed.phone);
+      if (parsed.quadrant && ["NW", "NE", "SW", "SE"].includes(parsed.quadrant)) {
+        setQuadrant(parsed.quadrant as QuadrantId);
+      }
+      setDirectNotifyMsg(`📷 Scanned: '${targetId}'. Information prefilled. Draw your signature below to complete registration!`);
     }
   };
 
@@ -256,6 +284,47 @@ export const SelfSignInModal: React.FC<SelfSignInModalProps> = ({
           <div className="p-3 bg-red-50 border border-red-300 text-red-800 rounded-xl text-xs font-bold flex items-center gap-2">
             <span>⚠️</span>
             <span>{errorMsg}</span>
+          </div>
+        )}
+
+        {/* OPTICAL QR SCANNER HELPER */}
+        {!allocatedOccupant && (
+          <div className="space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 bg-[#F0F6FC] border border-[#B8D8F8] p-3 rounded-xl">
+              <div className="flex items-center gap-2.5">
+                <span className="text-xl">📷</span>
+                <div>
+                  <div className="text-xs font-black text-[#005DAA] uppercase">
+                    Scan Employee Badge or Mobile QR Pass
+                  </div>
+                  <div className="text-[11px] text-slate-500">
+                    Use optical camera for instant 1-second sign-in or auto-fill
+                  </div>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsScanningBadge(!isScanningBadge)}
+                className={`px-3.5 py-1.5 rounded-lg text-xs font-black uppercase tracking-wider transition cursor-pointer shrink-0 shadow-xs ${
+                  isScanningBadge
+                    ? "bg-red-100 text-red-700 border border-red-300"
+                    : "bg-[#005DAA] text-white hover:bg-[#004884]"
+                }`}
+              >
+                {isScanningBadge ? "Close Camera ✕" : "Scan Badge QR"}
+              </button>
+            </div>
+
+            {isScanningBadge && (
+              <div className="animate-fadeIn">
+                <QRCameraScanner
+                  stationName="Self Sign-In Station"
+                  defaultAction={presenceAction}
+                  onScanSuccess={handleBadgeScanned}
+                  onClose={() => setIsScanningBadge(false)}
+                />
+              </div>
+            )}
           </div>
         )}
 
