@@ -44,6 +44,8 @@ export default function App() {
           urlParams.get("mode") === "occupant" ||
           urlParams.get("scan") === "1" ||
           urlParams.get("scan") === "signin" ||
+          urlParams.get("new") === "1" ||
+          urlParams.get("register") === "1" ||
           urlParams.get("token") ||
           urlParams.get("qr") === "1" ||
           urlParams.get("station") ||
@@ -85,6 +87,8 @@ export default function App() {
           urlParams.get("mode") === "occupant" ||
           urlParams.get("scan") === "1" ||
           urlParams.get("scan") === "signin" ||
+          urlParams.get("new") === "1" ||
+          urlParams.get("register") === "1" ||
           urlParams.get("qr") === "1" ||
           urlParams.get("station") ||
           urlParams.get("id") ||
@@ -125,6 +129,8 @@ export default function App() {
         urlParams.get("mode") === "occupant" ||
         urlParams.get("scan") === "1" ||
         urlParams.get("scan") === "signin" ||
+        urlParams.get("new") === "1" ||
+        urlParams.get("register") === "1" ||
         urlParams.get("token") ||
         urlParams.get("qr") === "1" ||
         urlParams.get("station") ||

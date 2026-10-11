@@ -80,11 +80,28 @@ export default function LoginScreen({
   });
   const [loginQrDataUrl, setLoginQrDataUrl] = useState<string>("");
   const [activeNetworkOrigin, setActiveNetworkOrigin] = useState<string>(getMobileNetworkOrigin());
+  const [lanIp, setLanIp] = useState<string>("192.168.1.167");
+  const [networkMode, setNetworkMode] = useState<"cellular" | "lan">("cellular");
+  const [isCopied, setIsCopied] = useState<boolean>(false);
 
   useEffect(() => {
     discoverMobileOrigin().then((origin) => {
       setActiveNetworkOrigin(origin);
+      if (origin.includes(".trycloudflare.com")) {
+        setNetworkMode("cellular");
+      }
     });
+
+    fetch("/api/system/network-info")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.primaryIp) setLanIp(data.primaryIp);
+        if (data.publicTunnelUrl) {
+          setActiveNetworkOrigin(data.publicTunnelUrl);
+          setNetworkMode("cellular");
+        }
+      })
+      .catch(() => {});
 
     const handleOriginChange = () => {
       setActiveNetworkOrigin(getMobileNetworkOrigin());
@@ -95,20 +112,26 @@ export default function LoginScreen({
     };
   }, []);
 
+  const activeBaseUrl =
+    networkMode === "lan" && lanIp
+      ? `http://${lanIp}:3000`
+      : activeNetworkOrigin || `http://${lanIp || "localhost"}:3000`;
+
+  const targetSignInUrl = `${activeBaseUrl}/?mode=signin&scan=1&new=1`;
+
   useEffect(() => {
-    const targetUrl = `${activeNetworkOrigin}/?mode=signin&scan=1`;
-    QRCode.toDataURL(targetUrl, {
-      width: 600,
-      margin: 2,
-      errorCorrectionLevel: "H",
+    QRCode.toDataURL(targetSignInUrl, {
+      width: 520,
+      margin: 3,
+      errorCorrectionLevel: "M",
       color: {
-        dark: "#002447",
+        dark: "#001E3D",
         light: "#FFFFFF",
       },
     })
       .then(setLoginQrDataUrl)
       .catch(console.error);
-  }, [activeNetworkOrigin]);
+  }, [targetSignInUrl]);
 
   useEffect(() => {
     const userAgent = navigator.userAgent || "";
@@ -554,39 +577,83 @@ export default function LoginScreen({
                 </div>
               </div>
 
-              <div className="text-left space-y-3 max-w-xs">
-                <div className="space-y-1">
-                  <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-emerald-950/80 text-emerald-400 border border-emerald-500/40">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                    <span>
-                      {activeNetworkOrigin.includes(".trycloudflare.com")
-                        ? "🌐 5G CELLULAR SCANNABLE"
-                        : "🏢 BUILDING WI-FI READY"}
-                    </span>
+              <div className="text-left space-y-3 max-w-xs sm:max-w-sm">
+                {/* Network Switcher: Cellular 5G vs Building Wi-Fi */}
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-1.5 bg-[#070D18] p-1 rounded-xl border border-[#1E3A60]">
+                    <button
+                      type="button"
+                      onClick={() => setNetworkMode("cellular")}
+                      className={`flex-1 py-1.5 px-2 rounded-lg text-[10px] font-black uppercase tracking-wider transition cursor-pointer flex items-center justify-center gap-1 ${
+                        networkMode === "cellular"
+                          ? "bg-emerald-600 text-white shadow-xs"
+                          : "text-slate-400 hover:text-white"
+                      }`}
+                    >
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                      <span>5G Cellular</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setNetworkMode("lan")}
+                      className={`flex-1 py-1.5 px-2 rounded-lg text-[10px] font-black uppercase tracking-wider transition cursor-pointer flex items-center justify-center gap-1 ${
+                        networkMode === "lan"
+                          ? "bg-sky-600 text-white shadow-xs"
+                          : "text-slate-400 hover:text-white"
+                      }`}
+                    >
+                      <span>🏢</span>
+                      <span>Wi-Fi ({lanIp})</span>
+                    </button>
                   </div>
-                  <p className="text-xs text-slate-200 font-semibold leading-relaxed">
-                    Point your iPhone or Android camera at the QR code to check in on Floor 07.
+                  <p className="text-[11px] text-slate-200 font-semibold leading-relaxed">
+                    Point your iPhone or Android camera at the QR code to open the Floor 07 sign-in sheet.
                   </p>
                 </div>
 
                 <div className="space-y-1 text-[11px] text-[#829AB8] bg-[#070D18] p-2.5 rounded-xl border border-[#1E3A60]">
                   <div className="flex items-center gap-1.5 text-emerald-400 font-bold">
                     <span>✓</span>
-                    <span>Normal staff: Auto-accounted instantly</span>
+                    <span>Direct Access: Opens Digital Sign-In Sheet</span>
                   </div>
                   <div className="flex items-center gap-1.5 text-sky-400 font-bold">
                     <span>✓</span>
-                    <span>Visitors: Quick 10-second intake</span>
+                    <span>Staff &amp; Visitors: Quick 10-second intake</span>
                   </div>
                 </div>
 
-                <div
-                  onClick={onEnterOccupantApp}
-                  title="Click to open handheld portal URL directly"
-                  className="text-[10px] font-mono text-sky-400 hover:text-white truncate bg-[#070D18] hover:bg-[#0E1D33] p-1.5 rounded-lg border border-[#1E3A60] cursor-pointer transition flex items-center justify-between group"
-                >
-                  <span className="truncate">{activeNetworkOrigin}/?mode=signin&scan=1</span>
-                  <span className="text-[9px] font-bold bg-[#1E3A60] px-1.5 py-0.5 rounded text-sky-300 shrink-0 group-hover:bg-[#005DAA]">Open ↗</span>
+                {/* Scannable Website URL Link Bar */}
+                <div className="space-y-1">
+                  <div className="text-[10px] font-mono text-slate-400 font-bold uppercase tracking-wider">
+                    Scannable Website URL:
+                  </div>
+                  <div className="flex items-center gap-1.5 bg-[#070D18] p-2 rounded-xl border border-[#1E3A60]">
+                    <span className="text-[10px] font-mono text-sky-400 truncate flex-1 select-all" title={targetSignInUrl}>
+                      {targetSignInUrl}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        try {
+                          navigator.clipboard.writeText(targetSignInUrl);
+                          setIsCopied(true);
+                          setTimeout(() => setIsCopied(false), 2000);
+                        } catch {}
+                      }}
+                      className="px-2.5 py-1 bg-[#1E3A60] hover:bg-[#005DAA] text-sky-200 text-[10px] font-bold rounded-lg transition cursor-pointer shrink-0"
+                    >
+                      {isCopied ? "✓ Copied" : "📋 Copy"}
+                    </button>
+                    <a
+                      href={targetSignInUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="px-2.5 py-1 bg-[#005DAA] hover:bg-[#004A88] text-white text-[10px] font-bold rounded-lg transition cursor-pointer shrink-0 flex items-center gap-0.5"
+                    >
+                      <span>Open</span>
+                      <span>↗</span>
+                    </a>
+                  </div>
                 </div>
 
                 <button
@@ -596,7 +663,7 @@ export default function LoginScreen({
                   title="Open Handheld Occupant Portal directly"
                 >
                   <span>📱</span>
-                  <span>Open Handheld Portal On This Device</span>
+                  <span>Open Sign-In Sheet On This Device</span>
                 </button>
               </div>
             </div>

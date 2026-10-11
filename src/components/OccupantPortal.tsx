@@ -114,20 +114,31 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
     };
 
   // Screen state:
-  // If returning user (savedOccupantId or recognized URL param exists in roster), show 'confirmed' pass screen.
-  // If newcomer / unregistered, show 'newcomer-signin' form.
+  // If explicit sign-in intent (?mode=signin or ?scan=1) without specific occupant ID, always open sign-in sheet.
+  // If specific ?id= is given or returning user with stored pass, show 'confirmed' pass screen.
   const [viewState, setViewState] = useState<"newcomer-signin" | "confirmed">(() => {
     try {
       if (typeof window !== "undefined") {
         const params = new URLSearchParams(window.location.search);
-        if (params.get("new") === "1" || params.get("register") === "1") {
+        const hasExplicitId = Boolean(
+          params.get("id") || params.get("badge") || params.get("user") || params.get("occupantId")
+        );
+        const isSignInIntent =
+          params.get("mode") === "signin" ||
+          params.get("scan") === "1" ||
+          params.get("scan") === "signin" ||
+          params.get("new") === "1" ||
+          params.get("register") === "1";
+
+        if (isSignInIntent && !hasExplicitId) {
           return "newcomer-signin";
         }
-        const urlId = params.get("id") || params.get("badge") || params.get("user") || params.get("occupantId");
-        if (urlId) {
+        if (hasExplicitId) {
           return "confirmed";
         }
-        const stored = localStorage.getItem("muster_registered_occupant_id") || localStorage.getItem("muster_occupant_id");
+        const stored =
+          localStorage.getItem("muster_registered_occupant_id") ||
+          localStorage.getItem("muster_occupant_id");
         if (stored) {
           return "confirmed";
         }
@@ -1028,6 +1039,20 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
       {/* ========================================================= */}
       {viewState === "confirmed" && currentUser && (
         <div className="space-y-4 animate-fadeIn">
+          {/* Quick Switch to Newcomer Sign-In Sheet */}
+          <div className="flex items-center justify-between bg-[#EBF5FB] border border-[#005DAA]/30 p-2.5 rounded-xl text-xs">
+            <span className="text-[#005DAA] font-bold">
+              Looking to fill out the sign-in sheet or register another person?
+            </span>
+            <button
+              type="button"
+              onClick={() => setViewState("newcomer-signin")}
+              className="px-3 py-1 bg-[#005DAA] hover:bg-[#004884] text-white font-black rounded-lg text-xs transition cursor-pointer shrink-0 shadow-xs"
+            >
+              ✍️ Open Sign-In Sheet →
+            </button>
+          </div>
+
           {/* Prominent Welcome Back & Sign-In Confirmation Card */}
           <div className={`bg-white border-2 rounded-2xl p-5 sm:p-6 shadow-sm space-y-4 ${
             currentUser.role === "Visitor" ? "border-amber-500" : "border-[#005DAA]"
@@ -1348,6 +1373,22 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
       {/* ========================================================= */}
       {viewState === "newcomer-signin" && (
         <div className="bg-white border-2 border-[#005DAA] rounded-2xl p-5 sm:p-7 shadow-md space-y-5 animate-fadeIn">
+          {/* Quick Switch to Active Pass if Returning User */}
+          {savedOccupantId && (
+            <div className="flex items-center justify-between bg-emerald-50 border border-emerald-300 p-2.5 rounded-xl text-xs">
+              <span className="text-emerald-950 font-bold">
+                Already registered on this device?
+              </span>
+              <button
+                type="button"
+                onClick={() => setViewState("confirmed")}
+                className="px-3 py-1 bg-emerald-700 hover:bg-emerald-800 text-white font-black rounded-lg text-xs transition cursor-pointer shrink-0 shadow-xs"
+              >
+                🏷️ View My Digital Pass →
+              </button>
+            </div>
+          )}
+
           <div className="border-b border-[#B8D8F8] pb-4">
             {eventDetails ? (
               <div className="mb-3 p-3 bg-[#EBF5FB] border border-[#005DAA] rounded-xl flex items-center justify-between gap-2">

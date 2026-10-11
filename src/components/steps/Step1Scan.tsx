@@ -249,15 +249,14 @@ export const Step1Scan: React.FC<Step1ScanProps> = ({
   };
 
   useEffect(() => {
-    const scanUrl = `${mobileOrigin}/?mode=signin&scan=1`;
-    // High-resolution rendering (up to 800px) with High error correction (30% recovery)
-    // Guarantees pin-sharp modules and effortless optical capture from distance
+    const scanUrl = `${mobileOrigin}/?mode=signin&scan=1&new=1`;
+    // High-resolution rendering with M error correction for rapid phone camera focus
     const targetWidth = qrDisplaySize === "supersize" || isSuperSizeModalOpen ? 800 : (qrDisplaySize === "large" ? 540 : 360);
     QRCode.toDataURL(scanUrl, {
       width: targetWidth,
-      margin: 2,
-      errorCorrectionLevel: "H",
-      color: { dark: "#002447", light: "#FFFFFF" },
+      margin: 3,
+      errorCorrectionLevel: "M",
+      color: { dark: "#001E3D", light: "#FFFFFF" },
     })
       .then((url) => setQrDataUrl(url))
       .catch((err) => console.error("QR Code generation error:", err));

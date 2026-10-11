@@ -57,17 +57,17 @@ export const SignInQRPosterModal: React.FC<SignInQRPosterModalProps> = ({
     };
   }, [isOpen]);
 
-  const signInUrl = `${mobileOrigin}/?mode=signin&scan=1`;
+  const signInUrl = `${mobileOrigin}/?mode=signin&scan=1&new=1`;
 
   useEffect(() => {
     if (isOpen) {
       const qrRes = qrScale === "giant" ? 850 : qrScale === "supersize" ? 650 : qrScale === "large" ? 480 : 360;
       QRCode.toDataURL(signInUrl, {
         width: qrRes,
-        margin: 2,
-        errorCorrectionLevel: "H",
+        margin: 3,
+        errorCorrectionLevel: "M",
         color: {
-          dark: "#002447",
+          dark: "#001E3D",
           light: "#FFFFFF",
         },
       })
