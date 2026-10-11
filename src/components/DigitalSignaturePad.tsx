@@ -38,6 +38,9 @@ export const DigitalSignaturePad: React.FC<DigitalSignaturePadProps> = ({
   }, [signatureMode]);
 
   const startDrawing = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
+    if ("touches" in e && e.cancelable) {
+      e.preventDefault();
+    }
     isDrawingRef.current = true;
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -57,6 +60,9 @@ export const DigitalSignaturePad: React.FC<DigitalSignaturePadProps> = ({
 
   const draw = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
     if (!isDrawingRef.current) return;
+    if ("touches" in e && e.cancelable) {
+      e.preventDefault();
+    }
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");

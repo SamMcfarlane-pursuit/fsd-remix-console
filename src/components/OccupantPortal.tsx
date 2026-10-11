@@ -91,13 +91,18 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
     return savedOccupantId || (localRegisteredOccupant ? localRegisteredOccupant.id : null) || occupants.find((o) => o.role === "Visitor")?.id || occupants[0]?.id || "OCC-196";
   });
 
-  const currentUser: Occupant =
-    occupants.find((o) => o.id === selectedUserId) ||
-    (localRegisteredOccupant && localRegisteredOccupant.id === selectedUserId ? localRegisteredOccupant : null) ||
-    localRegisteredOccupant ||
-    occupants.find((o) => o.id === savedOccupantId) ||
-    occupants[0] ||
-    {
+  const fallbackBadgeTimeRef = useRef("08:00 AM");
+
+  const currentUser: Occupant = useMemo(() => {
+    const fromList = occupants.find((o) => o.id === selectedUserId);
+    if (fromList) return fromList;
+    if (localRegisteredOccupant && localRegisteredOccupant.id === selectedUserId) return localRegisteredOccupant;
+    if (localRegisteredOccupant) return localRegisteredOccupant;
+    const fromSaved = occupants.find((o) => o.id === savedOccupantId);
+    if (fromSaved) return fromSaved;
+    if (occupants && occupants.length > 0) return occupants[0];
+
+    return {
       id: selectedUserId || "OCC-196",
       name: (typeof localStorage !== "undefined" ? localStorage.getItem("muster_registered_name") : null) || "Robert Petillo",
       phone: (typeof localStorage !== "undefined" ? localStorage.getItem("muster_registered_phone") : null) || "(212) 555-0195",
@@ -110,8 +115,9 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
       offSiteToday: false,
       locationCategory: "inside-building",
       lastLocation: "Floor 07 (NW)",
-      lastBadgeTime: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      lastBadgeTime: fallbackBadgeTimeRef.current,
     };
+  }, [occupants, selectedUserId, localRegisteredOccupant, savedOccupantId]);
 
   // Floor 07 Dynamic Quadrant-to-Stairwell Egress & Life Safety Mapping
   const quadrantEscapeInfo = useMemo(() => {
@@ -234,12 +240,14 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
   const [eventToken, setEventToken] = useState<string | null>(null);
   const [eventDetails, setEventDetails] = useState<{ name: string; date: string } | null>(null);
 
-  // Cache active roster whenever occupants update
+  // Cache active roster whenever roster size changes
+  const lastCachedRosterLenRef = useRef<number>(0);
   useEffect(() => {
-    if (occupants && occupants.length > 0) {
+    if (occupants && occupants.length > 0 && occupants.length !== lastCachedRosterLenRef.current) {
+      lastCachedRosterLenRef.current = occupants.length;
       cacheRosterLocally(occupants);
     }
-  }, [occupants]);
+  }, [occupants?.length]);
 
   // Online / Offline listeners & auto-sync
   useEffect(() => {
@@ -360,8 +368,12 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
     }
   };
 
-  // Check URL query param for QR token, badge ID, station, or name on mount
+  // Check URL query param for QR token, badge ID, station, or name on mount (run once)
+  const hasProcessedUrlParamsRef = useRef(false);
   useEffect(() => {
+    if (hasProcessedUrlParamsRef.current) return;
+    hasProcessedUrlParamsRef.current = true;
+
     try {
       const params = new URLSearchParams(window.location.search);
       const token = params.get("token");
@@ -437,7 +449,7 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
         }
       }
     } catch {}
-  }, [occupants]);
+  }, []);
 
   // Sync role & company when userType changes
   const handleSelectUserType = (type: "employee" | "visitor") => {
@@ -481,21 +493,28 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
   const [occupantQrUrl, setOccupantQrUrl] = useState<string>("");
   const [showScanner, setShowScanner] = useState<boolean>(false);
 
-  // Generate QR code for current user
+  // Generate QR code for current user (memoized to prevent image flickering/glitching)
+  const lastQrPayloadRef = useRef<string>("");
   useEffect(() => {
-    if (currentUser) {
-      const payload = generateOccupantBadgePayload(currentUser.id, currentUser.quadrant);
-      QRCode.toDataURL(payload, {
-        width: 280,
-        margin: 1.5,
-        color: { dark: "#003B70", light: "#FFFFFF" },
-      })
-        .then(setOccupantQrUrl)
-        .catch(console.error);
+    if (!currentUser?.id) return;
+    const payload = generateOccupantBadgePayload(currentUser.id, currentUser.quadrant || "NW");
+    if (lastQrPayloadRef.current === payload && occupantQrUrl) {
+      return; // Payload unchanged; avoid re-encoding
     }
-  }, [currentUser]);
+    lastQrPayloadRef.current = payload;
+    QRCode.toDataURL(payload, {
+      width: 280,
+      margin: 1.5,
+      color: { dark: "#003B70", light: "#FFFFFF" },
+    })
+      .then((url) => {
+        setOccupantQrUrl(url);
+      })
+      .catch(console.error);
+  }, [currentUser?.id, currentUser?.quadrant]);
 
-  // AUTOMATIC ACCOUNTING ON QR CODE SCAN / LOAD FOR RETURNING OCCUPANTS
+  // AUTOMATIC ACCOUNTING ON QR CODE SCAN / LOAD FOR RETURNING OCCUPANTS (single dispatch per occupant)
+  const hasAutoAccountedRef = useRef<Set<string>>(new Set());
   useEffect(() => {
     const activeStoredId =
       savedOccupantId ||
@@ -503,7 +522,12 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
         ? localStorage.getItem("muster_registered_occupant_id") || localStorage.getItem("muster_occupant_id")
         : null);
 
-    if (activeStoredId && currentUser && viewState === "confirmed") {
+    if (activeStoredId && currentUser?.id && viewState === "confirmed") {
+      if (hasAutoAccountedRef.current.has(currentUser.id)) {
+        return; // Guard against loop
+      }
+      hasAutoAccountedRef.current.add(currentUser.id);
+
       fetch("/api/occupant/presence", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -885,7 +909,7 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
   };
 
   return (
-    <div className="max-w-2xl mx-auto p-4 sm:p-6 space-y-5 text-[#0F2537] animate-fadeIn">
+    <div className="max-w-2xl mx-auto p-4 sm:p-6 space-y-5 text-[#0F2537]">
       {/* Top Banner */}
       <div className="bg-[#EBF5FB] border border-[#B8D8F8] p-3.5 rounded-2xl flex items-center justify-between gap-3 text-xs shadow-xs">
         <div className="flex items-center gap-2.5">
