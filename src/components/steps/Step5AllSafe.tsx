@@ -21,6 +21,8 @@ interface Step5AllSafeProps {
   ) => Promise<void>;
   onRefreshState: () => void;
   onOpenSelfReportPortal: () => void;
+  onClearIncident?: () => Promise<void>;
+  onReturnToStep1?: () => void;
 }
 
 export const Step5AllSafe: React.FC<Step5AllSafeProps> = ({
@@ -30,6 +32,8 @@ export const Step5AllSafe: React.FC<Step5AllSafeProps> = ({
   onBulkCheckIn,
   onRefreshState,
   onOpenSelfReportPortal,
+  onClearIncident,
+  onReturnToStep1,
 }) => {
   const totalExpected = snapshot?.expectedOnFloor ?? occupants.length;
   const accounted = snapshot?.accounted ?? occupants.filter((o) => o.status === "safe").length;
@@ -270,9 +274,24 @@ export const Step5AllSafe: React.FC<Step5AllSafeProps> = ({
               <span>Seal Official Ledger</span>
             </button>
           ) : isSealed ? (
-            <div className="px-5 py-2.5 rounded-xl bg-emerald-100 text-emerald-900 border border-emerald-300 font-mono font-black text-xs flex items-center gap-1.5">
-              <span>✓</span>
-              <span>LEDGER CRYPTOGRAPHICALLY SEALED</span>
+            <div className="flex items-center gap-2">
+              <div className="px-4 py-2.5 rounded-xl bg-emerald-100 text-emerald-900 border border-emerald-300 font-mono font-black text-xs flex items-center gap-1.5">
+                <span>✓</span>
+                <span>LEDGER SEALED</span>
+              </div>
+              {onReturnToStep1 && (
+                <button
+                  onClick={async () => {
+                    if (onClearIncident && snapshot?.incidentActive) await onClearIncident();
+                    onReturnToStep1();
+                  }}
+                  className="px-4 py-2.5 rounded-xl bg-[#005DAA] hover:bg-[#004884] text-white font-bold text-xs transition cursor-pointer flex items-center gap-1.5 shadow-sm"
+                  title="Reset drill to standby state and return to Step 1"
+                >
+                  <span>🔄</span>
+                  <span>Reset & Return to Step 01</span>
+                </button>
+              )}
             </div>
           ) : (
             <button
@@ -314,6 +333,18 @@ export const Step5AllSafe: React.FC<Step5AllSafeProps> = ({
               <span>📜</span>
               <span>View &amp; Print Official FDNY Certificate</span>
             </button>
+            {onReturnToStep1 && (
+              <button
+                onClick={async () => {
+                  if (onClearIncident && snapshot?.incidentActive) await onClearIncident();
+                  onReturnToStep1();
+                }}
+                className="px-4 py-2.5 bg-emerald-900/70 hover:bg-emerald-900 text-white border border-emerald-300 font-black rounded-xl text-xs uppercase tracking-wider transition shadow-sm cursor-pointer flex items-center gap-1.5"
+              >
+                <span>🔄</span>
+                <span>Reset to Step 01</span>
+              </button>
+            )}
           </div>
         </div>
       )}

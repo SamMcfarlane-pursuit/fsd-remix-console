@@ -987,6 +987,8 @@ export default function App() {
                 onBulkCheckIn={handleBulkCheckIn}
                 onRefreshState={refreshState}
                 onOpenSelfReportPortal={() => setViewMode("occupant")}
+                onClearIncident={handleClearIncident}
+                onReturnToStep1={() => setCurrentStep(1)}
               />
             )}
           </main>
