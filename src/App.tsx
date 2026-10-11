@@ -342,8 +342,40 @@ export default function App() {
 
   useEffect(() => {
     refreshState();
+
+    let es: EventSource | null = null;
+    try {
+      if (typeof EventSource !== "undefined") {
+        es = new EventSource("/api/stream");
+        es.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            if (data && typeof data === "object") {
+              setSnapshot(data);
+              if (data.publicTunnelUrl) {
+                setLiveTunnelUrl(data.publicTunnelUrl);
+              }
+              if (data.occupants && data.occupants.length > 0) {
+                cacheRosterLocally(data.occupants);
+              }
+            }
+          } catch (e) {
+            console.warn("Real-time SSE event parse warning:", e);
+          }
+        };
+        es.onerror = () => {
+          // If SSE connection drops, the backup interval maintains sync
+        };
+      }
+    } catch (e) {
+      console.warn("EventSource setup warning:", e);
+    }
+
     const interval = setInterval(refreshState, 3500);
-    return () => clearInterval(interval);
+    return () => {
+      if (es) es.close();
+      clearInterval(interval);
+    };
   }, [refreshState]);
 
   // Handle occupant check-in with Geo-Fence validation check
