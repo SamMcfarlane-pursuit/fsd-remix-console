@@ -298,12 +298,19 @@ function loadPersistedRoster(): Occupant[] {
   return [];
 }
 
+let lastPersistedRosterJson = "";
+
 function savePersistedRoster(roster: Occupant[]): void {
   try {
     if (!fs.existsSync(DATA_DIR)) {
       fs.mkdirSync(DATA_DIR, { recursive: true });
     }
-    fs.writeFileSync(ROSTER_FILE, JSON.stringify(roster, null, 2), "utf-8");
+    const jsonStr = JSON.stringify(roster, null, 2);
+    if (jsonStr === lastPersistedRosterJson) {
+      return; // Skip redundant disk write
+    }
+    lastPersistedRosterJson = jsonStr;
+    fs.writeFileSync(ROSTER_FILE, jsonStr, "utf-8");
   } catch (err) {
     console.warn("Could not write persisted roster file:", err);
   }
@@ -3674,6 +3681,9 @@ async function startServer() {
       server: {
         middlewareMode: true,
         allowedHosts: true,
+        watch: {
+          ignored: ["**/data/**", "**/data/fsd_roster.json", "**/.system_generated/**", "**/*.log"],
+        },
       },
       appType: "spa",
     });

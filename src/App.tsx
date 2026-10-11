@@ -75,12 +75,9 @@ export default function App() {
     }
   });
 
-  const [viewMode, setViewMode] = useState<"admin" | "occupant">(() => {
+  const [viewMode, setViewModeState] = useState<"admin" | "occupant">(() => {
     try {
       if (typeof window !== "undefined") {
-        const isMobileDevice =
-          window.innerWidth < 768 ||
-          /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
         const urlParams = new URLSearchParams(window.location.search);
         const isExplicitOccupant =
           urlParams.get("mode") === "signin" ||
@@ -95,7 +92,19 @@ export default function App() {
           urlParams.get("badge") ||
           urlParams.get("token");
 
-        if (isMobileDevice || isExplicitOccupant) {
+        if (isExplicitOccupant) {
+          return "occupant";
+        }
+
+        const storedMode = sessionStorage.getItem("muster_view_mode") as "admin" | "occupant" | null;
+        if (storedMode === "admin" || storedMode === "occupant") {
+          return storedMode;
+        }
+
+        const isMobileDevice =
+          window.innerWidth < 768 ||
+          /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+        if (isMobileDevice) {
           return "occupant";
         }
         const storedRole = getStoredRole();
@@ -104,8 +113,15 @@ export default function App() {
         }
       }
     } catch {}
-    return "occupant";
+    return "admin";
   });
+
+  const setViewMode = useCallback((mode: "admin" | "occupant") => {
+    setViewModeState(mode);
+    try {
+      sessionStorage.setItem("muster_view_mode", mode);
+    } catch {}
+  }, []);
 
   const [isAlertModalOpen, setIsAlertModalOpen] = useState(false);
   const [isStatusReportModalOpen, setIsStatusReportModalOpen] = useState(false);

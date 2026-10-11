@@ -1137,7 +1137,7 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
       {/* FLOW 1: RETURNING USER (ALREADY SIGNED IN BEFORE) */}
       {/* ========================================================= */}
       {viewState === "confirmed" && currentUser && (
-        <div className="space-y-4 animate-fadeIn">
+        <div className="space-y-4">
           {/* Quick Switch to Newcomer Sign-In Sheet */}
           <div className="flex items-center justify-between bg-[#EBF5FB] border border-[#005DAA]/30 p-2.5 rounded-xl text-xs">
             <span className="text-[#005DAA] font-bold">
@@ -1829,7 +1829,7 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
       {/* FLOW 2: SIGN-IN FORMAT (EMPLOYEE OR VISITOR)              */}
       {/* ========================================================= */}
       {viewState === "newcomer-signin" && (
-        <div className="bg-white border-2 border-[#005DAA] rounded-2xl p-5 sm:p-7 shadow-md space-y-5 animate-fadeIn">
+        <div className="bg-white border-2 border-[#005DAA] rounded-2xl p-5 sm:p-7 shadow-md space-y-5">
           {/* Quick Switch to Active Pass if Returning User */}
           {savedOccupantId && (
             <div className="flex items-center justify-between bg-emerald-50 border border-emerald-300 p-2.5 rounded-xl text-xs">

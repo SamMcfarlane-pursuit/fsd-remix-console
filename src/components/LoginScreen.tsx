@@ -415,25 +415,23 @@ export default function LoginScreen({
           </p>
         </div>
 
-        {/* Intuitive Intent Selector: Commander/Admin button is strictly hidden on mobile phones */}
-        <div className={`bg-[#0B172B] p-1.5 rounded-2xl border border-[#1E3A60] grid ${isMobile ? "grid-cols-2" : "grid-cols-4"} gap-1 shadow-xl text-xs font-bold`}>
-          {!isMobile && (
-            <button
-              type="button"
-              onClick={() => {
-                setActiveCategory("qr");
-                setErrorMsg(null);
-              }}
-              className={`py-2 px-1.5 rounded-xl transition cursor-pointer flex flex-col items-center justify-center gap-0.5 ${
-                activeCategory === "qr"
-                  ? "bg-[#005DAA] text-white shadow-md font-black"
-                  : "text-slate-400 hover:text-white hover:bg-slate-800/40"
-              }`}
-            >
-              <QrCode className="w-4 h-4" />
-              <span className="text-[11px]">Phone QR</span>
-            </button>
-          )}
+        {/* Intuitive Intent Selector */}
+        <div className="bg-[#0B172B] p-1.5 rounded-2xl border border-[#1E3A60] grid grid-cols-2 sm:grid-cols-4 gap-1.5 shadow-xl text-xs font-bold">
+          <button
+            type="button"
+            onClick={() => {
+              setActiveCategory("qr");
+              setErrorMsg(null);
+            }}
+            className={`py-2 px-1.5 rounded-xl transition cursor-pointer flex flex-col items-center justify-center gap-0.5 ${
+              activeCategory === "qr"
+                ? "bg-[#005DAA] text-white shadow-md font-black"
+                : "text-slate-400 hover:text-white hover:bg-slate-800/40"
+            }`}
+          >
+            <QrCode className="w-4 h-4" />
+            <span className="text-[11px]">Phone QR</span>
+          </button>
 
           <button
             type="button"
@@ -467,23 +465,21 @@ export default function LoginScreen({
             <span className="text-[11px]">Visitor</span>
           </button>
 
-          {!isMobile && (
-            <button
-              type="button"
-              onClick={() => {
-                setActiveCategory("admin");
-                setErrorMsg(null);
-              }}
-              className={`py-2 px-1.5 rounded-xl transition cursor-pointer flex flex-col items-center justify-center gap-0.5 ${
-                activeCategory === "admin"
-                  ? "bg-red-600 text-white shadow-md font-black"
-                  : "text-slate-400 hover:text-white hover:bg-slate-800/40"
-              }`}
-            >
-              <span className="text-sm">🛡️</span>
-              <span className="text-[11px]">Admin</span>
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={() => {
+              setActiveCategory("admin");
+              setErrorMsg(null);
+            }}
+            className={`py-2 px-1.5 rounded-xl transition cursor-pointer flex flex-col items-center justify-center gap-0.5 ${
+              activeCategory === "admin"
+                ? "bg-red-600 text-white shadow-md font-black"
+                : "text-slate-400 hover:text-white hover:bg-slate-800/40"
+            }`}
+          >
+            <span className="text-sm">🛡️</span>
+            <span className="text-[11px]">Admin / PIN</span>
+          </button>
         </div>
 
         {/* Feedback Toasts */}
