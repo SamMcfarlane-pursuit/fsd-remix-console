@@ -981,6 +981,7 @@ export default function App() {
                 onBulkCheckIn={handleBulkCheckIn}
                 onRefreshState={refreshState}
                 onProceedNext={() => setCurrentStep(3)}
+                onOpenWalkieTalkie={() => setIsWalkieTalkieOpen(true)}
               />
             )}
 
@@ -996,6 +997,7 @@ export default function App() {
                   setStairwell(sw);
                   setAssemblyPoint(ap);
                 }}
+                onOpenWalkieTalkie={() => setIsWalkieTalkieOpen(true)}
               />
             )}
 
@@ -1021,6 +1023,7 @@ export default function App() {
                 onOpenSelfReportPortal={() => setViewMode("occupant")}
                 onClearIncident={handleClearIncident}
                 onReturnToStep1={() => setCurrentStep(1)}
+                onOpenWalkieTalkie={() => setIsWalkieTalkieOpen(true)}
               />
             )}
           </main>

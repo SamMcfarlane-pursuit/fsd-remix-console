@@ -21,6 +21,7 @@ interface Step2SignedInProps {
   ) => Promise<void>;
   onRefreshState: () => void;
   onProceedNext: () => void;
+  onOpenWalkieTalkie?: () => void;
 }
 
 export const Step2SignedIn: React.FC<Step2SignedInProps> = ({
@@ -30,6 +31,7 @@ export const Step2SignedIn: React.FC<Step2SignedInProps> = ({
   onBulkCheckIn,
   onRefreshState,
   onProceedNext,
+  onOpenWalkieTalkie,
 }) => {
   const [selectedQuadrant, setSelectedQuadrant] = useState<string>("ALL");
   const [searchQuery, setSearchQuery] = useState<string>("");
@@ -163,6 +165,17 @@ export const Step2SignedIn: React.FC<Step2SignedInProps> = ({
               {inBuilding.length} <span className="text-xs text-[#64748B]">/ {totalOccupants}</span>
             </div>
           </div>
+
+          {onOpenWalkieTalkie && (
+            <button
+              onClick={onOpenWalkieTalkie}
+              className="px-4 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-slate-950 font-black text-xs uppercase tracking-wider transition shadow-sm flex items-center gap-1.5 cursor-pointer"
+              title="Open Floor Warden Walkie-Talkie Push-to-Talk Radio"
+            >
+              <span>📻</span>
+              <span className="hidden sm:inline">Radio PTT</span>
+            </button>
+          )}
 
           <button
             id="step2-proceed-btn"
@@ -390,7 +403,18 @@ export const Step2SignedIn: React.FC<Step2SignedInProps> = ({
                         <div className="text-slate-500 text-[11px] font-mono flex items-center gap-2">
                           <span>{occ.id}</span>
                           <span>·</span>
-                          <span>{occ.phone || "(212) 555-0199"}</span>
+                          {occ.phone ? (
+                            <a
+                              href={`tel:${occ.phone.replace(/[^\d+]/g, "")}`}
+                              className="text-[#005DAA] font-bold hover:underline flex items-center gap-1 transition"
+                              title={`Direct dial ${occ.name}`}
+                            >
+                              <span>📞</span>
+                              <span>{occ.phone}</span>
+                            </a>
+                          ) : (
+                            <span>(212) 555-0199</span>
+                          )}
                         </div>
                       </td>
                       <td className="p-3.5">

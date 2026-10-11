@@ -23,6 +23,7 @@ interface Step5AllSafeProps {
   onOpenSelfReportPortal: () => void;
   onClearIncident?: () => Promise<void>;
   onReturnToStep1?: () => void;
+  onOpenWalkieTalkie?: () => void;
 }
 
 export const Step5AllSafe: React.FC<Step5AllSafeProps> = ({
@@ -34,6 +35,7 @@ export const Step5AllSafe: React.FC<Step5AllSafeProps> = ({
   onOpenSelfReportPortal,
   onClearIncident,
   onReturnToStep1,
+  onOpenWalkieTalkie,
 }) => {
   const totalExpected = snapshot?.expectedOnFloor ?? occupants.length;
   const accounted = snapshot?.accounted ?? occupants.filter((o) => o.status === "safe").length;
@@ -257,6 +259,17 @@ export const Step5AllSafe: React.FC<Step5AllSafeProps> = ({
         </div>
 
         <div className="flex items-center gap-3 shrink-0">
+          {onOpenWalkieTalkie && (
+            <button
+              onClick={onOpenWalkieTalkie}
+              className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-slate-950 font-black text-xs uppercase tracking-wider transition shadow-sm flex items-center gap-1.5 cursor-pointer"
+              title="Open Warden Walkie-Talkie Push-to-Talk Radio"
+            >
+              <span>📻</span>
+              <span className="hidden sm:inline">Radio PTT</span>
+            </button>
+          )}
+
           <button
             onClick={onOpenSelfReportPortal}
             className="px-4 py-2.5 rounded-xl bg-[#EBF3FB] hover:bg-[#D6E8F8] text-[#005DAA] border border-[#CBDCEE] font-bold text-xs transition cursor-pointer flex items-center gap-1.5"
@@ -701,8 +714,22 @@ export const Step5AllSafe: React.FC<Step5AllSafeProps> = ({
                           </span>
                         )}
                       </div>
-                      <div className="text-[11px] text-[#64748B] mt-0.5">
-                        {occ.role} · Desk: {occ.desk || "07-Floor"} · {occ.notes || "Awaiting muster check-in"}
+                      <div className="text-[11px] text-[#64748B] mt-0.5 flex flex-wrap items-center gap-1.5">
+                        <span>{occ.role} · Desk: {occ.desk || "07-Floor"}</span>
+                        {occ.phone && (
+                          <>
+                            <span>·</span>
+                            <a
+                              href={`tel:${occ.phone.replace(/[^\d+]/g, "")}`}
+                              className="text-[#005DAA] font-bold hover:underline flex items-center gap-1 bg-white px-2 py-0.5 rounded border border-[#CBDCEE] transition"
+                              title={`Direct dial ${occ.name}`}
+                            >
+                              <span>📞</span>
+                              <span>{occ.phone}</span>
+                            </a>
+                          </>
+                        )}
+                        <span>· {occ.notes || "Awaiting muster check-in"}</span>
                       </div>
                     </div>
 

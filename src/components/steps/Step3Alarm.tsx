@@ -10,6 +10,7 @@ interface Step3AlarmProps {
   stairwell?: string;
   assemblyPoint?: string;
   onUpdateEvacRoute?: (stairwell: string, assemblyPoint: string) => void;
+  onOpenWalkieTalkie?: () => void;
 }
 
 const HAZARD_OPTIONS = [
@@ -63,6 +64,7 @@ export const Step3Alarm: React.FC<Step3AlarmProps> = ({
   stairwell: initialStairwell,
   assemblyPoint: initialAssemblyPoint,
   onUpdateEvacRoute,
+  onOpenWalkieTalkie,
 }) => {
   const isIncidentActive = snapshot?.incidentActive || false;
   const currentMode = snapshot?.mode || "drill";
@@ -181,6 +183,18 @@ export const Step3Alarm: React.FC<Step3AlarmProps> = ({
           </div>
 
           <div className="flex flex-wrap items-center gap-3 shrink-0">
+            {onOpenWalkieTalkie && (
+              <button
+                type="button"
+                onClick={onOpenWalkieTalkie}
+                className="px-4 py-3 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-slate-950 font-black rounded-xl text-xs uppercase tracking-wider transition cursor-pointer shadow-md flex items-center gap-1.5"
+                title="Broadcast voice directive via Warden Walkie-Talkie Radio"
+              >
+                <span>📻</span>
+                <span>Radio PTT</span>
+              </button>
+            )}
+
             <button
               id="step3-banner-proceed-btn"
               onClick={onProceedNext}
