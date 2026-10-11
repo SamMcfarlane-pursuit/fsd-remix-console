@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import QRCode from "qrcode";
-import { Occupant, OccupantStatus, StatusSnapshot, QuadrantId } from "../types";
+import { Occupant, OccupantRole, OccupantStatus, StatusSnapshot, QuadrantId } from "../types";
 import { QRCameraScanner } from "./QRCameraScanner";
 import { DigitalSignaturePad } from "./DigitalSignaturePad";
 import { getDeviceGeolocation, validateGeofence, FLOOR_07_CONSTRAINTS } from "../lib/geofence";
@@ -112,6 +112,69 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
       lastLocation: "Floor 07 (NW)",
       lastBadgeTime: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
     };
+
+  // Floor 07 Dynamic Quadrant-to-Stairwell Egress & Life Safety Mapping
+  const quadrantEscapeInfo = useMemo(() => {
+    const quad = currentUser?.quadrant || "NW";
+    if (quad === "NW") {
+      return {
+        quadrantName: "Sector NW · Strategic Planning",
+        primaryStairwell: "Stairwell A (East Core · Union Square East)",
+        primaryExitStreet: "East 14th St / Union Square East",
+        primaryPath: "Exit suite into North corridor, head East past core restrooms directly to Stairwell A fire door (Door 7-A).",
+        secondaryStairwell: "Stairwell B (West Core · Irving Place)",
+        secondaryPath: "If East corridor is compromised by smoke, take West corridor around Core to Stairwell B (Door 7-B).",
+        assemblyPoint: "Assembly Point A (Union Square East / Park Plaza)",
+        assemblyCrossStreet: "East 14th St (Plaza side, 200+ ft clear from building facade)",
+        evacChairLocation: "Stairwell A Landing (Mounted Stryker Evac Chair)",
+        color: "blue",
+      };
+    } else if (quad === "NE") {
+      return {
+        quadrantName: "Sector NE · Corp Security & Gas Ops",
+        primaryStairwell: "Stairwell A (East Core · Union Square East)",
+        primaryExitStreet: "East 14th St / Union Square East",
+        primaryPath: "Exit suite through East security corridor directly to Stairwell A fire door (Door 7-A).",
+        secondaryStairwell: "Stairwell B (West Core · Irving Place)",
+        secondaryPath: "If Stair A is compromised, route West along North corridor past elevator lobby to Stairwell B (Door 7-B).",
+        assemblyPoint: "Assembly Point A (Union Square East / Park Plaza)",
+        assemblyCrossStreet: "East 14th St (Plaza side, 200+ ft clear from building facade)",
+        evacChairLocation: "Stairwell A Landing (Mounted Stryker Evac Chair)",
+        color: "emerald",
+      };
+    } else if (quad === "SW") {
+      return {
+        quadrantName: "Sector SW · AMI & Steam West",
+        primaryStairwell: "Stairwell B (West Core · Irving Place)",
+        primaryExitStreet: "Irving Place / East 15th St",
+        primaryPath: "Exit suite into South corridor, proceed directly West to Stairwell B fire door (Door 7-B).",
+        secondaryStairwell: "Stairwell A (East Core · Union Square East)",
+        secondaryPath: "If West corridor is blocked, proceed East through central core corridor to Stairwell A (Door 7-A).",
+        assemblyPoint: "Assembly Point B (East Courtyard / Irving Place)",
+        assemblyCrossStreet: "Irving Place (Courtyard side, 200+ ft clear from building facade)",
+        evacChairLocation: "Stairwell A Landing (cross core to Door 7-A landing)",
+        color: "amber",
+      };
+    } else {
+      // SE
+      return {
+        quadrantName: "Sector SE · Operations & Turnstiles",
+        primaryStairwell: "Stairwell B (West Core · Irving Place)",
+        primaryExitStreet: "Irving Place / East 15th St",
+        primaryPath: "Exit suite into main entrance rotunda, proceed West past elevators to Stairwell B fire door (Door 7-B).",
+        secondaryStairwell: "Stairwell A (East Core · Union Square East)",
+        secondaryPath: "If Stair B is blocked, take East egress corridor past conference suites to Stairwell A (Door 7-A).",
+        assemblyPoint: "Assembly Point A or B (Union Square East / Park Plaza)",
+        assemblyCrossStreet: "East 14th St or Irving Pl Courtyard (200+ ft clear)",
+        evacChairLocation: "Stairwell A Landing (cross core to Door 7-A landing)",
+        color: "purple",
+      };
+    }
+  }, [currentUser?.quadrant]);
+
+  // Evacuation Guide UI state
+  const [isEvacGuideExpanded, setIsEvacGuideExpanded] = useState<boolean>(true);
+  const [activeEvacTab, setActiveEvacTab] = useState<"route" | "steps" | "equipment" | "contacts">("route");
 
   // Screen state:
   // If explicit sign-in intent (?mode=signin or ?scan=1) without specific occupant ID, always open sign-in sheet.
@@ -1232,6 +1295,364 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
               </div>
             )}
 
+            {/* ========================================================= */}
+            {/* OFFICIAL LIFE-SAFETY EMERGENCY ESCAPE & EVACUATION GUIDE  */}
+            {/* NYC Fire Code 3 RCNY §401-06 Compliance Protocols        */}
+            {/* ========================================================= */}
+            <div className={`rounded-2xl border-2 shadow-lg transition-all overflow-hidden ${
+              snapshot?.incidentActive
+                ? "bg-gradient-to-br from-red-950 via-slate-900 to-red-900 border-red-500 ring-2 ring-red-400 text-white"
+                : "bg-gradient-to-br from-[#0B1728] via-[#0E2038] to-[#0A1626] border-[#005DAA] text-white"
+            }`}>
+              {/* Emergency Escape Header Bar */}
+              <div className="p-4 sm:p-5 border-b border-white/10 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className={`w-11 h-11 rounded-2xl flex items-center justify-center font-black text-xl shadow-md shrink-0 ${
+                    snapshot?.incidentActive
+                      ? "bg-red-600 text-white animate-pulse"
+                      : "bg-[#005DAA] text-white"
+                  }`}>
+                    {snapshot?.incidentActive ? "🚨" : "🛡️"}
+                  </div>
+                  <div>
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span className={`text-[10px] font-mono font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full ${
+                        snapshot?.incidentActive
+                          ? "bg-red-600 text-white animate-pulse"
+                          : "bg-sky-500/20 text-[#38BDF8] border border-sky-400/30"
+                      }`}>
+                        {snapshot?.incidentActive ? "ACTIVE EVACUATION ORDER" : "NYC FIRE CODE 3 RCNY §401-06"}
+                      </span>
+                      <span className="text-[10px] font-mono text-slate-300 hidden sm:inline">
+                        CON EDISON 4 IRVING PL · FL 07
+                      </span>
+                    </div>
+                    <h3 className="text-base sm:text-lg font-black text-white mt-1">
+                      Emergency Escape &amp; Evacuation Procedures
+                    </h3>
+                    <p className="text-xs text-slate-300">
+                      Personalized route for <span className="font-bold text-[#38BDF8]">{currentUser.name}</span> in <span className="font-bold text-amber-300">{quadrantEscapeInfo.quadrantName}</span>
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setIsEvacGuideExpanded(!isEvacGuideExpanded)}
+                  className="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-xs font-black transition cursor-pointer text-slate-200 shrink-0"
+                >
+                  {isEvacGuideExpanded ? "Collapse ▲" : "View Instructions ▼"}
+                </button>
+              </div>
+
+              {isEvacGuideExpanded && (
+                <div className="p-4 sm:p-5 space-y-4 text-xs">
+                  {/* Real-time incident banner if active */}
+                  {snapshot?.incidentActive && (
+                    <div className="bg-red-600/30 border border-red-500 p-3.5 rounded-xl space-y-1.5 animate-pulse">
+                      <div className="flex items-center justify-between text-red-200 font-black text-xs uppercase tracking-wider">
+                        <span className="flex items-center gap-1.5">
+                          <span>⚠️</span>
+                          <span>IMMEDIATE EVACUATION ORDER IN EFFECT</span>
+                        </span>
+                        <span className="text-[10px] font-mono bg-red-600 px-2 py-0.5 rounded text-white">
+                          HAZARD: {(snapshot.hazardType || "emergency").toUpperCase()}
+                        </span>
+                      </div>
+                      <p className="text-xs text-white leading-relaxed">
+                        {snapshot.latestNarrative?.executiveSummary ||
+                          "A floor-wide evacuation has been sounded. Do not use elevators. Proceed calmly to your assigned stairwell and report to the designated outdoor assembly muster point."}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Primary & Backup Egress Pathway Cards */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-mono font-black uppercase text-amber-300 tracking-wider flex items-center gap-1.5">
+                        <span>🧭</span> YOUR ASSIGNED EGRESS PATH (SECTOR {currentUser.quadrant})
+                      </span>
+                      <span className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-mono font-bold px-2 py-0.5 rounded-full">
+                        DO NOT USE ELEVATORS ✓
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {/* Primary Stairwell */}
+                      <div className="bg-[#132742] p-3.5 rounded-xl border-2 border-sky-400/50 space-y-2 relative shadow-md">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] font-mono font-black uppercase text-sky-300 bg-sky-950/70 px-2 py-0.5 rounded border border-sky-400/30">
+                            ⭐ PRIMARY STAIRWELL
+                          </span>
+                          <span className="text-[10px] text-emerald-300 font-mono font-bold">~3 min descent</span>
+                        </div>
+                        <div className="text-sm sm:text-base font-black text-white flex items-center gap-1.5">
+                          <span>🚪</span>
+                          <span>{quadrantEscapeInfo.primaryStairwell}</span>
+                        </div>
+                        <p className="text-xs text-slate-200 leading-snug">
+                          {quadrantEscapeInfo.primaryPath}
+                        </p>
+                        <div className="text-[11px] text-sky-200 font-medium pt-1 border-t border-white/10 flex items-center justify-between">
+                          <span>Street Exit:</span>
+                          <span className="font-bold text-white">{quadrantEscapeInfo.primaryExitStreet}</span>
+                        </div>
+                      </div>
+
+                      {/* Exterior Assembly Point */}
+                      <div className="bg-[#132742] p-3.5 rounded-xl border-2 border-amber-400/50 space-y-2 relative shadow-md">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] font-mono font-black uppercase text-amber-300 bg-amber-950/70 px-2 py-0.5 rounded border border-amber-400/30">
+                            📍 OUTDOOR MUSTER POINT
+                          </span>
+                          <span className="text-[10px] text-amber-200 font-mono font-bold">200+ ft clear</span>
+                        </div>
+                        <div className="text-sm sm:text-base font-black text-white flex items-center gap-1.5">
+                          <span>🌳</span>
+                          <span>{quadrantEscapeInfo.assemblyPoint}</span>
+                        </div>
+                        <p className="text-xs text-slate-200 leading-snug">
+                          {quadrantEscapeInfo.assemblyCrossStreet}. Assemble clear of building canopies and falling facade glass.
+                        </p>
+                        <div className="text-[11px] text-amber-200 font-medium pt-1 border-t border-white/10 flex items-center justify-between">
+                          <span>Secondary Backup:</span>
+                          <span className="font-bold text-white">{quadrantEscapeInfo.secondaryStairwell}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Navigation Tabs */}
+                  <div className="flex items-center gap-1.5 bg-[#06101E] p-1 rounded-xl border border-white/10 text-[11px] font-bold">
+                    <button
+                      type="button"
+                      onClick={() => setActiveEvacTab("route")}
+                      className={`flex-1 py-2 px-2 rounded-lg transition cursor-pointer text-center ${
+                        activeEvacTab === "route"
+                          ? "bg-[#005DAA] text-white shadow-xs font-black"
+                          : "text-slate-400 hover:text-white"
+                      }`}
+                    >
+                      🚶‍♂️ 5-Step Protocol
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setActiveEvacTab("equipment")}
+                      className={`flex-1 py-2 px-2 rounded-lg transition cursor-pointer text-center ${
+                        activeEvacTab === "equipment"
+                          ? "bg-[#005DAA] text-white shadow-xs font-black"
+                          : "text-slate-400 hover:text-white"
+                      }`}
+                    >
+                      🛞 Safety Equipment
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setActiveEvacTab("contacts")}
+                      className={`flex-1 py-2 px-2 rounded-lg transition cursor-pointer text-center ${
+                        activeEvacTab === "contacts"
+                          ? "bg-[#005DAA] text-white shadow-xs font-black"
+                          : "text-slate-400 hover:text-white"
+                      }`}
+                    >
+                      🚨 Emergency Dials
+                    </button>
+                  </div>
+
+                  {/* Tab 1: NYC Fire Code 5-Step Evacuation Protocol */}
+                  {activeEvacTab === "route" && (
+                    <div className="space-y-2.5 animate-fadeIn">
+                      <div className="bg-[#10243E] p-3 rounded-xl border border-red-500/30 flex items-start gap-3">
+                        <span className="w-6 h-6 rounded-lg bg-red-600 text-white font-black text-xs flex items-center justify-center shrink-0">1</span>
+                        <div className="space-y-0.5">
+                          <div className="font-black text-white text-xs flex items-center gap-1.5">
+                            <span>🚫 NEVER USE ELEVATORS (Automatic Phase I Recall)</span>
+                          </div>
+                          <p className="text-[11px] text-slate-300 leading-relaxed">
+                            Elevator banks automatically return to Ground Lobby upon alarm trip. Elevator shafts act as high-velocity chimneys for toxic combustion gases. Egress is strictly via pressurized enclosed fire stairwells.
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="bg-[#10243E] p-3 rounded-xl border border-sky-500/30 flex items-start gap-3">
+                        <span className="w-6 h-6 rounded-lg bg-sky-600 text-white font-black text-xs flex items-center justify-center shrink-0">2</span>
+                        <div className="space-y-0.5">
+                          <div className="font-black text-white text-xs flex items-center gap-1.5">
+                            <span>🚶‍♂️ WALK, DO NOT RUN — USE RIGHT-HAND RAIL</span>
+                          </div>
+                          <p className="text-[11px] text-slate-300 leading-relaxed">
+                            Descend in single file with your right hand on the handrail. Keep the left-hand lane unobstructed at all times for ascending FDNY firefighters and emergency teams carrying hose bundles and equipment.
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="bg-[#10243E] p-3 rounded-xl border border-amber-500/30 flex items-start gap-3">
+                        <span className="w-6 h-6 rounded-lg bg-amber-600 text-white font-black text-xs flex items-center justify-center shrink-0">3</span>
+                        <div className="space-y-0.5">
+                          <div className="font-black text-white text-xs flex items-center gap-1.5">
+                            <span>🚪 CLOSE (DO NOT LOCK) ALL FIRE DOORS BEHIND YOU</span>
+                          </div>
+                          <p className="text-[11px] text-slate-300 leading-relaxed">
+                            Self-closing 2-hour rated fire doors compartmentalize heat and smoke. Latch all doors firmly to preserve clean air positive pressure in stairwells and prevent thermal draft flashovers.
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="bg-[#10243E] p-3 rounded-xl border border-purple-500/30 flex items-start gap-3">
+                        <span className="w-6 h-6 rounded-lg bg-purple-600 text-white font-black text-xs flex items-center justify-center shrink-0">4</span>
+                        <div className="space-y-0.5">
+                          <div className="font-black text-white text-xs flex items-center gap-1.5">
+                            <span>🛞 MOBILITY ASSISTANCE &amp; AREA OF RESCUE ASSISTANCE (ARA)</span>
+                          </div>
+                          <p className="text-[11px] text-slate-300 leading-relaxed">
+                            If you or a colleague cannot walk down stairs, report to the <span className="text-amber-300 font-bold">Stairwell A landing (Door 7-A)</span>. Tap the <strong>"Request Evac Chair"</strong> button below or inform the Floor Warden. Trained operators will assist using the tracked Stryker Evacuation Chair.
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="bg-[#10243E] p-3 rounded-xl border border-emerald-500/30 flex items-start gap-3">
+                        <span className="w-6 h-6 rounded-lg bg-emerald-600 text-white font-black text-xs flex items-center justify-center shrink-0">5</span>
+                        <div className="space-y-0.5">
+                          <div className="font-black text-white text-xs flex items-center gap-1.5">
+                            <span>📍 MUSTER OUTSIDE &amp; TAP "SAFE OUTSIDE"</span>
+                          </div>
+                          <p className="text-[11px] text-slate-300 leading-relaxed">
+                            Exit street level onto East 14th St or Irving Pl. Cross to your designated muster assembly area 200+ ft clear of the building facade. Tap <strong>"✓ Safe Outside"</strong> on this pass to clear your muster census.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Tab 2: Life-Safety Equipment Reference */}
+                  {activeEvacTab === "equipment" && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 animate-fadeIn">
+                      <div className="bg-[#10243E] p-3.5 rounded-xl border border-white/10 space-y-1">
+                        <div className="flex items-center gap-1.5 text-red-400 font-black">
+                          <span>🔔</span>
+                          <span>Manual Fire Pull Stations</span>
+                        </div>
+                        <p className="text-[11px] text-slate-300 leading-snug">
+                          Mounted directly adjacent to every exit door leading to Stairwell A and Stairwell B. Pull lever down firmly to sound building-wide alarm and notify FDNY dispatch.
+                        </p>
+                      </div>
+
+                      <div className="bg-[#10243E] p-3.5 rounded-xl border border-white/10 space-y-1">
+                        <div className="flex items-center gap-1.5 text-amber-400 font-black">
+                          <span>🛞</span>
+                          <span>Stryker Evacuation Chair (ARA)</span>
+                        </div>
+                        <p className="text-[11px] text-slate-300 leading-snug">
+                          Mounted at Stairwell A Landing. 400 lb rated capacity with tracked tread braking for controlled descent of mobility-impaired persons.
+                        </p>
+                      </div>
+
+                      <div className="bg-[#10243E] p-3.5 rounded-xl border border-white/10 space-y-1">
+                        <div className="flex items-center gap-1.5 text-sky-400 font-black">
+                          <span>🧯</span>
+                          <span>ABC Dry Chemical Extinguishers</span>
+                        </div>
+                        <p className="text-[11px] text-slate-300 leading-snug">
+                          Staged every 75 feet along corridors in Quadrants NW, NE, SW, and SE. PASS method: Pull pin, Aim nozzle, Squeeze handle, Sweep base of flame.
+                        </p>
+                      </div>
+
+                      <div className="bg-[#10243E] p-3.5 rounded-xl border border-white/10 space-y-1">
+                        <div className="flex items-center gap-1.5 text-emerald-400 font-black">
+                          <span>🫀</span>
+                          <span>Automated External Defibrillator (AED)</span>
+                        </div>
+                        <p className="text-[11px] text-slate-300 leading-snug">
+                          Mounted on North wall of central elevator lobby next to First Aid emergency station. Voice-guided automated cardiac rescue.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Tab 3: Emergency Contacts */}
+                  {activeEvacTab === "contacts" && (
+                    <div className="space-y-2 animate-fadeIn">
+                      <div className="bg-[#10243E] p-3 rounded-xl border border-red-500/30 flex items-center justify-between">
+                        <div>
+                          <div className="text-red-400 font-black text-xs flex items-center gap-1.5">
+                            <span>🚒</span>
+                            <span>FDNY Emergency Services</span>
+                          </div>
+                          <div className="text-[11px] text-slate-300">Citywide Fire, Smoke, Medical &amp; Rescue</div>
+                        </div>
+                        <a
+                          href="tel:911"
+                          className="px-3 py-1.5 bg-red-600 hover:bg-red-500 text-white font-mono font-black text-xs rounded-lg transition"
+                        >
+                          📞 911
+                        </a>
+                      </div>
+
+                      <div className="bg-[#10243E] p-3 rounded-xl border border-sky-500/30 flex items-center justify-between">
+                        <div>
+                          <div className="text-sky-400 font-black text-xs flex items-center gap-1.5">
+                            <span>🚨</span>
+                            <span>Con Edison Security Operations (24/7)</span>
+                          </div>
+                          <div className="text-[11px] text-slate-300">Central Control Deck · ext. 1000</div>
+                        </div>
+                        <a
+                          href="tel:2124601000"
+                          className="px-3 py-1.5 bg-[#005DAA] hover:bg-[#004A88] text-white font-mono font-black text-xs rounded-lg transition"
+                        >
+                          📞 (212) 460-1000
+                        </a>
+                      </div>
+
+                      <div className="bg-[#10243E] p-3 rounded-xl border border-amber-500/30 flex items-center justify-between">
+                        <div>
+                          <div className="text-amber-400 font-black text-xs flex items-center gap-1.5">
+                            <span>🦺</span>
+                            <span>Floor 07 Fire Warden Command Post</span>
+                          </div>
+                          <div className="text-[11px] text-slate-300">Floor 07 Station Lead · ext. 7007</div>
+                        </div>
+                        <a
+                          href="tel:7007"
+                          className="px-3 py-1.5 bg-amber-600 hover:bg-amber-500 text-white font-mono font-black text-xs rounded-lg transition"
+                        >
+                          📞 ext. 7007
+                        </a>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Fast Action Emergency Buttons */}
+                  <div className="pt-2 border-t border-white/10 grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    <button
+                      type="button"
+                      onClick={handleMarkSafeOutside}
+                      className="py-2.5 px-3 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs uppercase tracking-wider rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5 shadow-sm active:scale-95 col-span-1"
+                    >
+                      <span>🟢</span>
+                      <span>I Am Safe Outside</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleRequestEvacChair}
+                      className="py-2.5 px-3 bg-amber-600 hover:bg-amber-500 text-white font-black text-xs uppercase tracking-wider rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5 shadow-sm active:scale-95 col-span-1"
+                    >
+                      <span>🛞</span>
+                      <span>Request Evac Chair</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleRequestHelp}
+                      className="py-2.5 px-3 bg-red-700 hover:bg-red-600 text-white font-black text-xs uppercase tracking-wider rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5 shadow-sm active:scale-95 col-span-2 sm:col-span-1"
+                    >
+                      <span>🆘</span>
+                      <span>Send SOS Alert</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
             {/* Emergency Muster Reporting Actions */}
             <div className="space-y-3 pt-2">
               <div className="flex items-center justify-between">
@@ -1413,6 +1834,26 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
             <p className="text-xs text-[#475569] mt-0.5">
               Select your role below, verify floor presence in 1 tap, and be automatically accounted for on Floor 07.
             </p>
+          </div>
+
+          {/* NYC Fire Code Life Safety Notice for all entrants */}
+          <div className="bg-[#EBF5FB] border border-[#005DAA]/30 p-3 rounded-xl flex items-center justify-between gap-3 text-xs">
+            <div className="flex items-center gap-2.5">
+              <span className="text-xl">🛡️</span>
+              <div>
+                <span className="font-bold text-[#003B70] block">NYC Fire Code 3 RCNY §401-06 Life-Safety Notice</span>
+                <span className="text-[11px] text-[#475569]">
+                  Emergency Egress: <strong>Stairwell A (East Core)</strong> &amp; <strong>Stairwell B (West Core)</strong>. Elevators are locked out during alarms.
+                </span>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setViewState("confirmed")}
+              className="px-2.5 py-1.5 bg-[#005DAA] hover:bg-[#004A88] text-white font-black rounded-lg text-[10px] transition cursor-pointer shrink-0 uppercase tracking-wider shadow-xs"
+            >
+              Escape Guide →
+            </button>
           </div>
 
           {/* Role Distinction Switch: Worker vs Visitor */}

@@ -400,7 +400,7 @@ export default function LoginScreen({
       {/* Ambient Grid Background */}
       <div className="fixed inset-0 pointer-events-none opacity-20 bg-[radial-gradient(#1E3A60_1px,transparent_1px)] [background-size:24px_24px]" />
 
-      <div className="w-full max-w-md sm:max-w-lg relative z-10 my-auto py-2 space-y-4">
+      <div className={`w-full ${activeCategory === "qr" ? "max-w-xl sm:max-w-2xl lg:max-w-3xl" : "max-w-md sm:max-w-lg"} relative z-10 my-auto py-2 space-y-4 transition-all duration-300`}>
         {/* Header Branding */}
         <div className="text-center space-y-1">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#1E3A60]/60 border border-[#1E3A60] rounded-full text-[10px] font-mono font-bold text-[#38BDF8] uppercase tracking-wider">
@@ -505,7 +505,7 @@ export default function LoginScreen({
         {/* MODE 1: PROMINENT PHONE QR INGRESS (CLEAN & FOCUSED)      */}
         {/* ========================================================= */}
         {activeCategory === "qr" && (
-          <div className="bg-[#0B172B] border-2 border-[#005DAA] rounded-2xl p-5 sm:p-6 shadow-2xl relative overflow-hidden text-center space-y-4 animate-fadeIn">
+          <div className="bg-[#0B172B] border-2 border-[#005DAA] rounded-2xl p-5 sm:p-7 shadow-2xl relative text-center space-y-4 animate-fadeIn">
             <div className="flex items-center justify-between border-b border-[#1E3A60] pb-3">
               <div className="text-left flex items-center gap-2">
                 <span className="flex h-2.5 w-2.5 relative">
@@ -550,34 +550,34 @@ export default function LoginScreen({
             </div>
 
             {/* High-Contrast Robust QR Code with Distance Support */}
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-5 py-2">
+            <div className="flex flex-col md:flex-row items-center justify-center gap-6 py-2">
               <div
                 onClick={() => {
                   if (onOpenQRPoster) onOpenQRPoster();
                   else setIsQrModalOpen(true);
                 }}
-                className="p-3.5 bg-white rounded-2xl shadow-2xl border-3 border-[#38BDF8]/70 shrink-0 cursor-zoom-in group relative hover:scale-105 transition-all"
+                className="w-60 h-60 sm:w-72 sm:h-72 p-3.5 bg-white rounded-3xl shadow-2xl border-4 border-[#38BDF8] shrink-0 cursor-zoom-in group relative hover:scale-102 transition-all flex items-center justify-center"
                 title="Click to Super-Size QR for distance scanning"
               >
                 {loginQrDataUrl ? (
                   <img
                     src={loginQrDataUrl}
                     alt="Scan QR Code to Sign In"
-                    className="w-52 h-52 sm:w-60 sm:h-60 object-contain block mx-auto rounded-lg"
+                    className="w-full h-full object-contain block mx-auto rounded-xl"
                   />
                 ) : (
-                  <div className="w-52 h-52 sm:w-60 sm:h-60 flex items-center justify-center text-slate-400 text-xs font-mono">
+                  <div className="w-full h-full flex items-center justify-center text-slate-400 text-xs font-mono">
                     Generating High-Res QR...
                   </div>
                 )}
-                <div className="absolute inset-0 bg-[#005DAA]/10 opacity-0 group-hover:opacity-100 rounded-2xl transition flex items-center justify-center">
-                  <span className="bg-black/85 text-white text-[10px] font-mono font-black px-2.5 py-1 rounded-full shadow-lg">
+                <div className="absolute inset-0 bg-[#005DAA]/10 opacity-0 group-hover:opacity-100 rounded-3xl transition flex items-center justify-center">
+                  <span className="bg-black/85 text-white text-[10px] font-mono font-black px-3 py-1.5 rounded-full shadow-lg">
                     🔍 Click to Super-Size
                   </span>
                 </div>
               </div>
 
-              <div className="text-left space-y-3 max-w-xs sm:max-w-sm">
+              <div className="flex-1 text-left space-y-3 max-w-sm sm:max-w-md w-full">
                 {/* Network Switcher: Cellular 5G vs Building Wi-Fi */}
                 <div className="space-y-1.5">
                   <div className="flex items-center gap-1.5 bg-[#070D18] p-1 rounded-xl border border-[#1E3A60]">
