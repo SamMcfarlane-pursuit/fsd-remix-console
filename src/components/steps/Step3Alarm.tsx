@@ -350,6 +350,116 @@ export const Step3Alarm: React.FC<Step3AlarmProps> = ({
           </div>
         </div>
 
+        {/* ======================================================== */}
+        {/* COMMANDER EMERGENCY DIRECTIVE (WHAT TO SAY & WHAT TO SHOW) */}
+        {/* ======================================================== */}
+        <div className="pt-4 border-t border-slate-200 space-y-4">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-mono font-black uppercase text-[#005DAA] tracking-wider flex items-center gap-2">
+              <span>📢</span>
+              <span>COMMAND DIRECTIVE PROTOCOL · WHAT TO SAY &amp; WHAT TO SHOW</span>
+            </span>
+            <span className="text-[10px] font-mono bg-sky-100 text-[#005DAA] border border-sky-300 px-2 py-0.5 rounded-full font-bold">
+              NYC Fire Code 3 RCNY §401-06
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {/* Box 1: WHAT TO SAY (Spoken Announcement Script) */}
+            <div className="bg-[#0C1E36] rounded-2xl p-5 border-2 border-sky-500/50 text-white space-y-3 shadow-md flex flex-col justify-between">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-mono font-black uppercase tracking-wider text-amber-300 bg-amber-950/70 border border-amber-500/30 px-2 py-0.5 rounded">
+                    🎙️ WHAT TO SAY (PA &amp; RADIO SPOKEN SCRIPT)
+                  </span>
+                  <span className="text-[10px] font-mono text-slate-300">
+                    Read aloud via building PA
+                  </span>
+                </div>
+
+                <div className="bg-black/40 border border-white/10 rounded-xl p-3.5 font-mono text-xs text-amber-100 leading-relaxed select-all">
+                  &ldquo;Attention Floor 07 occupants: A {selectedMode === "drill" ? "life-safety evacuation drill" : "live emergency evacuation"} has been declared due to {selectedHazard.replace("-", " ")}. All personnel must proceed calmly to {selectedStairwell} and assemble outside at {assemblyPoint}. Do not use elevators. Assist anyone requiring the Stairwell A evacuation chair.&rdquo;
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 pt-2 border-t border-white/10">
+                <button
+                  type="button"
+                  onClick={() =>
+                    speakEmergencyBroadcast(
+                      `Attention Floor 07 occupants: A ${selectedMode === "drill" ? "life-safety evacuation drill" : "live emergency evacuation"} has been declared due to ${selectedHazard.replace("-", " ")}. Please evacuate via ${selectedStairwell} to ${assemblyPoint}. Do not use elevators.`,
+                      selectedMode === "drill" ? "HIGH" : "CRITICAL"
+                    )
+                  }
+                  className="px-3 py-2 bg-[#005DAA] hover:bg-[#004884] text-white text-xs font-bold rounded-xl transition cursor-pointer flex items-center gap-1.5 shadow-sm"
+                >
+                  <span>🔊</span>
+                  <span>Audio Playback Preview</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const text = `Attention Floor 07 occupants: A ${selectedMode === "drill" ? "life-safety evacuation drill" : "live emergency evacuation"} has been declared due to ${selectedHazard.replace("-", " ")}. All personnel must proceed calmly to ${selectedStairwell} and assemble outside at ${assemblyPoint}. Do not use elevators.`;
+                    navigator.clipboard?.writeText(text);
+                  }}
+                  className="px-3 py-2 bg-white/10 hover:bg-white/20 text-white text-xs font-bold rounded-xl transition cursor-pointer flex items-center gap-1.5"
+                >
+                  <span>📋</span>
+                  <span>Copy Script</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Box 2: WHAT TO SHOW (Mobile Occupant Screen & Signage Display) */}
+            <div className="bg-[#0C1E36] rounded-2xl p-5 border-2 border-red-500/50 text-white space-y-3 shadow-md flex flex-col justify-between">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-mono font-black uppercase tracking-wider text-red-300 bg-red-950/70 border border-red-500/30 px-2 py-0.5 rounded">
+                    📱 WHAT TO SHOW (OCCUPANT PASS &amp; SIGNAGE DISPLAY)
+                  </span>
+                  <span className="text-[10px] font-mono text-emerald-400">
+                    Live Broadcast Preview
+                  </span>
+                </div>
+
+                {/* Mobile Screen Mockup */}
+                <div className="bg-gradient-to-br from-red-950 via-slate-900 to-red-900 rounded-xl p-3.5 border border-red-500/70 space-y-2">
+                  <div className="flex items-center justify-between text-xs font-black text-red-200">
+                    <span className="flex items-center gap-1.5">
+                      <span>🚨</span>
+                      <span>{selectedMode === "incident" ? "ACTIVE EVACUATION ORDER" : "SCHEDULED DRILL ACTIVE"}</span>
+                    </span>
+                    <span className="text-[10px] font-mono bg-red-600 text-white px-2 py-0.5 rounded">
+                      HAZARD: {selectedHazard.toUpperCase()}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 text-[11px] font-mono">
+                    <div className="bg-black/50 p-2 rounded-lg border border-sky-400/30">
+                      <div className="text-slate-400 text-[9px]">PRIMARY STAIRWELL</div>
+                      <div className="text-sky-300 font-bold truncate">{selectedStairwell.split(" (")[0]}</div>
+                    </div>
+                    <div className="bg-black/50 p-2 rounded-lg border border-red-500/30">
+                      <div className="text-slate-400 text-[9px]">ELEVATORS</div>
+                      <div className="text-red-400 font-bold">LOCKED OUT 🚫</div>
+                    </div>
+                  </div>
+
+                  <div className="bg-black/50 p-2 rounded-lg border border-amber-400/30 text-[11px]">
+                    <div className="text-slate-400 text-[9px] font-mono">OUTDOOR MUSTER POINT</div>
+                    <div className="text-amber-300 font-bold truncate">{assemblyPoint}</div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="text-[10px] text-slate-300 font-mono flex items-center justify-between pt-1 border-t border-white/10">
+                <span>✓ Automatically pushed to all phone passes</span>
+                <span className="text-emerald-300 font-bold">1-Tap &quot;Safe Outside&quot; Ready</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* Declaration Action Button */}
         <div className="pt-4 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-slate-100">
           <div className="text-xs text-[#64748B]">

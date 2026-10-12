@@ -280,6 +280,121 @@ export const Step4Broadcast: React.FC<Step4BroadcastProps> = ({
         </div>
       </div>
 
+      {/* Step 3 & 4 Emergency Directive Protocol: WHAT TO SAY & WHAT TO SHOW */}
+      <div className="bg-white rounded-2xl p-6 border-2 border-[#005DAA]/40 shadow-xs space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
+          <div>
+            <div className="text-[10px] font-mono font-black uppercase text-[#005DAA] tracking-wider flex items-center gap-1.5">
+              <span>📢</span>
+              <span>STEP 03 &amp; STEP 04 COMMAND PROTOCOL</span>
+            </div>
+            <h3 className="text-base font-black text-[#0F2537] mt-0.5">
+              Emergency Command Directives: What to Say &amp; What to Show
+            </h3>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-mono bg-sky-100 text-[#005DAA] border border-sky-300 px-2.5 py-1 rounded-full font-bold">
+              NYC Fire Code 3 RCNY §401-06
+            </span>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {/* Box 1: WHAT TO SAY */}
+          <div className="bg-[#0C1E36] rounded-2xl p-5 border-2 border-sky-500/50 text-white space-y-3 shadow-md flex flex-col justify-between">
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-mono font-black uppercase tracking-wider text-amber-300 bg-amber-950/70 border border-amber-500/30 px-2 py-0.5 rounded">
+                  🎙️ WHAT TO SAY (PA &amp; RADIO SPOKEN SCRIPT)
+                </span>
+                <span className="text-[10px] font-mono text-slate-300">
+                  Read aloud via building PA
+                </span>
+              </div>
+
+              <div className="bg-black/40 border border-white/10 rounded-xl p-3.5 font-mono text-xs text-amber-100 leading-relaxed select-all">
+                &ldquo;{narrative || defaultNarrative}&rdquo;
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 pt-2 border-t border-white/10">
+              <button
+                type="button"
+                onClick={() =>
+                  speakEmergencyBroadcast(narrative || defaultNarrative, priority, { playChime: true })
+                }
+                className="px-3.5 py-2 bg-[#005DAA] hover:bg-[#004884] text-white text-xs font-bold rounded-xl transition cursor-pointer flex items-center gap-1.5 shadow-sm active:scale-95"
+              >
+                <span>🔊</span>
+                <span>Audio Playback Preview</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  navigator.clipboard?.writeText(narrative || defaultNarrative);
+                }}
+                className="px-3.5 py-2 bg-white/10 hover:bg-white/20 text-white text-xs font-bold rounded-xl transition cursor-pointer flex items-center gap-1.5 active:scale-95"
+              >
+                <span>📋</span>
+                <span>Copy Script</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Box 2: WHAT TO SHOW */}
+          <div className="bg-[#0C1E36] rounded-2xl p-5 border-2 border-red-500/50 text-white space-y-3 shadow-md flex flex-col justify-between">
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-mono font-black uppercase tracking-wider text-red-300 bg-red-950/70 border border-red-500/30 px-2 py-0.5 rounded">
+                  📱 WHAT TO SHOW (MOBILE PASS &amp; SIGNAGE DISPLAY)
+                </span>
+                <span className="text-[10px] font-mono text-emerald-400">
+                  Live Broadcast Preview
+                </span>
+              </div>
+
+              {/* Mobile Screen Mockup */}
+              <div className="bg-gradient-to-br from-red-950 via-slate-900 to-red-900 rounded-xl p-3.5 border border-red-500/70 space-y-2.5">
+                <div className="flex items-center justify-between text-xs font-black text-red-200">
+                  <span className="flex items-center gap-1.5 truncate max-w-[220px]">
+                    <span>🚨</span>
+                    <span className="truncate">{title || defaultTitle}</span>
+                  </span>
+                  <span className="text-[10px] font-mono bg-red-600 text-white px-2 py-0.5 rounded shrink-0">
+                    {priority}
+                  </span>
+                </div>
+
+                <p className="text-[11px] text-slate-200 line-clamp-2 bg-black/40 p-2 rounded-lg border border-white/5 font-sans">
+                  {narrative || defaultNarrative}
+                </p>
+
+                <div className="grid grid-cols-2 gap-2 text-[11px] font-mono">
+                  <div className="bg-black/50 p-2 rounded-lg border border-sky-400/30">
+                    <div className="text-slate-400 text-[9px]">PRIMARY STAIRWELL</div>
+                    <div className="text-sky-300 font-bold truncate">{resolvedStairwell.split(" (")[0]}</div>
+                  </div>
+                  <div className="bg-black/50 p-2 rounded-lg border border-red-500/30">
+                    <div className="text-slate-400 text-[9px]">ELEVATORS</div>
+                    <div className="text-red-400 font-bold">LOCKED OUT 🚫</div>
+                  </div>
+                </div>
+
+                <div className="bg-black/50 p-2 rounded-lg border border-amber-400/30 text-[11px]">
+                  <div className="text-slate-400 text-[9px] font-mono">OUTDOOR MUSTER POINT</div>
+                  <div className="text-amber-300 font-bold truncate">{resolvedAssembly}</div>
+                </div>
+              </div>
+            </div>
+
+            <div className="text-[10px] font-mono text-slate-400 flex items-center justify-between pt-2 border-t border-white/10">
+              <span>Pushed to {snapshot?.occupants?.length ?? snapshot?.expectedOnFloor ?? 0} active occupant screens</span>
+              <span className="text-emerald-400">● Signage Sync Ready</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Broadcast Composer Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Left Column: Broadcast Composer (8 cols) */}

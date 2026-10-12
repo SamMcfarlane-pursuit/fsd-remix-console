@@ -39,6 +39,9 @@ export const Step2SignedIn: React.FC<Step2SignedInProps> = ({
   const [filterStatus, setFilterStatus] = useState<string>("ALL");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [activeTab, setActiveTab] = useState<"roster" | "ledger">("roster");
+  const [selectedOccupantForAction, setSelectedOccupantForAction] = useState<Occupant | null>(null);
+  const [actionFeedbackMsg, setActionFeedbackMsg] = useState<string | null>(null);
+  const [directPingSuccessId, setDirectPingSuccessId] = useState<string | null>(null);
 
   // Statistics
   const totalOccupants = occupants.length;
@@ -141,6 +144,52 @@ export const Step2SignedIn: React.FC<Step2SignedInProps> = ({
     onRefreshState();
   };
 
+  const handleGroupAction = async (qid: QuadrantId, action: "safe" | "in-building" | "badge-out") => {
+    const targetOccupants = occupants.filter((o) => o.quadrant === qid);
+    const targetIds = targetOccupants.map((o) => o.id);
+    if (targetIds.length === 0) return;
+
+    if (action === "safe") {
+      if (onBulkCheckIn) {
+        await onBulkCheckIn(targetIds, "safe", "sector-bulk-action", `Sector ${qid} marked safe outside`, "leave", "outside-assembly");
+      } else {
+        for (const id of targetIds) {
+          await onCheckIn(id, "safe", "sector-bulk-action", `Sector ${qid} marked safe outside`, "outside-assembly");
+        }
+      }
+      setActionFeedbackMsg(`🟢 Entire Sector ${qid} (${targetIds.length} occupants) marked Safe Outside at assembly area.`);
+    } else if (action === "in-building") {
+      if (onBulkCheckIn) {
+        await onBulkCheckIn(targetIds, "safe", "sector-bulk-action", `Sector ${qid} marked present in building`, "enter", "inside-building");
+      } else {
+        for (const id of targetIds) {
+          await onCheckIn(id, "safe", "sector-bulk-action", `Sector ${qid} marked present in building`, "inside-building");
+        }
+      }
+      setActionFeedbackMsg(`🏢 Entire Sector ${qid} (${targetIds.length} occupants) confirmed In-Building on Floor 07.`);
+    } else if (action === "badge-out") {
+      if (onBulkCheckIn) {
+        await onBulkCheckIn(targetIds, "unaccounted", "sector-bulk-action", `Sector ${qid} badged out of building`, "leave", "offsite");
+      } else {
+        for (const id of targetIds) {
+          await onCheckIn(id, "unaccounted", "sector-bulk-action", `Sector ${qid} badged out of building`, "offsite");
+        }
+      }
+      setActionFeedbackMsg(`🚪 Entire Sector ${qid} (${targetIds.length} occupants) marked Badged Out.`);
+    }
+    setTimeout(() => setActionFeedbackMsg(null), 5000);
+    onRefreshState();
+  };
+
+  const handleSendDirectPing = (occ: Occupant) => {
+    setDirectPingSuccessId(occ.id);
+    setActionFeedbackMsg(`🚨 Life-Safety Evacuation Ping sent to ${occ.name} (${occ.phone || "Device Pass"}). Transmitted via Push & SMS.`);
+    setTimeout(() => {
+      setDirectPingSuccessId(null);
+      setActionFeedbackMsg(null);
+    }, 6000);
+  };
+
   return (
     <div id="step-2-signed-in-container" className="max-w-6xl mx-auto space-y-6 animate-fadeIn pb-12">
       {/* Header Banner */}
@@ -225,6 +274,76 @@ export const Step2SignedIn: React.FC<Step2SignedInProps> = ({
           );
         })}
       </div>
+
+      {/* Action Feedback Banner */}
+      {actionFeedbackMsg && (
+        <div className="bg-emerald-50 border-2 border-emerald-500 text-emerald-950 p-4 rounded-2xl flex items-center justify-between gap-3 shadow-md animate-fadeIn">
+          <div className="flex items-center gap-2.5 font-bold text-xs sm:text-sm">
+            <span>✅</span>
+            <span>{actionFeedbackMsg}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setActionFeedbackMsg(null)}
+            className="text-xs font-mono text-emerald-800 hover:text-emerald-950 underline cursor-pointer"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+
+      {/* Sector Group Actions Bar (Active when a Quadrant is selected) */}
+      {selectedQuadrant !== "ALL" && (
+        <div className="bg-gradient-to-r from-[#003B70] via-[#005DAA] to-[#002D5A] p-4 sm:p-5 rounded-2xl text-white shadow-lg border border-sky-400 flex flex-col md:flex-row md:items-center justify-between gap-4 animate-fadeIn">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center font-black text-lg">
+              🏢
+            </div>
+            <div>
+              <div className="text-[10px] font-mono font-black uppercase text-sky-200 tracking-wider">
+                GROUP DIRECT ACTIONS · SECTOR {selectedQuadrant} ({quadrantStats[selectedQuadrant as QuadrantId]?.label})
+              </div>
+              <div className="text-sm sm:text-base font-black">
+                {quadrantStats[selectedQuadrant as QuadrantId]?.inBuilding} occupants currently present inside this sector
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => handleGroupAction(selectedQuadrant as QuadrantId, "safe")}
+              className="px-3 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl transition cursor-pointer shadow-sm flex items-center gap-1.5"
+            >
+              <span>🟢</span>
+              <span>Mark All Sector Safe Outside</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => handleGroupAction(selectedQuadrant as QuadrantId, "in-building")}
+              className="px-3 py-2 bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs rounded-xl transition cursor-pointer shadow-sm flex items-center gap-1.5"
+            >
+              <span>🏢</span>
+              <span>Confirm In-Building</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => handleGroupAction(selectedQuadrant as QuadrantId, "badge-out")}
+              className="px-3 py-2 bg-slate-700 hover:bg-slate-600 text-white font-bold text-xs rounded-xl transition cursor-pointer shadow-sm flex items-center gap-1.5"
+            >
+              <span>🚪</span>
+              <span>Badge Out Sector</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelectedQuadrant("ALL")}
+              className="px-3 py-2 bg-white/20 hover:bg-white/30 text-white font-bold text-xs rounded-xl transition cursor-pointer"
+            >
+              Clear Filter
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Filter and Search Bar */}
       <div className="bg-white rounded-2xl p-4 border border-[#B8D8F8] shadow-xs flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
@@ -391,9 +510,16 @@ export const Step2SignedIn: React.FC<Step2SignedInProps> = ({
                           className="rounded border-[#CBDCEE] text-[#005DAA] cursor-pointer"
                         />
                       </td>
-                      <td className="p-3.5">
-                        <div className="font-bold text-[#0F2537] flex items-center gap-1.5">
-                          <span>{occ.name}</span>
+                      <td
+                        className="p-3.5 cursor-pointer hover:bg-sky-50/70 transition"
+                        onClick={() => setSelectedOccupantForAction(occ)}
+                        title="Click to view building location and execute individual actions"
+                      >
+                        <div className="font-bold text-[#0F2537] hover:text-[#005DAA] flex items-center gap-1.5">
+                          <span className="underline decoration-sky-300 decoration-dotted">{occ.name}</span>
+                          <span className="text-[9px] bg-sky-100 text-[#005DAA] border border-sky-300 font-mono font-black px-1.5 py-0.5 rounded">
+                            ⚡ ACTION
+                          </span>
                           {occ.role === "Visitor" && (
                             <span className="text-[10px] bg-amber-100 text-amber-900 border border-amber-300 font-mono px-1 rounded">
                               VISITOR
@@ -404,14 +530,9 @@ export const Step2SignedIn: React.FC<Step2SignedInProps> = ({
                           <span>{occ.id}</span>
                           <span>·</span>
                           {occ.phone ? (
-                            <a
-                              href={`tel:${occ.phone.replace(/[^\d+]/g, "")}`}
-                              className="text-[#005DAA] font-bold hover:underline flex items-center gap-1 transition"
-                              title={`Direct dial ${occ.name}`}
-                            >
-                              <span>📞</span>
-                              <span>{occ.phone}</span>
-                            </a>
+                            <span className="text-[#005DAA] font-bold">
+                              📞 {occ.phone}
+                            </span>
                           ) : (
                             <span>(212) 555-0199</span>
                           )}
@@ -442,25 +563,38 @@ export const Step2SignedIn: React.FC<Step2SignedInProps> = ({
                         )}
                       </td>
                       <td className="p-3.5 text-right">
-                        {isPresent ? (
+                        <div className="flex items-center justify-end gap-1.5">
                           <button
-                            onClick={() =>
-                              onCheckIn(occ.id, "unaccounted", "manual-toggle", "Marked badged out", "offsite")
-                            }
-                            className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-[11px] cursor-pointer"
+                            type="button"
+                            onClick={() => setSelectedOccupantForAction(occ)}
+                            className="px-2.5 py-1 rounded-lg bg-[#005DAA] hover:bg-[#004884] text-white font-black text-[11px] cursor-pointer shadow-xs flex items-center gap-1"
+                            title="Inspect building location and perform direct action"
                           >
-                            Badge Out
+                            <span>⚡</span>
+                            <span>Action</span>
                           </button>
-                        ) : (
-                          <button
-                            onClick={() =>
-                              onCheckIn(occ.id, "safe", "manual-toggle", "Marked in-building", "inside-building")
-                            }
-                            className="px-2.5 py-1 rounded-lg bg-[#005DAA] hover:bg-[#004884] text-white font-bold text-[11px] cursor-pointer"
-                          >
-                            Mark In-Building
-                          </button>
-                        )}
+                          {isPresent ? (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                onCheckIn(occ.id, "unaccounted", "manual-toggle", "Marked badged out", "offsite")
+                              }
+                              className="px-2 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-[11px] cursor-pointer"
+                            >
+                              Badge Out
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                onCheckIn(occ.id, "safe", "manual-toggle", "Marked in-building", "inside-building")
+                              }
+                              className="px-2 py-1 rounded-lg bg-emerald-100 hover:bg-emerald-200 text-emerald-900 font-bold text-[11px] cursor-pointer"
+                            >
+                              In-Bldg
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   );
@@ -524,6 +658,251 @@ export const Step2SignedIn: React.FC<Step2SignedInProps> = ({
           </div>
         )}
       </div>
+      {/* ======================================================== */}
+      {/* OCCUPANT ACTION & BUILDING LOCATION MODAL                */}
+      {/* ======================================================== */}
+      {selectedOccupantForAction && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs animate-fadeIn">
+          <div className="bg-white rounded-3xl max-w-xl w-full border-2 border-[#005DAA] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            {/* Modal Header */}
+            <div className="bg-[#003B70] text-white p-5 flex items-center justify-between border-b border-sky-600">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-2xl bg-white/20 text-white font-black text-xl flex items-center justify-center shrink-0">
+                  {selectedOccupantForAction.role === "Visitor" ? "🏷️" : "👤"}
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-lg font-black">{selectedOccupantForAction.name}</h3>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-white/20 text-sky-200 font-bold">
+                      {selectedOccupantForAction.id}
+                    </span>
+                  </div>
+                  <p className="text-xs text-sky-200">
+                    {selectedOccupantForAction.role} · {selectedOccupantForAction.company || "Con Edison"}
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setSelectedOccupantForAction(null)}
+                className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/25 flex items-center justify-center text-white font-black text-sm transition cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 overflow-y-auto space-y-5 text-xs text-[#0F2537]">
+              {/* Building Location Blueprint Card */}
+              <div className="bg-[#F0F6FC] rounded-2xl p-4 border border-[#CBDCEE] space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-mono font-black uppercase text-[#005DAA] tracking-wider flex items-center gap-1.5">
+                    <span>🧭</span>
+                    <span>LOCATION INSIDE BUILDING (4 IRVING PL · FL 07)</span>
+                  </span>
+                  <span className="text-[10px] font-mono font-bold bg-emerald-100 text-emerald-900 border border-emerald-300 px-2 py-0.5 rounded-full">
+                    {!selectedOccupantForAction.badgedOut && !selectedOccupantForAction.offSiteToday
+                      ? "In Building"
+                      : selectedOccupantForAction.badgedOut
+                      ? "Badged Out"
+                      : "Offsite"}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 text-xs">
+                  <div className="bg-white p-3 rounded-xl border border-[#CBDCEE]">
+                    <div className="text-[10px] font-mono text-slate-500 uppercase">Assigned Sector</div>
+                    <div className="font-black text-[#005DAA] text-sm mt-0.5">
+                      Sector {selectedOccupantForAction.quadrant}
+                    </div>
+                    <div className="text-[11px] text-slate-600">
+                      {quadrantStats[selectedOccupantForAction.quadrant]?.label}
+                    </div>
+                  </div>
+
+                  <div className="bg-white p-3 rounded-xl border border-[#CBDCEE]">
+                    <div className="text-[10px] font-mono text-slate-500 uppercase">Workstation Desk</div>
+                    <div className="font-black text-[#0F2537] text-sm mt-0.5">
+                      {selectedOccupantForAction.desk || "Turnstile Ingress Point"}
+                    </div>
+                    <div className="text-[11px] text-slate-600">Floor 07 Interior Core</div>
+                  </div>
+                </div>
+
+                {/* Mini Visual Floor Plan Blueprint with pinpoint dot */}
+                <div className="rounded-xl overflow-hidden border border-[#CBDCEE] bg-[#0A192F] relative p-2 shadow-inner">
+                  <svg viewBox="0 0 400 240" className="w-full h-auto max-h-[160px] font-sans">
+                    <rect width="400" height="240" fill="#0A192F" />
+                    <rect x="10" y="10" width="380" height="220" fill="#0C213D" stroke="#005DAA" strokeWidth="1.5" rx="4" />
+                    
+                    {/* Courtyard */}
+                    <rect x="160" y="80" width="80" height="80" fill="#05101E" stroke="#1E3A5F" strokeWidth="1" rx="2" />
+                    <text x="200" y="125" textAnchor="middle" fill="#64748B" fontSize="8" fontWeight="bold">COURTYARD</text>
+
+                    {/* Stairwells */}
+                    <rect x="10" y="80" width="30" height="60" fill="#059669" rx="2" />
+                    <text x="25" y="115" textAnchor="middle" fill="#FFFFFF" fontSize="7" fontWeight="bold">STAIR B</text>
+
+                    <rect x="360" y="80" width="30" height="60" fill="#059669" rx="2" />
+                    <text x="375" y="115" textAnchor="middle" fill="#FFFFFF" fontSize="7" fontWeight="bold">STAIR A</text>
+
+                    {/* Sectors */}
+                    <rect x="20" y="20" width="130" height="55" fill={selectedOccupantForAction.quadrant === "NW" ? "#0284C733" : "transparent"} stroke={selectedOccupantForAction.quadrant === "NW" ? "#38BDF8" : "#1E3A5F"} strokeWidth={selectedOccupantForAction.quadrant === "NW" ? "2" : "0.5"} rx="2" />
+                    <text x="30" y="35" fill="#94A3B8" fontSize="8" fontWeight="bold">SECTOR NW</text>
+
+                    <rect x="250" y="20" width="130" height="55" fill={selectedOccupantForAction.quadrant === "NE" ? "#0284C733" : "transparent"} stroke={selectedOccupantForAction.quadrant === "NE" ? "#38BDF8" : "#1E3A5F"} strokeWidth={selectedOccupantForAction.quadrant === "NE" ? "2" : "0.5"} rx="2" />
+                    <text x="260" y="35" fill="#94A3B8" fontSize="8" fontWeight="bold">SECTOR NE</text>
+
+                    <rect x="20" y="165" width="130" height="55" fill={selectedOccupantForAction.quadrant === "SW" ? "#0284C733" : "transparent"} stroke={selectedOccupantForAction.quadrant === "SW" ? "#38BDF8" : "#1E3A5F"} strokeWidth={selectedOccupantForAction.quadrant === "SW" ? "2" : "0.5"} rx="2" />
+                    <text x="30" y="180" fill="#94A3B8" fontSize="8" fontWeight="bold">SECTOR SW</text>
+
+                    <rect x="250" y="165" width="130" height="55" fill={selectedOccupantForAction.quadrant === "SE" ? "#0284C733" : "transparent"} stroke={selectedOccupantForAction.quadrant === "SE" ? "#38BDF8" : "#1E3A5F"} strokeWidth={selectedOccupantForAction.quadrant === "SE" ? "2" : "0.5"} rx="2" />
+                    <text x="260" y="180" fill="#94A3B8" fontSize="8" fontWeight="bold">SECTOR SE</text>
+
+                    {/* Dynamic Occupant Pin Marker */}
+                    {selectedOccupantForAction.quadrant === "NW" && (
+                      <g transform="translate(85, 45)">
+                        <circle r="12" fill="#38BDF8" opacity="0.4" className="animate-ping" />
+                        <circle r="6" fill="#38BDF8" stroke="#FFFFFF" strokeWidth="1.5" />
+                        <text x="0" y="18" textAnchor="middle" fill="#FFFFFF" fontSize="7" fontWeight="black">{selectedOccupantForAction.name.split(" ")[0]}</text>
+                      </g>
+                    )}
+                    {selectedOccupantForAction.quadrant === "NE" && (
+                      <g transform="translate(315, 45)">
+                        <circle r="12" fill="#38BDF8" opacity="0.4" className="animate-ping" />
+                        <circle r="6" fill="#38BDF8" stroke="#FFFFFF" strokeWidth="1.5" />
+                        <text x="0" y="18" textAnchor="middle" fill="#FFFFFF" fontSize="7" fontWeight="black">{selectedOccupantForAction.name.split(" ")[0]}</text>
+                      </g>
+                    )}
+                    {selectedOccupantForAction.quadrant === "SW" && (
+                      <g transform="translate(85, 190)">
+                        <circle r="12" fill="#38BDF8" opacity="0.4" className="animate-ping" />
+                        <circle r="6" fill="#38BDF8" stroke="#FFFFFF" strokeWidth="1.5" />
+                        <text x="0" y="18" textAnchor="middle" fill="#FFFFFF" fontSize="7" fontWeight="black">{selectedOccupantForAction.name.split(" ")[0]}</text>
+                      </g>
+                    )}
+                    {selectedOccupantForAction.quadrant === "SE" && (
+                      <g transform="translate(315, 190)">
+                        <circle r="12" fill="#38BDF8" opacity="0.4" className="animate-ping" />
+                        <circle r="6" fill="#38BDF8" stroke="#FFFFFF" strokeWidth="1.5" />
+                        <text x="0" y="18" textAnchor="middle" fill="#FFFFFF" fontSize="7" fontWeight="black">{selectedOccupantForAction.name.split(" ")[0]}</text>
+                      </g>
+                    )}
+                  </svg>
+                </div>
+
+                <div className="text-[11px] text-slate-500 flex items-center justify-between">
+                  <span>Assigned Exit: {selectedOccupantForAction.quadrant === "NW" || selectedOccupantForAction.quadrant === "NE" ? "Door 7-A (Stairwell A East)" : "Door 7-B (Stairwell B West)"}</span>
+                  <span>Direct Descent: ~3 min</span>
+                </div>
+              </div>
+
+              {/* Direct Individual Action Controls */}
+              <div className="space-y-2">
+                <div className="text-[10px] font-mono font-black uppercase text-[#005DAA] tracking-wider">
+                  COMMAND ACTIONS FOR THIS INDIVIDUAL
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      await onCheckIn(selectedOccupantForAction.id, "safe", "commander-action", "Marked safe outside", "outside-assembly", "Assembly Point A (Union Sq East)");
+                      setActionFeedbackMsg(`🟢 ${selectedOccupantForAction.name} marked Safe Outside at Assembly Point A.`);
+                      setSelectedOccupantForAction(null);
+                    }}
+                    className="p-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl transition cursor-pointer flex items-center justify-center gap-2 shadow-xs"
+                  >
+                    <span>🟢</span>
+                    <span>Mark Safe Outside</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      await onCheckIn(selectedOccupantForAction.id, "safe", "commander-action", "Confirmed inside building", "inside-building");
+                      setActionFeedbackMsg(`🏢 ${selectedOccupantForAction.name} confirmed In-Building on Floor 07.`);
+                      setSelectedOccupantForAction(null);
+                    }}
+                    className="p-3 bg-[#005DAA] hover:bg-[#004884] text-white font-bold rounded-xl transition cursor-pointer flex items-center justify-center gap-2 shadow-xs"
+                  >
+                    <span>🏢</span>
+                    <span>Confirm In-Building</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      await onCheckIn(selectedOccupantForAction.id, "unaccounted", "commander-action", "Badged out of building", "offsite");
+                      setActionFeedbackMsg(`🚪 ${selectedOccupantForAction.name} marked Badged Out.`);
+                      setSelectedOccupantForAction(null);
+                    }}
+                    className="p-3 bg-slate-700 hover:bg-slate-600 text-white font-bold rounded-xl transition cursor-pointer flex items-center justify-center gap-2 shadow-xs"
+                  >
+                    <span>🚪</span>
+                    <span>Badge Out / Left</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      await onCheckIn(selectedOccupantForAction.id, "awaiting-evac-chair", "commander-action", "Evac chair assistance requested at Stairwell A landing", "inside-building");
+                      setActionFeedbackMsg(`🛞 Stryker Evac Chair assistance assigned for ${selectedOccupantForAction.name} at Stairwell A.`);
+                      setSelectedOccupantForAction(null);
+                    }}
+                    className="p-3 bg-amber-600 hover:bg-amber-500 text-white font-bold rounded-xl transition cursor-pointer flex items-center justify-center gap-2 shadow-xs"
+                  >
+                    <span>🛞</span>
+                    <span>Assign Evac Chair</span>
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2 border-t border-slate-200">
+                  <button
+                    type="button"
+                    onClick={() => handleSendDirectPing(selectedOccupantForAction)}
+                    className="p-3 bg-red-600 hover:bg-red-500 text-white font-black rounded-xl transition cursor-pointer flex items-center justify-center gap-2 shadow-xs"
+                  >
+                    <span>🚨</span>
+                    <span>{directPingSuccessId === selectedOccupantForAction.id ? "✓ Ping Transmitted!" : "Send Direct Evac Ping"}</span>
+                  </button>
+
+                  {selectedOccupantForAction.phone ? (
+                    <a
+                      href={`tel:${selectedOccupantForAction.phone.replace(/[^\d+]/g, "")}`}
+                      className="p-3 bg-sky-600 hover:bg-sky-500 text-white font-bold rounded-xl transition cursor-pointer flex items-center justify-center gap-2 shadow-xs text-center"
+                    >
+                      <span>📞</span>
+                      <span>Call {selectedOccupantForAction.phone}</span>
+                    </a>
+                  ) : (
+                    <button
+                      disabled
+                      className="p-3 bg-slate-200 text-slate-500 font-bold rounded-xl cursor-not-allowed flex items-center justify-center gap-2 text-center"
+                    >
+                      <span>📞</span>
+                      <span>No Phone Listed</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="bg-[#F8FAFC] p-4 border-t border-[#CBDCEE] flex items-center justify-between text-xs">
+              <span className="text-slate-500 font-mono">Con Edison Life Safety · NYC Fire Code §401-06</span>
+              <button
+                type="button"
+                onClick={() => setSelectedOccupantForAction(null)}
+                className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold rounded-xl transition cursor-pointer"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
