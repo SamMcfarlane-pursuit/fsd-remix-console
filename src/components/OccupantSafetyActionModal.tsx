@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Occupant, QuadrantId } from "../types";
+import { ActualBuildingFloorMap } from "./ActualBuildingFloorMap";
 
 interface OccupantSafetyActionModalProps {
   occupant: Occupant | null;
@@ -14,6 +15,7 @@ interface OccupantSafetyActionModalProps {
   ) => Promise<any> | void;
   onSendDirectPing?: (occ: Occupant) => void;
   onFeedbackMessage?: (msg: string) => void;
+  onOpenRescueProcedure?: (occ: Occupant) => void;
 }
 
 const QUADRANT_LABELS: Record<QuadrantId, string> = {
@@ -29,6 +31,7 @@ export const OccupantSafetyActionModal: React.FC<OccupantSafetyActionModalProps>
   onCheckIn,
   onSendDirectPing,
   onFeedbackMessage,
+  onOpenRescueProcedure,
 }) => {
   const [pingSent, setPingSent] = useState(false);
   const [localFeedback, setLocalFeedback] = useState<string | null>(null);
@@ -175,105 +178,18 @@ export const OccupantSafetyActionModal: React.FC<OccupantSafetyActionModalProps>
               </div>
             </div>
 
-            {/* Mini Visual Floor Plan Blueprint with pinpoint dot */}
-            <div className="rounded-xl overflow-hidden border border-[#CBDCEE] bg-[#0A192F] relative p-2 shadow-inner">
-              <svg viewBox="0 0 400 240" className="w-full h-auto max-h-[160px] font-sans">
-                <rect width="400" height="240" fill="#0A192F" />
-                <rect x="10" y="10" width="380" height="220" fill="#0C213D" stroke="#005DAA" strokeWidth="1.5" rx="4" />
-
-                {/* Courtyard */}
-                <rect x="160" y="80" width="80" height="80" fill="#05101E" stroke="#1E3A5F" strokeWidth="1" rx="2" />
-                <text x="200" y="125" textAnchor="middle" fill="#64748B" fontSize="8" fontWeight="bold">COURTYARD</text>
-
-                {/* Stairwells */}
-                <rect x="10" y="80" width="30" height="60" fill="#059669" rx="2" />
-                <text x="25" y="115" textAnchor="middle" fill="#FFFFFF" fontSize="7" fontWeight="bold">STAIR B</text>
-
-                <rect x="360" y="80" width="30" height="60" fill="#059669" rx="2" />
-                <text x="375" y="115" textAnchor="middle" fill="#FFFFFF" fontSize="7" fontWeight="bold">STAIR A</text>
-
-                {/* Sectors */}
-                <rect
-                  x="20"
-                  y="20"
-                  width="130"
-                  height="55"
-                  fill={occupant.quadrant === "NW" ? "#0284C733" : "transparent"}
-                  stroke={occupant.quadrant === "NW" ? "#38BDF8" : "#1E3A5F"}
-                  strokeWidth={occupant.quadrant === "NW" ? "2" : "0.5"}
-                  rx="2"
-                />
-                <text x="30" y="35" fill="#94A3B8" fontSize="8" fontWeight="bold">SECTOR NW</text>
-
-                <rect
-                  x="250"
-                  y="20"
-                  width="130"
-                  height="55"
-                  fill={occupant.quadrant === "NE" ? "#0284C733" : "transparent"}
-                  stroke={occupant.quadrant === "NE" ? "#38BDF8" : "#1E3A5F"}
-                  strokeWidth={occupant.quadrant === "NE" ? "2" : "0.5"}
-                  rx="2"
-                />
-                <text x="260" y="35" fill="#94A3B8" fontSize="8" fontWeight="bold">SECTOR NE</text>
-
-                <rect
-                  x="20"
-                  y="165"
-                  width="130"
-                  height="55"
-                  fill={occupant.quadrant === "SW" ? "#0284C733" : "transparent"}
-                  stroke={occupant.quadrant === "SW" ? "#38BDF8" : "#1E3A5F"}
-                  strokeWidth={occupant.quadrant === "SW" ? "2" : "0.5"}
-                  rx="2"
-                />
-                <text x="30" y="180" fill="#94A3B8" fontSize="8" fontWeight="bold">SECTOR SW</text>
-
-                <rect
-                  x="250"
-                  y="165"
-                  width="130"
-                  height="55"
-                  fill={occupant.quadrant === "SE" ? "#0284C733" : "transparent"}
-                  stroke={occupant.quadrant === "SE" ? "#38BDF8" : "#1E3A5F"}
-                  strokeWidth={occupant.quadrant === "SE" ? "2" : "0.5"}
-                  rx="2"
-                />
-                <text x="260" y="180" fill="#94A3B8" fontSize="8" fontWeight="bold">SECTOR SE</text>
-
-                {/* Pulsing Pin Marker */}
-                {occupant.quadrant === "NW" && (
-                  <g transform="translate(85, 45)">
-                    <circle r="12" fill="#38BDF8" opacity="0.4" className="animate-ping" />
-                    <circle r="6" fill="#38BDF8" stroke="#FFFFFF" strokeWidth="1.5" />
-                    <text x="0" y="18" textAnchor="middle" fill="#FFFFFF" fontSize="7" fontWeight="black">{occupant.name.split(" ")[0]}</text>
-                  </g>
-                )}
-                {occupant.quadrant === "NE" && (
-                  <g transform="translate(315, 45)">
-                    <circle r="12" fill="#38BDF8" opacity="0.4" className="animate-ping" />
-                    <circle r="6" fill="#38BDF8" stroke="#FFFFFF" strokeWidth="1.5" />
-                    <text x="0" y="18" textAnchor="middle" fill="#FFFFFF" fontSize="7" fontWeight="black">{occupant.name.split(" ")[0]}</text>
-                  </g>
-                )}
-                {occupant.quadrant === "SW" && (
-                  <g transform="translate(85, 190)">
-                    <circle r="12" fill="#38BDF8" opacity="0.4" className="animate-ping" />
-                    <circle r="6" fill="#38BDF8" stroke="#FFFFFF" strokeWidth="1.5" />
-                    <text x="0" y="18" textAnchor="middle" fill="#FFFFFF" fontSize="7" fontWeight="black">{occupant.name.split(" ")[0]}</text>
-                  </g>
-                )}
-                {occupant.quadrant === "SE" && (
-                  <g transform="translate(315, 190)">
-                    <circle r="12" fill="#38BDF8" opacity="0.4" className="animate-ping" />
-                    <circle r="6" fill="#38BDF8" stroke="#FFFFFF" strokeWidth="1.5" />
-                    <text x="0" y="18" textAnchor="middle" fill="#FFFFFF" fontSize="7" fontWeight="black">{occupant.name.split(" ")[0]}</text>
-                  </g>
-                )}
-              </svg>
+            {/* Enterprise Vector CAD Architectural Floor Plan (Calm daylight theme, occupant-name free) */}
+            <div className="rounded-2xl overflow-hidden border border-[#CBDCEE] bg-white shadow-xs p-1">
+              <ActualBuildingFloorMap
+                targetQuadrant={occupant.quadrant}
+                targetDesk={occupant.desk}
+                targetStairwell={primaryExit}
+                showEgressPath={true}
+                className="border-0 shadow-none p-1 sm:p-2"
+              />
             </div>
 
-            <div className="text-[11px] text-slate-500 flex items-center justify-between">
+            <div className="text-[11px] text-slate-600 flex items-center justify-between font-medium">
               <span>Assigned Exit: {primaryExit}</span>
               <span>Descent Time: ~3 min</span>
             </div>
@@ -355,6 +271,33 @@ export const OccupantSafetyActionModal: React.FC<OccupantSafetyActionModalProps>
               </button>
             </div>
 
+            {/* Rescue Procedure SOP Trigger */}
+            {onOpenRescueProcedure && (
+              <div className="p-3 bg-red-50 rounded-2xl border-2 border-red-200 flex items-center justify-between gap-3 shadow-2xs">
+                <div className="flex items-center gap-2.5">
+                  <span className="text-xl shrink-0">🚨</span>
+                  <div>
+                    <div className="font-black text-xs text-red-950">
+                      Emergency Rescue Procedure & SAR
+                    </div>
+                    <div className="text-[10px] text-red-800 font-medium">
+                      Search & Rescue Squad Dispatch, Stairwell Evac Chair & Life Saved protocol
+                    </div>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClose();
+                    onOpenRescueProcedure(occupant);
+                  }}
+                  className="px-3.5 py-2 bg-red-600 hover:bg-red-700 text-white font-black text-xs rounded-xl shadow-xs transition cursor-pointer shrink-0 active:scale-95"
+                >
+                  Launch Rescue SOP →
+                </button>
+              </div>
+            )}
+
             {/* Secondary Quick Contact & Badge Out Row */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-2 border-t border-slate-200">
               {occupant.phone ? (
@@ -363,7 +306,7 @@ export const OccupantSafetyActionModal: React.FC<OccupantSafetyActionModalProps>
                   className="p-3 bg-sky-700 hover:bg-sky-600 text-white rounded-xl transition cursor-pointer flex items-center justify-center gap-2 shadow-xs font-bold text-xs text-center"
                 >
                   <span className="text-base">📞</span>
-                  <span>Call Mobile ({occupant.phone})</span>
+                  <span>Call Mobile: {occupant.phone}</span>
                 </a>
               ) : (
                 <button

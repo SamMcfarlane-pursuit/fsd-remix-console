@@ -1,5 +1,8 @@
 import React, { useState, useMemo } from "react";
 import { Occupant, OccupantStatus, QuadrantId, StatusSnapshot } from "../../types";
+import { OccupantSafetyActionModal } from "../OccupantSafetyActionModal";
+import { ActualBuildingFloorMap } from "../ActualBuildingFloorMap";
+import { EmergencyRescueProcedureModal } from "../EmergencyRescueProcedureModal";
 
 interface Step2SignedInProps {
   snapshot: StatusSnapshot | null;
@@ -22,6 +25,7 @@ interface Step2SignedInProps {
   onRefreshState: () => void;
   onProceedNext: () => void;
   onOpenWalkieTalkie?: () => void;
+  onOpenRescueProcedure?: (occ: Occupant) => void;
 }
 
 export const Step2SignedIn: React.FC<Step2SignedInProps> = ({
@@ -32,14 +36,16 @@ export const Step2SignedIn: React.FC<Step2SignedInProps> = ({
   onRefreshState,
   onProceedNext,
   onOpenWalkieTalkie,
+  onOpenRescueProcedure,
 }) => {
   const [selectedQuadrant, setSelectedQuadrant] = useState<string>("ALL");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [filterRole, setFilterRole] = useState<string>("ALL");
   const [filterStatus, setFilterStatus] = useState<string>("ALL");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [activeTab, setActiveTab] = useState<"roster" | "ledger">("roster");
+  const [activeTab, setActiveTab] = useState<"roster" | "ledger" | "map">("roster");
   const [selectedOccupantForAction, setSelectedOccupantForAction] = useState<Occupant | null>(null);
+  const [rescueProcedureOccupant, setRescueProcedureOccupant] = useState<Occupant | null>(null);
   const [actionFeedbackMsg, setActionFeedbackMsg] = useState<string | null>(null);
   const [directPingSuccessId, setDirectPingSuccessId] = useState<string | null>(null);
 
@@ -436,6 +442,18 @@ export const Step2SignedIn: React.FC<Step2SignedInProps> = ({
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse ml-0.5" />
             </button>
 
+            <button
+              type="button"
+              onClick={() => setActiveTab("map")}
+              className={`px-3 py-1.5 rounded-xl font-bold text-xs transition cursor-pointer flex items-center gap-1.5 ${activeTab === "map"
+                  ? "bg-[#0284C7] text-white shadow-xs"
+                  : "bg-white text-slate-600 border border-[#CBDCEE] hover:bg-[#F0F6FC]"
+                }`}
+            >
+              <span>🗺️</span>
+              <span>Floor 07 CAD Map</span>
+            </button>
+
             {selectedIds.size > 0 && activeTab === "roster" && (
               <span className="text-xs font-mono font-bold text-[#005DAA] bg-[#EBF3FB] px-2.5 py-0.5 rounded-full border border-[#CBDCEE]">
                 {selectedIds.size} Selected
@@ -681,8 +699,25 @@ export const Step2SignedIn: React.FC<Step2SignedInProps> = ({
         onCheckIn={onCheckIn}
         onSendDirectPing={handleSendDirectPing}
         onFeedbackMessage={(msg) => setActionFeedbackMsg(msg)}
-        onOpenRescueProcedure={onOpenRescueProcedure}
+        onOpenRescueProcedure={(occ) => {
+          if (onOpenRescueProcedure) {
+            onOpenRescueProcedure(occ);
+          } else {
+            setRescueProcedureOccupant(occ);
+          }
+        }}
       />
+
+      {/* Emergency Rescue Procedure Modal if triggered locally */}
+      {rescueProcedureOccupant && (
+        <EmergencyRescueProcedureModal
+          isOpen={!!rescueProcedureOccupant}
+          occupant={rescueProcedureOccupant}
+          onClose={() => setRescueProcedureOccupant(null)}
+          onCheckIn={onCheckIn}
+          onOpenWalkieTalkie={onOpenWalkieTalkie}
+        />
+      )}
     </div>
   );
 };
