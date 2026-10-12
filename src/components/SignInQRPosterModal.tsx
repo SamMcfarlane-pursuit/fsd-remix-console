@@ -57,7 +57,7 @@ export const SignInQRPosterModal: React.FC<SignInQRPosterModalProps> = ({
     };
   }, [isOpen]);
 
-  const signInUrl = `${mobileOrigin}/?mode=signin&scan=1&new=1`;
+  const signInUrl = `${mobileOrigin}/?scan=1&mode=signin`;
 
   useEffect(() => {
     if (isOpen) {

@@ -188,12 +188,12 @@ function generateInitialRoster(targetCount: number = 195): Occupant[] {
       // VIP / Leadership Overrides
       if (id === "OCC-101") {
         name = "Robert Petillo";
-        role = "Staff Lead";
+        role = "VIP";
         desk = "07-800-A1";
         phone = "(212) 555-0195";
       } else if (id === "OCC-102") {
         name = "Samuel McFarlane";
-        role = "Systems Architect";
+        role = "Employee";
         desk = "07-700-A1";
         phone = "(212) 555-0196";
       } else {
@@ -458,7 +458,7 @@ function getDerivedSnapshot(): StatusSnapshot {
   const needHelpCount = present.filter((o) => o.status === "need-help").length;
   const miaCount = present.filter((o) => o.status === "mia" || (o.status === "unaccounted" && o.likelyMia)).length;
   const awaitingEvacChairCount = present.filter(
-    (o) => o.status === "awaiting-evac-chair" || (o.needsAssistance && o.status !== "safe")
+    (o) => o.status === "awaiting-evac-chair" || ((o.needEvacChair || (o as any).needsAssistance) && o.status !== "safe")
   ).length;
 
   const quadrants: QuadrantStat[] = QUADRANT_IDS.map((id) => {

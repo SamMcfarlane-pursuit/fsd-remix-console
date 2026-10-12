@@ -249,7 +249,7 @@ export const Step1Scan: React.FC<Step1ScanProps> = ({
   };
 
   useEffect(() => {
-    const scanUrl = `${mobileOrigin}/?mode=signin&scan=1&new=1`;
+    const scanUrl = `${mobileOrigin}/?mode=signin&scan=1`;
     // High-resolution rendering with M error correction for rapid phone camera focus
     const targetWidth = qrDisplaySize === "supersize" || isSuperSizeModalOpen ? 800 : (qrDisplaySize === "large" ? 540 : 360);
     QRCode.toDataURL(scanUrl, {

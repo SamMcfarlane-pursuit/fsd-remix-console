@@ -117,7 +117,7 @@ export default function LoginScreen({
       ? `http://${lanIp}:3000`
       : activeNetworkOrigin || `http://${lanIp || "localhost"}:3000`;
 
-  const targetSignInUrl = `${activeBaseUrl}/?mode=signin&scan=1&new=1`;
+  const targetSignInUrl = `${activeBaseUrl}/?mode=signin&scan=1`;
 
   useEffect(() => {
     QRCode.toDataURL(targetSignInUrl, {

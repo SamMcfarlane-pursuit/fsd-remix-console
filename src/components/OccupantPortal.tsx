@@ -180,37 +180,43 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
 
   // Evacuation Guide UI state
   const [isEvacGuideExpanded, setIsEvacGuideExpanded] = useState<boolean>(true);
-  const [activeEvacTab, setActiveEvacTab] = useState<"route" | "steps" | "equipment" | "contacts">("route");
+  const [activeEvacTab, setActiveEvacTab] = useState<"map" | "route" | "equipment" | "contacts">("map");
 
   // Screen state:
-  // If explicit sign-in intent (?mode=signin or ?scan=1) without specific occupant ID, always open sign-in sheet.
-  // If specific ?id= is given or returning user with stored pass, show 'confirmed' pass screen.
+  // Intelligent 5G / Cellular & Wi-Fi QR Routing:
+  // - If returning user (stored pass in phone localStorage or explicit ID in URL): route directly to "confirmed" pass & evac procedure/map format!
+  // - If newcomer (never registered on this phone before, no stored pass): route to "newcomer-signin" registration format!
+  // - If explicit override (?force_new=1 or ?register=1): route to "newcomer-signin".
   const [viewState, setViewState] = useState<"newcomer-signin" | "confirmed">(() => {
     try {
       if (typeof window !== "undefined") {
         const params = new URLSearchParams(window.location.search);
+        
+        // Force new sign-in flow if explicitly requested via query param
+        const isForceNew =
+          params.get("force_new") === "1" ||
+          params.get("register") === "1" ||
+          params.get("new") === "1";
+
+        if (isForceNew) {
+          return "newcomer-signin";
+        }
+
         const hasExplicitId = Boolean(
           params.get("id") || params.get("badge") || params.get("user") || params.get("occupantId")
         );
-        const isSignInIntent =
-          params.get("mode") === "signin" ||
-          params.get("scan") === "1" ||
-          params.get("scan") === "signin" ||
-          params.get("new") === "1" ||
-          params.get("register") === "1";
-
-        if (isSignInIntent && !hasExplicitId) {
-          return "newcomer-signin";
-        }
-        if (hasExplicitId) {
-          return "confirmed";
-        }
         const stored =
           localStorage.getItem("muster_registered_occupant_id") ||
           localStorage.getItem("muster_occupant_id");
-        if (stored) {
+
+        // If returning user (either URL specified occupant ID or pass stored in phone's localStorage)
+        // -> Directly route to confirmed pass, emergency evacuation procedure & stairwell map!
+        if (hasExplicitId || stored) {
           return "confirmed";
         }
+
+        // Newcomer with no existing pass stored -> sign-in registration format
+        return "newcomer-signin";
       }
     } catch {}
     return "newcomer-signin";
@@ -1462,30 +1468,41 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
                   <div className="flex items-center gap-1.5 bg-[#06101E] p-1 rounded-xl border border-white/10 text-[11px] font-bold">
                     <button
                       type="button"
+                      onClick={() => setActiveEvacTab("map")}
+                      className={`flex-1 py-2 px-1.5 rounded-lg transition cursor-pointer text-center ${
+                        activeEvacTab === "map"
+                          ? "bg-[#005DAA] text-white shadow-xs font-black"
+                          : "text-slate-400 hover:text-white"
+                      }`}
+                    >
+                      🗺️ Stair Map
+                    </button>
+                    <button
+                      type="button"
                       onClick={() => setActiveEvacTab("route")}
-                      className={`flex-1 py-2 px-2 rounded-lg transition cursor-pointer text-center ${
+                      className={`flex-1 py-2 px-1.5 rounded-lg transition cursor-pointer text-center ${
                         activeEvacTab === "route"
                           ? "bg-[#005DAA] text-white shadow-xs font-black"
                           : "text-slate-400 hover:text-white"
                       }`}
                     >
-                      🚶‍♂️ 5-Step Protocol
+                      🚶‍♂️ 5-Step Egress
                     </button>
                     <button
                       type="button"
                       onClick={() => setActiveEvacTab("equipment")}
-                      className={`flex-1 py-2 px-2 rounded-lg transition cursor-pointer text-center ${
+                      className={`flex-1 py-2 px-1.5 rounded-lg transition cursor-pointer text-center ${
                         activeEvacTab === "equipment"
                           ? "bg-[#005DAA] text-white shadow-xs font-black"
                           : "text-slate-400 hover:text-white"
                       }`}
                     >
-                      🛞 Safety Equipment
+                      🛞 Life Safety
                     </button>
                     <button
                       type="button"
                       onClick={() => setActiveEvacTab("contacts")}
-                      className={`flex-1 py-2 px-2 rounded-lg transition cursor-pointer text-center ${
+                      className={`flex-1 py-2 px-1.5 rounded-lg transition cursor-pointer text-center ${
                         activeEvacTab === "contacts"
                           ? "bg-[#005DAA] text-white shadow-xs font-black"
                           : "text-slate-400 hover:text-white"
@@ -1494,6 +1511,430 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
                       🚨 Emergency Dials
                     </button>
                   </div>
+
+                  {/* Tab 0: Floor 07 Interactive Stairwell Evacuation Map */}
+                  {activeEvacTab === "map" && (
+                    <div className="space-y-3 animate-fadeIn">
+                      {/* Header bar with assigned door and descent estimate */}
+                      <div className="bg-[#10243E] p-3 rounded-xl border border-sky-500/40 flex flex-wrap items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />
+                          <span className="font-mono font-black text-white text-xs uppercase tracking-wide">
+                            YOUR EVACUATION MAP · SECTOR {currentUser.quadrant}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-bold">
+                            Primary: {currentUser.quadrant === "NW" || currentUser.quadrant === "NE" ? "Door 7-A (Stair A)" : "Door 7-B (Stair B)"}
+                          </span>
+                          <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 font-bold">
+                            ~3 min descent
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* As-Built Floor Plan Diagram SVG Container */}
+                      <div className="relative rounded-xl overflow-hidden border-2 border-sky-500/50 bg-[#081528] shadow-inner">
+                        <svg viewBox="0 0 1000 620" className="w-full h-auto max-h-[460px] font-sans select-none block">
+                          <defs>
+                            <pattern id="evacCadGrid" width="20" height="20" patternUnits="userSpaceOnUse">
+                              <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#1E3A5F" strokeWidth="0.8" opacity="0.6" />
+                            </pattern>
+                            <radialGradient id="beaconGlow" cx="50%" cy="50%" r="50%">
+                              <stop offset="0%" stopColor="#38BDF8" stopOpacity="0.9" />
+                              <stop offset="60%" stopColor="#0284C7" stopOpacity="0.4" />
+                              <stop offset="100%" stopColor="#0284C7" stopOpacity="0" />
+                            </radialGradient>
+                            <style>{`
+                              @keyframes egressDash {
+                                to { stroke-dashoffset: -32; }
+                              }
+                              .animated-egress-route {
+                                stroke-dasharray: 8 6;
+                                animation: egressDash 1.2s linear infinite;
+                              }
+                              @keyframes pulsePin {
+                                0%, 100% { transform: scale(1); opacity: 1; }
+                                50% { transform: scale(1.25); opacity: 0.7; }
+                              }
+                              .beacon-pin {
+                                transform-origin: center;
+                                animation: pulsePin 1.6s ease-in-out infinite;
+                              }
+                            `}</style>
+                          </defs>
+
+                          {/* Grid Background */}
+                          <rect width="1000" height="620" fill="#0A192F" />
+                          <rect width="1000" height="620" fill="url(#evacCadGrid)" />
+
+                          {/* Perimeter Compass Streets */}
+                          <rect x="0" y="0" width="1000" height="24" fill="#002D5A" />
+                          <text x="500" y="16" textAnchor="middle" fill="#FFFFFF" fontSize="11" fontWeight="900" letterSpacing="3">
+                            ▲ NORTH — EAST 15TH STREET ▲
+                          </text>
+
+                          <rect x="0" y="24" width="24" height="572" fill="#002D5A" />
+                          <text x="-310" y="16" transform="rotate(-90)" textAnchor="middle" fill="#FFFFFF" fontSize="11" fontWeight="900" letterSpacing="3">
+                            ◄ WEST — IRVING PLACE ◄
+                          </text>
+
+                          <rect x="976" y="24" width="24" height="572" fill="#002D5A" />
+                          <text x="310" y="-984" transform="rotate(90)" textAnchor="middle" fill="#FFFFFF" fontSize="11" fontWeight="900" letterSpacing="3">
+                            ► EAST — UNION SQUARE EAST / 3RD AVE ►
+                          </text>
+
+                          <rect x="0" y="596" width="1000" height="24" fill="#002D5A" />
+                          <text x="500" y="612" textAnchor="middle" fill="#FFFFFF" fontSize="11" fontWeight="900" letterSpacing="3">
+                            ▼ SOUTH — EAST 14TH STREET ▼
+                          </text>
+
+                          {/* Outer Building Wall Boundary */}
+                          <rect x="36" y="34" width="928" height="552" fill="#0C213D" stroke="#005DAA" strokeWidth="2.5" rx="6" />
+
+                          {/* Central Lightwell Open Air Courtyard */}
+                          <rect x="420" y="210" width="160" height="190" fill="#05101E" stroke="#1E3A5F" strokeWidth="1.5" rx="4" />
+                          <text x="500" y="295" textAnchor="middle" fill="#64748B" fontSize="11" fontWeight="900" letterSpacing="2">
+                            COURTYARD
+                          </text>
+                          <text x="500" y="315" textAnchor="middle" fill="#475569" fontSize="9" fontWeight="bold">
+                            (OPEN AIR LIGHTWELL)
+                          </text>
+
+                          {/* Central Elevator Banks - Locked Out Warning */}
+                          <g transform="translate(420, 75)">
+                            <rect width="160" height="120" fill="#450A0A" stroke="#EF4444" strokeWidth="2" rx="4" />
+                            <text x="80" y="26" textAnchor="middle" fill="#FCA5A5" fontSize="10.5" fontWeight="900">
+                              ELEVATOR LOBBY C
+                            </text>
+                            <rect x="15" y="36" width="36" height="42" fill="#7F1D1D" stroke="#EF4444" strokeWidth="1" rx="2" />
+                            <text x="33" y="60" textAnchor="middle" fill="#FCA5A5" fontSize="8" fontWeight="bold">EL-A</text>
+                            <rect x="62" y="36" width="36" height="42" fill="#7F1D1D" stroke="#EF4444" strokeWidth="1" rx="2" />
+                            <text x="80" y="60" textAnchor="middle" fill="#FCA5A5" fontSize="8" fontWeight="bold">EL-B</text>
+                            <rect x="108" y="36" width="38" height="42" fill="#7F1D1D" stroke="#EF4444" strokeWidth="1" rx="2" />
+                            <text x="127" y="60" textAnchor="middle" fill="#FCA5A5" fontSize="8" fontWeight="bold">EL-C</text>
+                            <rect x="10" y="86" width="140" height="24" fill="#991B1B" rx="3" />
+                            <text x="80" y="102" textAnchor="middle" fill="#FFFFFF" fontSize="8.5" fontWeight="900">
+                              🚫 LOCKED OUT IN ALARM
+                            </text>
+                          </g>
+
+                          {/* Elev Lobby E (NW) */}
+                          <g transform="translate(180, 75)">
+                            <rect width="110" height="85" fill="#1E293B" stroke="#475569" strokeWidth="1.5" rx="3" />
+                            <text x="55" y="28" textAnchor="middle" fill="#94A3B8" fontSize="9.5" fontWeight="900">
+                              ELEV LOBBY E
+                            </text>
+                            <text x="55" y="55" textAnchor="middle" fill="#EF4444" fontSize="8" fontWeight="bold">
+                              🚫 NO EVAC USE
+                            </text>
+                          </g>
+
+                          {/* Elev Lobby G (NE) */}
+                          <g transform="translate(710, 75)">
+                            <rect width="110" height="85" fill="#1E293B" stroke="#475569" strokeWidth="1.5" rx="3" />
+                            <text x="55" y="28" textAnchor="middle" fill="#94A3B8" fontSize="9.5" fontWeight="900">
+                              ELEV LOBBY G
+                            </text>
+                            <text x="55" y="55" textAnchor="middle" fill="#EF4444" fontSize="8" fontWeight="bold">
+                              🚫 NO EVAC USE
+                            </text>
+                          </g>
+
+                          {/* ======================================================== */}
+                          {/* STAIRWELL A — EAST CORE (DOOR 7-A · UNION SQ EAST EXIT)  */}
+                          {/* ======================================================== */}
+                          <g transform="translate(885, 195)">
+                            <rect
+                              width="80"
+                              height="145"
+                              fill={currentUser.quadrant === "NW" || currentUser.quadrant === "NE" ? "#064E3B" : "#1E293B"}
+                              stroke={currentUser.quadrant === "NW" || currentUser.quadrant === "NE" ? "#10B981" : "#059669"}
+                              strokeWidth={currentUser.quadrant === "NW" || currentUser.quadrant === "NE" ? "3" : "1.5"}
+                              rx="5"
+                            />
+                            <rect x="5" y="6" width="70" height="24" fill="#059669" rx="3" />
+                            <text x="40" y="22" textAnchor="middle" fill="#FFFFFF" fontSize="9.5" fontWeight="900">
+                              🚪 STAIR A
+                            </text>
+                            <text x="40" y="44" textAnchor="middle" fill="#A7F3D0" fontSize="8" fontWeight="900">
+                              DOOR 7-A
+                            </text>
+                            <text x="40" y="58" textAnchor="middle" fill="#6EE7B7" fontSize="7" fontWeight="bold">
+                              EAST CORE
+                            </text>
+                            <rect x="6" y="66" width="68" height="20" fill="#D97706" rx="2" />
+                            <text x="40" y="80" textAnchor="middle" fill="#FFFFFF" fontSize="7.5" fontWeight="900">
+                              🛞 ARA CHAIR
+                            </text>
+                            <text x="40" y="102" textAnchor="middle" fill="#E2E8F0" fontSize="7" fontWeight="bold">
+                              Descent: 3m
+                            </text>
+                            <rect
+                              x="6"
+                              y="112"
+                              width="68"
+                              height="22"
+                              fill={currentUser.quadrant === "NW" || currentUser.quadrant === "NE" ? "#10B981" : "#334155"}
+                              rx="3"
+                            />
+                            <text x="40" y="127" textAnchor="middle" fill="#FFFFFF" fontSize="7.5" fontWeight="900">
+                              {currentUser.quadrant === "NW" || currentUser.quadrant === "NE" ? "⭐ PRIMARY" : "BACKUP"}
+                            </text>
+                          </g>
+
+                          {/* ======================================================== */}
+                          {/* STAIRWELL B — WEST CORE (DOOR 7-B · IRVING PLACE EXIT)   */}
+                          {/* ======================================================== */}
+                          <g transform="translate(36, 195)">
+                            <rect
+                              width="80"
+                              height="145"
+                              fill={currentUser.quadrant === "SW" || currentUser.quadrant === "SE" ? "#064E3B" : "#1E293B"}
+                              stroke={currentUser.quadrant === "SW" || currentUser.quadrant === "SE" ? "#10B981" : "#059669"}
+                              strokeWidth={currentUser.quadrant === "SW" || currentUser.quadrant === "SE" ? "3" : "1.5"}
+                              rx="5"
+                            />
+                            <rect x="5" y="6" width="70" height="24" fill="#059669" rx="3" />
+                            <text x="40" y="22" textAnchor="middle" fill="#FFFFFF" fontSize="9.5" fontWeight="900">
+                              🚪 STAIR B
+                            </text>
+                            <text x="40" y="44" textAnchor="middle" fill="#A7F3D0" fontSize="8" fontWeight="900">
+                              DOOR 7-B
+                            </text>
+                            <text x="40" y="58" textAnchor="middle" fill="#6EE7B7" fontSize="7" fontWeight="bold">
+                              WEST CORE
+                            </text>
+                            <rect x="6" y="66" width="68" height="20" fill="#047857" rx="2" />
+                            <text x="40" y="80" textAnchor="middle" fill="#FFFFFF" fontSize="7.5" fontWeight="900">
+                              PRESSURIZED
+                            </text>
+                            <text x="40" y="102" textAnchor="middle" fill="#E2E8F0" fontSize="7" fontWeight="bold">
+                              Descent: 3m
+                            </text>
+                            <rect
+                              x="6"
+                              y="112"
+                              width="68"
+                              height="22"
+                              fill={currentUser.quadrant === "SW" || currentUser.quadrant === "SE" ? "#10B981" : "#334155"}
+                              rx="3"
+                            />
+                            <text x="40" y="127" textAnchor="middle" fill="#FFFFFF" fontSize="7.5" fontWeight="900">
+                              {currentUser.quadrant === "SW" || currentUser.quadrant === "SE" ? "⭐ PRIMARY" : "BACKUP"}
+                            </text>
+                          </g>
+
+                          {/* ======================================================== */}
+                          {/* QUADRANT SECTORS                                         */}
+                          {/* ======================================================== */}
+                          {/* SECTOR NW */}
+                          <g transform="translate(46, 44)">
+                            <rect
+                              width="360"
+                              height="145"
+                              fill={currentUser.quadrant === "NW" ? "#0284C718" : "#0F172A"}
+                              stroke={currentUser.quadrant === "NW" ? "#38BDF8" : "#1E3A5F"}
+                              strokeWidth={currentUser.quadrant === "NW" ? "3" : "1"}
+                              rx="4"
+                            />
+                            <rect x="0" y="0" width="220" height="22" fill={currentUser.quadrant === "NW" ? "#0284C7" : "#1E3A5F"} rx="3" />
+                            <text x="110" y="15" textAnchor="middle" fill="#FFFFFF" fontSize="9.5" fontWeight="900">
+                              SECTOR NW · STRATEGIC PLANNING
+                            </text>
+                            {currentUser.quadrant === "NW" && (
+                              <g transform="translate(180, 75)" className="beacon-pin">
+                                <circle r="22" fill="url(#beaconGlow)" />
+                                <circle r="10" fill="#38BDF8" stroke="#FFFFFF" strokeWidth="2" />
+                                <text x="0" y="24" textAnchor="middle" fill="#38BDF8" fontSize="9" fontWeight="900">
+                                  📍 YOU ARE HERE ({currentUser.name.split(" ")[0]})
+                                </text>
+                              </g>
+                            )}
+                          </g>
+
+                          {/* SECTOR NE */}
+                          <g transform="translate(590, 44)">
+                            <rect
+                              width="370"
+                              height="145"
+                              fill={currentUser.quadrant === "NE" ? "#0284C718" : "#0F172A"}
+                              stroke={currentUser.quadrant === "NE" ? "#38BDF8" : "#1E3A5F"}
+                              strokeWidth={currentUser.quadrant === "NE" ? "3" : "1"}
+                              rx="4"
+                            />
+                            <rect x="0" y="0" width="240" height="22" fill={currentUser.quadrant === "NE" ? "#0284C7" : "#1E3A5F"} rx="3" />
+                            <text x="120" y="15" textAnchor="middle" fill="#FFFFFF" fontSize="9.5" fontWeight="900">
+                              SECTOR NE · SECURITY &amp; GAS OPS
+                            </text>
+                            {currentUser.quadrant === "NE" && (
+                              <g transform="translate(180, 75)" className="beacon-pin">
+                                <circle r="22" fill="url(#beaconGlow)" />
+                                <circle r="10" fill="#38BDF8" stroke="#FFFFFF" strokeWidth="2" />
+                                <text x="0" y="24" textAnchor="middle" fill="#38BDF8" fontSize="9" fontWeight="900">
+                                  📍 YOU ARE HERE ({currentUser.name.split(" ")[0]})
+                                </text>
+                              </g>
+                            )}
+                          </g>
+
+                          {/* SECTOR SW */}
+                          <g transform="translate(46, 345)">
+                            <rect
+                              width="360"
+                              height="235"
+                              fill={currentUser.quadrant === "SW" ? "#0284C718" : "#0F172A"}
+                              stroke={currentUser.quadrant === "SW" ? "#38BDF8" : "#1E3A5F"}
+                              strokeWidth={currentUser.quadrant === "SW" ? "3" : "1"}
+                              rx="4"
+                            />
+                            <rect x="0" y="0" width="220" height="22" fill={currentUser.quadrant === "SW" ? "#0284C7" : "#1E3A5F"} rx="3" />
+                            <text x="110" y="15" textAnchor="middle" fill="#FFFFFF" fontSize="9.5" fontWeight="900">
+                              SECTOR SW · AMI / STEAM WEST
+                            </text>
+                            {currentUser.quadrant === "SW" && (
+                              <g transform="translate(180, 115)" className="beacon-pin">
+                                <circle r="22" fill="url(#beaconGlow)" />
+                                <circle r="10" fill="#38BDF8" stroke="#FFFFFF" strokeWidth="2" />
+                                <text x="0" y="24" textAnchor="middle" fill="#38BDF8" fontSize="9" fontWeight="900">
+                                  📍 YOU ARE HERE ({currentUser.name.split(" ")[0]})
+                                </text>
+                              </g>
+                            )}
+                          </g>
+
+                          {/* SECTOR SE */}
+                          <g transform="translate(590, 345)">
+                            <rect
+                              width="370"
+                              height="235"
+                              fill={currentUser.quadrant === "SE" ? "#0284C718" : "#0F172A"}
+                              stroke={currentUser.quadrant === "SE" ? "#38BDF8" : "#1E3A5F"}
+                              strokeWidth={currentUser.quadrant === "SE" ? "3" : "1"}
+                              rx="4"
+                            />
+                            <rect x="0" y="0" width="240" height="22" fill={currentUser.quadrant === "SE" ? "#0284C7" : "#1E3A5F"} rx="3" />
+                            <text x="120" y="15" textAnchor="middle" fill="#FFFFFF" fontSize="9.5" fontWeight="900">
+                              SECTOR SE · OPERATIONS &amp; TURNSTILES
+                            </text>
+                            {currentUser.quadrant === "SE" && (
+                              <g transform="translate(180, 115)" className="beacon-pin">
+                                <circle r="22" fill="url(#beaconGlow)" />
+                                <circle r="10" fill="#38BDF8" stroke="#FFFFFF" strokeWidth="2" />
+                                <text x="0" y="24" textAnchor="middle" fill="#38BDF8" fontSize="9" fontWeight="900">
+                                  📍 YOU ARE HERE ({currentUser.name.split(" ")[0]})
+                                </text>
+                              </g>
+                            )}
+                          </g>
+
+                          {/* ======================================================== */}
+                          {/* ANIMATED EGRESS ROUTE PATH TO ASSIGNED PRIMARY STAIRWELL */}
+                          {/* ======================================================== */}
+                          {currentUser.quadrant === "NW" && (
+                            <path
+                              d="M 226 119 L 400 119 L 400 65 L 600 65 L 885 240"
+                              fill="none"
+                              stroke="#10B981"
+                              strokeWidth="4"
+                              strokeLinecap="round"
+                              className="animated-egress-route"
+                            />
+                          )}
+                          {currentUser.quadrant === "NE" && (
+                            <path
+                              d="M 770 119 L 885 240"
+                              fill="none"
+                              stroke="#10B981"
+                              strokeWidth="4"
+                              strokeLinecap="round"
+                              className="animated-egress-route"
+                            />
+                          )}
+                          {currentUser.quadrant === "SW" && (
+                            <path
+                              d="M 226 460 L 116 265"
+                              fill="none"
+                              stroke="#10B981"
+                              strokeWidth="4"
+                              strokeLinecap="round"
+                              className="animated-egress-route"
+                            />
+                          )}
+                          {currentUser.quadrant === "SE" && (
+                            <path
+                              d="M 770 460 L 580 550 L 230 550 L 116 265"
+                              fill="none"
+                              stroke="#10B981"
+                              strokeWidth="4"
+                              strokeLinecap="round"
+                              className="animated-egress-route"
+                            />
+                          )}
+
+                          {/* Outdoor Assembly Callouts */}
+                          <g transform="translate(720, 565)">
+                            <rect width="240" height="24" fill="#065F46" stroke="#34D399" strokeWidth="1" rx="3" />
+                            <text x="120" y="16" textAnchor="middle" fill="#ECFDF5" fontSize="8.5" fontWeight="900">
+                              🌳 ASSEMBLY POINT A · PARK PLAZA (200FT+)
+                            </text>
+                          </g>
+                          <g transform="translate(46, 565)">
+                            <rect width="240" height="24" fill="#065F46" stroke="#34D399" strokeWidth="1" rx="3" />
+                            <text x="120" y="16" textAnchor="middle" fill="#ECFDF5" fontSize="8.5" fontWeight="900">
+                              🌳 ASSEMBLY POINT B · IRVING PL (200FT+)
+                            </text>
+                          </g>
+                        </svg>
+                      </div>
+
+                      {/* Map Key & Tactical Steps */}
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[10px] font-mono">
+                        <div className="bg-[#10243E] p-2 rounded-lg border border-white/10 flex items-center gap-1.5">
+                          <span>🚪</span>
+                          <span className="text-emerald-300 font-bold">Door 7-A: East Core</span>
+                        </div>
+                        <div className="bg-[#10243E] p-2 rounded-lg border border-white/10 flex items-center gap-1.5">
+                          <span>🚪</span>
+                          <span className="text-emerald-300 font-bold">Door 7-B: West Core</span>
+                        </div>
+                        <div className="bg-[#10243E] p-2 rounded-lg border border-red-500/30 flex items-center gap-1.5">
+                          <span>🚫</span>
+                          <span className="text-red-300 font-bold">Elevators Grounded</span>
+                        </div>
+                        <div className="bg-[#10243E] p-2 rounded-lg border border-amber-500/30 flex items-center gap-1.5">
+                          <span>🛞</span>
+                          <span className="text-amber-300 font-bold">Stryker ARA Chair</span>
+                        </div>
+                      </div>
+
+                      {/* Tactical Egress Instructions Card */}
+                      <div className="bg-[#10243E] p-3 rounded-xl border border-white/10 space-y-1.5 text-xs">
+                        <div className="font-black text-white flex items-center justify-between">
+                          <span className="flex items-center gap-1.5 text-amber-300">
+                            <span>🚶‍♂️</span>
+                            <span>Tactical Route for {currentUser.name}</span>
+                          </span>
+                          <span className="text-[10px] text-slate-300 font-mono">
+                            Floor 07 · Con Edison
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-200 leading-relaxed">
+                          {quadrantEscapeInfo.primaryPath}
+                        </p>
+                        <div className="pt-1 border-t border-white/10 flex flex-wrap items-center justify-between gap-1 text-[11px] text-slate-300">
+                          <div>
+                            <span className="text-slate-400">Outdoor Assembly: </span>
+                            <span className="font-bold text-emerald-300">{quadrantEscapeInfo.assemblyPoint}</span>
+                          </div>
+                          <div>
+                            <span className="text-slate-400">Street: </span>
+                            <span className="font-bold text-white">{quadrantEscapeInfo.assemblyCrossStreet}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Tab 1: NYC Fire Code 5-Step Evacuation Protocol */}
                   {activeEvacTab === "route" && (

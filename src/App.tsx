@@ -17,7 +17,7 @@ import { PinModal } from "./components/PinModal";
 import { WalkieTalkieModal } from "./components/WalkieTalkieModal";
 import { setAudioMuted, getAudioMuted } from "./lib/audioBroadcast";
 import { UserRole, setStoredRole, getStoredRole } from "./lib/authGuard";
-import { AuthUser, EmergencyAlertPayload, LocationCategory, OccupantStatus, StatusSnapshot } from "./types";
+import { AuthUser, EmergencyAlertPayload, LocationCategory, OccupantStatus, StatusSnapshot, QuadrantId } from "./types";
 import { validateGeofence, LocationMetadata, FLOOR_07_CONSTRAINTS } from "./lib/geofence";
 import { appendLedgerEntry } from "./lib/ledger";
 import {
