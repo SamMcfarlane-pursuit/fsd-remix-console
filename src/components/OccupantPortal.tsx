@@ -247,6 +247,10 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
   const [eventToken, setEventToken] = useState<string | null>(null);
   const [eventDetails, setEventDetails] = useState<{ name: string; date: string } | null>(null);
 
+  // Quick Direct Phone Number / Badge Connect Input
+  const [connectNumberInput, setConnectNumberInput] = useState("");
+  const [isConnectingDirect, setIsConnectingDirect] = useState(false);
+
   // Cache active roster whenever roster size changes
   const lastCachedRosterLenRef = useRef<number>(0);
   useEffect(() => {
@@ -323,12 +327,68 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
       )
     : null;
 
+  // Direct Connect by Mobile Number or Badge ID
+  const handleDirectConnect = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const query = connectNumberInput.trim();
+    if (!query) {
+      setErrorMessage("Please enter your mobile phone number or badge ID to connect.");
+      return;
+    }
+    setIsConnectingDirect(true);
+    setErrorMessage(null);
+    try {
+      const res = await fetch("/api/occupant/connect", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone: query, action: signAction === "leave" ? "leave" : "enter" }),
+      });
+      const data = await res.json();
+      if (res.ok && data.occupant) {
+        const occ: Occupant = data.occupant;
+        setSelectedUserId(occ.id);
+        setSavedOccupantId(occ.id);
+        setLocalRegisteredOccupant(occ);
+        try {
+          localStorage.setItem("muster_registered_occupant_id", occ.id);
+          localStorage.setItem("muster_occupant_id", occ.id);
+          localStorage.setItem("muster_registered_name", occ.name);
+          if (occ.phone) localStorage.setItem("muster_registered_phone", occ.phone);
+          localStorage.setItem("muster_registered_quad", occ.quadrant);
+          localStorage.setItem("muster_registered_role", occ.role);
+          if (occ.company) localStorage.setItem("muster_registered_company", occ.company);
+          localStorage.setItem("muster_registered_occupant_json", JSON.stringify(occ));
+        } catch (e) {}
+        setViewState("confirmed");
+        setActionSubmittedMsg(`⚡ Connected as ${occ.name} (${occ.id})! Phone & presence saved directly. Floor 07 pass active.`);
+        setTimeout(() => setActionSubmittedMsg(null), 8000);
+      } else {
+        // Local fallback check
+        const digits = query.replace(/\D/g, "");
+        const localMatch =
+          (digits.length >= 4 ? occupants.find((o) => o.phone && o.phone.replace(/\D/g, "").endsWith(digits)) : undefined) ||
+          occupants.find((o) => o.id.toUpperCase() === query.toUpperCase()) ||
+          occupants.find((o) => o.name.toLowerCase().includes(query.toLowerCase()));
+        if (localMatch) {
+          await handleDirectSignInExisting(localMatch);
+        } else {
+          setErrorMessage(data.error || "No occupant found for that number or ID. You can register below.");
+        }
+      }
+    } catch (err: any) {
+      setErrorMessage(err.message || "Failed to connect with that number.");
+    } finally {
+      setIsConnectingDirect(false);
+    }
+  };
+
   // Direct Sign-In for recognized user in database (with offline resilience)
   const handleDirectSignInExisting = async (existingUser: Occupant) => {
     setIsSubmitting(true);
     setErrorMessage(null);
     try {
       let isOfflineSaved = false;
+      const phoneToSave = signPhone.trim() || existingUser.phone;
       try {
         const res = await fetch("/api/occupant/presence", {
           method: "POST",
@@ -336,6 +396,7 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
           body: JSON.stringify({
             occupantId: existingUser.id,
             action: signAction === "leave" ? "leave" : "enter",
+            phone: phoneToSave,
           }),
         });
         if (!res.ok) throw new Error("Presence endpoint returned error");
@@ -344,6 +405,7 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
         queueOfflineAction("presence-toggle", {
           occupantId: existingUser.id,
           action: signAction === "leave" ? "leave" : "enter",
+          phone: phoneToSave,
         });
         isOfflineSaved = true;
       }
@@ -355,7 +417,7 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
         localStorage.setItem("muster_registered_occupant_id", existingUser.id);
         localStorage.setItem("muster_occupant_id", existingUser.id);
         localStorage.setItem("muster_registered_name", existingUser.name);
-        if (existingUser.phone) localStorage.setItem("muster_registered_phone", existingUser.phone);
+        if (phoneToSave) localStorage.setItem("muster_registered_phone", phoneToSave);
         localStorage.setItem("muster_registered_quad", existingUser.quadrant);
         localStorage.setItem("muster_registered_role", existingUser.role);
         if (existingUser.company) localStorage.setItem("muster_registered_company", existingUser.company);
@@ -2375,6 +2437,39 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
               <span>🎟️</span>
               <span>Visitor / Guest</span>
             </button>
+          </div>
+
+          {/* FAST CONNECT BY PHONE NUMBER OR BADGE ID */}
+          <div className="bg-gradient-to-r from-[#003B70] via-[#005DAA] to-[#00A3E0] text-white p-4 rounded-2xl shadow-md border border-[#005DAA]/30">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <span className="text-lg">📲</span>
+                <span className="font-black text-xs sm:text-sm uppercase tracking-wider">Fast Connect By Phone Number</span>
+              </div>
+              <span className="text-[10px] font-mono bg-white/20 text-white px-2 py-0.5 rounded font-bold uppercase tracking-wider">
+                Instant Roster Sync
+              </span>
+            </div>
+            <p className="text-xs text-sky-100 mb-3">
+              Enter your mobile number or OCC badge ID to link directly, save your contact for life-safety alerts, and open your live Floor 07 pass.
+            </p>
+            <form onSubmit={handleDirectConnect} className="flex flex-col sm:flex-row gap-2">
+              <input
+                type="tel"
+                value={connectNumberInput}
+                onChange={(e) => setConnectNumberInput(e.target.value)}
+                placeholder="e.g. (212) 555-0195, 0195, or OCC-101"
+                className="flex-1 bg-white text-[#0F2537] placeholder-slate-400 font-mono text-sm px-3.5 py-2.5 rounded-xl border-2 border-transparent focus:border-amber-400 focus:outline-none font-semibold shadow-inner"
+              />
+              <button
+                type="submit"
+                disabled={isConnectingDirect || !connectNumberInput.trim()}
+                className="px-5 py-2.5 bg-amber-500 hover:bg-amber-400 active:bg-amber-600 text-slate-950 font-black text-xs uppercase tracking-wider rounded-xl transition cursor-pointer shadow-md flex items-center justify-center gap-2 disabled:opacity-50 shrink-0"
+              >
+                <span>{isConnectingDirect ? "⏳" : "⚡"}</span>
+                <span>{isConnectingDirect ? "CONNECTING..." : "CONNECT & GO FORTH →"}</span>
+              </button>
+            </form>
           </div>
 
           {/* RECOGNIZED EXISTING USER QUICK SIGN-IN HELPER */}

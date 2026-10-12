@@ -2312,6 +2312,8 @@ app.post("/api/occupant/sign-in-register", (req, res) => {
     occupant.lastLocation = action === "muster" ? "Outside Assembly Point" : `${occupant.desk || "Floor 07"} (${occupant.quadrant})`;
   }
 
+  savePersistedRoster(occupantsRoster);
+
   const ledgerItem = appendLedger("qr-occupant-presence-event", {
     occupantId: occupant.id,
     name: occupant.name,
@@ -2336,9 +2338,67 @@ app.post("/api/occupant/sign-in-register", (req, res) => {
   });
 });
 
+// Direct Connect & Sign-In by Mobile Phone Number or Badge Code
+app.post("/api/occupant/connect", (req, res) => {
+  const { phone, code, action = "enter" } = req.body;
+  const input = (phone || code || "").trim();
+  const digits = input.replace(/\D/g, "");
+
+  const phoneKey = (p?: string) => (p || "").replace(/\D/g, "").slice(-10);
+  let occupant =
+    (digits.length >= 4 ? occupantsRoster.find((o) => phoneKey(o.phone).endsWith(digits.slice(-10))) : undefined) ||
+    occupantsRoster.find((o) => o.id.toUpperCase() === input.toUpperCase()) ||
+    (digits.length >= 2 ? occupantsRoster.find((o) => o.id.toUpperCase() === `OCC-${digits}`) : undefined) ||
+    occupantsRoster.find((o) => o.name.toLowerCase() === input.toLowerCase());
+
+  if (!occupant) {
+    res.status(404).json({ ok: false, error: "No profile found for that number or ID." });
+    return;
+  }
+
+  if (phone && typeof phone === "string" && phone.trim()) {
+    occupant.phone = phone.trim();
+  }
+
+  const isLeaving = action === "leave";
+  if (isLeaving) {
+    occupant.badgedOut = true;
+    occupant.offSiteToday = true;
+    occupant.locationCategory = "offsite";
+    occupant.status = "safe";
+    occupant.lastLocation = "Off-Site / Exited Building";
+  } else {
+    occupant.badgedOut = false;
+    occupant.offSiteToday = false;
+    occupant.locationCategory = "inside-building";
+    occupant.status = statusForInBuildingPresence(occupant);
+    occupant.lastLocation = `${occupant.desk || "Floor 07"} (${occupant.quadrant})`;
+  }
+  occupant.lastBadgeTime = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+
+  savePersistedRoster(occupantsRoster);
+  notifySseClients();
+
+  const ledgerItem = appendLedger("phone-direct-connected", {
+    occupantId: occupant.id,
+    name: occupant.name,
+    phone: occupant.phone,
+    presence: isLeaving ? "LEFT_BUILDING" : "IN_BUILDING",
+    timestamp: occupant.lastBadgeTime,
+  });
+
+  res.json({
+    ok: true,
+    occupant,
+    message: `Connected successfully! Welcome back ${occupant.name}.`,
+    ledgerEntry: ledgerItem,
+    snapshot: getDerivedSnapshot(),
+  });
+});
+
 // Quick Presence Toggle Endpoint (Enter vs Leave Building)
 app.post("/api/occupant/presence", (req, res) => {
-  const { occupantId, action } = req.body; // action: "enter" | "leave" | "toggle"
+  const { occupantId, action, phone } = req.body; // action: "enter" | "leave" | "toggle"
 
   if (!occupantId) {
     res.status(400).json({ error: "occupantId is required" });
@@ -2349,6 +2409,10 @@ app.post("/api/occupant/presence", (req, res) => {
   if (!occupant) {
     res.status(404).json({ error: "Occupant not found" });
     return;
+  }
+
+  if (phone && typeof phone === "string" && phone.trim()) {
+    occupant.phone = phone.trim();
   }
 
   const isLeaving =
@@ -2372,6 +2436,8 @@ app.post("/api/occupant/presence", (req, res) => {
     occupant.lastLocation = `${occupant.desk || "Floor 07"} (${occupant.quadrant})`;
     occupant.lastBadgeTime = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   }
+
+  savePersistedRoster(occupantsRoster);
 
   const ledgerItem = appendLedger("presence-toggle-event", {
     occupantId: occupant.id,

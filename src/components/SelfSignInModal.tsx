@@ -80,6 +80,7 @@ export const SelfSignInModal: React.FC<SelfSignInModalProps> = ({
         body: JSON.stringify({
           occupantId: existingUser.id,
           action: presenceAction === "leave" ? "leave" : "enter",
+          phone: phone.trim() || existingUser.phone,
         }),
       });
       const data = await res.json();
