@@ -283,21 +283,6 @@ function generateInitialRoster(targetCount: number = 195): Occupant[] {
 const DATA_DIR = path.join(process.cwd(), "data");
 const ROSTER_FILE = path.join(DATA_DIR, "fsd_roster.json");
 
-function loadPersistedRoster(): Occupant[] {
-  try {
-    if (fs.existsSync(ROSTER_FILE)) {
-      const data = fs.readFileSync(ROSTER_FILE, "utf-8");
-      const parsed = JSON.parse(data);
-      if (Array.isArray(parsed)) {
-        return parsed;
-      }
-    }
-  } catch (err) {
-    console.warn("Could not read persisted roster file:", err);
-  }
-  return [];
-}
-
 let lastPersistedRosterJson = "";
 
 function savePersistedRoster(roster: Occupant[]): void {
@@ -314,6 +299,29 @@ function savePersistedRoster(roster: Occupant[]): void {
   } catch (err) {
     console.warn("Could not write persisted roster file:", err);
   }
+}
+
+function loadPersistedRoster(): Occupant[] {
+  try {
+    if (fs.existsSync(ROSTER_FILE)) {
+      const data = fs.readFileSync(ROSTER_FILE, "utf-8");
+      const parsed = JSON.parse(data);
+      if (Array.isArray(parsed) && parsed.length >= 195) {
+        // Enforce mock policy: ensure no real personal phone numbers exist in the roster
+        const hasRealPhone = parsed.some((occ: any) => typeof occ.phone === "string" && !occ.phone.includes("555"));
+        if (!hasRealPhone) {
+          return parsed;
+        }
+      }
+    }
+  } catch (err) {
+    console.warn("Could not read persisted roster file:", err);
+  }
+  // Setup auto-clears old roster and loads 195 people with fake 555 numbers for the meeting demonstration
+  console.log("Auto-seeding pristine 195 mock personnel with fake 555 numbers for meeting demonstration...");
+  const initial = generateInitialRoster(195);
+  savePersistedRoster(initial);
+  return initial;
 }
 
 let occupantsRoster: Occupant[] = loadPersistedRoster();
