@@ -880,7 +880,7 @@ export const Step1Scan: React.FC<Step1ScanProps> = ({
                   onKeyDown={(e) => {
                     if (e.key === "Enter") handleManualScan();
                   }}
-                  placeholder="e.g. Fahmida Ali, BADGE-1014, 07-840, or Strategic Planning..."
+                  placeholder="e.g. Alex Mercer, OCC-101, NW-Desk-A1, or Strategic Planning..."
                   className="w-full px-4 py-3 bg-[#F8FAFC] border border-[#CBDCEE] rounded-xl text-sm font-medium focus:ring-2 focus:ring-[#005DAA] focus:bg-white outline-hidden"
                 />
                 {badgeInput && (

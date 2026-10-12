@@ -2158,12 +2158,12 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
                     onChange={(e) => setSelectedQuadrant(e.target.value)}
                     className="w-full bg-white border border-[#B8D8F8] rounded-lg px-2.5 py-1.5 text-xs font-semibold text-[#0F2537] focus:outline-none"
                   >
-                    <option value="NW">NW (800 Strategic Planning)</option>
-                    <option value="NE">NE (500 Corp Security / Gas Ops)</option>
-                    <option value="SW">SW (700 AMI / Steam West)</option>
-                    <option value="SE">SE (M Operations / Turnstiles)</option>
-                    <option value="Stairwell A">Stairwell A (West Landing)</option>
-                    <option value="Stairwell B">Stairwell B (East Landing)</option>
+                    <option value="NW">NW · Strategic Planning</option>
+                    <option value="NE">NE · Gas Operations & Security</option>
+                    <option value="SW">SW · AMI & Ombudsman</option>
+                    <option value="SE">SE · Steam Operations</option>
+                    <option value="Stairwell A">Stairwell A (East Core)</option>
+                    <option value="Stairwell B">Stairwell B (West Core)</option>
                   </select>
                   <button
                     onClick={handleMarkSafeInside}
