@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Occupant, OccupantStatus, StatusSnapshot } from "../../types";
 import { FDNYCertificateModal } from "../FDNYCertificateModal";
+import { OccupantSafetyActionModal } from "../OccupantSafetyActionModal";
 
 interface Step5AllSafeProps {
   snapshot: StatusSnapshot | null;
@@ -60,6 +61,7 @@ export const Step5AllSafe: React.FC<Step5AllSafeProps> = ({
   const [filterAttention, setFilterAttention] = useState<"ALL_UNACCOUNTED" | "NEED_HELP" | "MIA">(
     "ALL_UNACCOUNTED"
   );
+  const [selectedOccupantForAction, setSelectedOccupantForAction] = useState<Occupant | null>(null);
 
   // Live Stopwatch Ticker for Evacuation Timing
   React.useEffect(() => {
@@ -694,7 +696,17 @@ export const Step5AllSafe: React.FC<Step5AllSafeProps> = ({
                   >
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className="font-bold text-[#0F2537] text-sm">{occ.name}</span>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedOccupantForAction(occ)}
+                          className="font-black text-[#0F2537] text-sm hover:text-[#005DAA] flex items-center gap-1.5 cursor-pointer text-left group"
+                          title="Click name to view building location and execute individual life-safety actions"
+                        >
+                          <span className="group-hover:underline">{occ.name}</span>
+                          <span className="text-[10px] bg-sky-100 group-hover:bg-[#005DAA] text-[#005DAA] group-hover:text-white border border-sky-300 px-1.5 py-0.5 rounded font-mono font-black transition">
+                            🛡️ Safety Action
+                          </span>
+                        </button>
                         <span className="px-1.5 py-0.5 rounded bg-[#EBF3FB] text-[#005DAA] font-bold text-[10px]">
                           {occ.quadrant}
                         </span>
@@ -825,6 +837,13 @@ export const Step5AllSafe: React.FC<Step5AllSafeProps> = ({
         onClose={() => setIsCertModalOpen(false)}
         snapshot={snapshot}
         sealedHash={sealedCertId || "b5d4045c3f466fa91fe2cc6abe79232a1a57cdf104f7a26e716e0a1e2789df78"}
+      />
+
+      {/* Individual Occupant Safety Action Modal */}
+      <OccupantSafetyActionModal
+        occupant={selectedOccupantForAction}
+        onClose={() => setSelectedOccupantForAction(null)}
+        onCheckIn={onCheckIn}
       />
     </div>
   );

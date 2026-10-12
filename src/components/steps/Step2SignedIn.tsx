@@ -510,33 +510,37 @@ export const Step2SignedIn: React.FC<Step2SignedInProps> = ({
                           className="rounded border-[#CBDCEE] text-[#005DAA] cursor-pointer"
                         />
                       </td>
-                      <td
-                        className="p-3.5 cursor-pointer hover:bg-sky-50/70 transition"
-                        onClick={() => setSelectedOccupantForAction(occ)}
-                        title="Click to view building location and execute individual actions"
-                      >
-                        <div className="font-bold text-[#0F2537] hover:text-[#005DAA] flex items-center gap-1.5">
-                          <span className="underline decoration-sky-300 decoration-dotted">{occ.name}</span>
-                          <span className="text-[9px] bg-sky-100 text-[#005DAA] border border-sky-300 font-mono font-black px-1.5 py-0.5 rounded">
-                            ⚡ ACTION
-                          </span>
-                          {occ.role === "Visitor" && (
-                            <span className="text-[10px] bg-amber-100 text-amber-900 border border-amber-300 font-mono px-1 rounded">
-                              VISITOR
+                      <td className="p-3.5">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedOccupantForAction(occ)}
+                          className="text-left group cursor-pointer w-full focus:outline-hidden"
+                          title="Click name to view building location and execute individual life-safety actions"
+                        >
+                          <div className="font-bold text-sm text-[#0F2537] group-hover:text-[#005DAA] flex items-center gap-2">
+                            <span className="group-hover:underline underline-offset-2 decoration-[#005DAA] font-black">{occ.name}</span>
+                            <span className="text-[10px] bg-sky-100 group-hover:bg-[#005DAA] text-[#005DAA] group-hover:text-white border border-sky-300 px-2 py-0.5 rounded-md font-mono font-black transition flex items-center gap-1 shadow-2xs">
+                              <span>🛡️</span>
+                              <span>Safety Action</span>
                             </span>
-                          )}
-                        </div>
-                        <div className="text-slate-500 text-[11px] font-mono flex items-center gap-2">
-                          <span>{occ.id}</span>
-                          <span>·</span>
-                          {occ.phone ? (
-                            <span className="text-[#005DAA] font-bold">
-                              📞 {occ.phone}
-                            </span>
-                          ) : (
-                            <span>(212) 555-0199</span>
-                          )}
-                        </div>
+                            {occ.role === "Visitor" && (
+                              <span className="text-[10px] bg-amber-100 text-amber-900 border border-amber-300 font-mono px-1 rounded">
+                                VISITOR
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-slate-500 text-[11px] font-mono flex items-center gap-2 mt-0.5">
+                            <span>{occ.id}</span>
+                            <span>·</span>
+                            {occ.phone ? (
+                              <span className="text-[#005DAA] font-bold">
+                                📞 {occ.phone}
+                              </span>
+                            ) : (
+                              <span>(212) 555-0199</span>
+                            )}
+                          </div>
+                        </button>
                       </td>
                       <td className="p-3.5">
                         <span className="font-mono font-bold text-[#005DAA]">Sector {occ.quadrant}</span>
@@ -567,11 +571,11 @@ export const Step2SignedIn: React.FC<Step2SignedInProps> = ({
                           <button
                             type="button"
                             onClick={() => setSelectedOccupantForAction(occ)}
-                            className="px-2.5 py-1 rounded-lg bg-[#005DAA] hover:bg-[#004884] text-white font-black text-[11px] cursor-pointer shadow-xs flex items-center gap-1"
-                            title="Inspect building location and perform direct action"
+                            className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-[#005DAA] to-[#003B70] hover:from-[#004884] hover:to-[#002D5A] text-white font-black text-xs cursor-pointer shadow-xs flex items-center gap-1.5 active:scale-95 transition"
+                            title="Inspect building location and perform direct life-safety action"
                           >
-                            <span>⚡</span>
-                            <span>Action</span>
+                            <span>🛡️</span>
+                            <span>Safety Action</span>
                           </button>
                           {isPresent ? (
                             <button
@@ -799,12 +803,19 @@ export const Step2SignedIn: React.FC<Step2SignedInProps> = ({
               </div>
 
               {/* Direct Individual Action Controls */}
-              <div className="space-y-2">
-                <div className="text-[10px] font-mono font-black uppercase text-[#005DAA] tracking-wider">
-                  COMMAND ACTIONS FOR THIS INDIVIDUAL
+              <div className="space-y-3">
+                <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+                  <span className="text-xs font-mono font-black uppercase text-[#005DAA] tracking-wider flex items-center gap-1.5">
+                    <span>🛡️</span>
+                    <span>LIFE-SAFETY ACTIONS TO ENSURE SAFETY</span>
+                  </span>
+                  <span className="text-[10px] font-mono text-slate-500">
+                    Instant 1-Click Execution
+                  </span>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  {/* Action 1: Mark Safe Outside */}
                   <button
                     type="button"
                     onClick={async () => {
@@ -812,12 +823,18 @@ export const Step2SignedIn: React.FC<Step2SignedInProps> = ({
                       setActionFeedbackMsg(`🟢 ${selectedOccupantForAction.name} marked Safe Outside at Assembly Point A.`);
                       setSelectedOccupantForAction(null);
                     }}
-                    className="p-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl transition cursor-pointer flex items-center justify-center gap-2 shadow-xs"
+                    className="p-3.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl transition cursor-pointer flex items-start gap-3 shadow-sm active:scale-95 text-left border-2 border-emerald-500"
                   >
-                    <span>🟢</span>
-                    <span>Mark Safe Outside</span>
+                    <span className="text-2xl shrink-0">🟢</span>
+                    <div>
+                      <div className="font-black text-sm">Mark Safe Outside</div>
+                      <div className="text-[11px] text-emerald-100 font-medium mt-0.5">
+                        Recorded at Assembly Point A (Park Plaza)
+                      </div>
+                    </div>
                   </button>
 
+                  {/* Action 2: Confirm In-Building */}
                   <button
                     type="button"
                     onClick={async () => {
@@ -825,11 +842,73 @@ export const Step2SignedIn: React.FC<Step2SignedInProps> = ({
                       setActionFeedbackMsg(`🏢 ${selectedOccupantForAction.name} confirmed In-Building on Floor 07.`);
                       setSelectedOccupantForAction(null);
                     }}
-                    className="p-3 bg-[#005DAA] hover:bg-[#004884] text-white font-bold rounded-xl transition cursor-pointer flex items-center justify-center gap-2 shadow-xs"
+                    className="p-3.5 bg-[#005DAA] hover:bg-[#004884] text-white rounded-2xl transition cursor-pointer flex items-start gap-3 shadow-sm active:scale-95 text-left border-2 border-[#005DAA]"
                   >
-                    <span>🏢</span>
-                    <span>Confirm In-Building</span>
+                    <span className="text-2xl shrink-0">🏢</span>
+                    <div>
+                      <div className="font-black text-sm">Confirm In-Building</div>
+                      <div className="text-[11px] text-sky-100 font-medium mt-0.5">
+                        Verified present during warden sweep
+                      </div>
+                    </div>
                   </button>
+
+                  {/* Action 3: Send Direct Evacuation Ping */}
+                  <button
+                    type="button"
+                    onClick={() => handleSendDirectPing(selectedOccupantForAction)}
+                    className="p-3.5 bg-red-600 hover:bg-red-500 text-white rounded-2xl transition cursor-pointer flex items-start gap-3 shadow-sm active:scale-95 text-left border-2 border-red-500"
+                  >
+                    <span className="text-2xl shrink-0">🚨</span>
+                    <div>
+                      <div className="font-black text-sm">
+                        {directPingSuccessId === selectedOccupantForAction.id ? "✓ Ping Transmitted!" : "Direct Evacuation Ping"}
+                      </div>
+                      <div className="text-[11px] text-red-100 font-medium mt-0.5">
+                        Transmits urgent push alert &amp; SMS
+                      </div>
+                    </div>
+                  </button>
+
+                  {/* Action 4: Assign Stryker Evac Chair */}
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      await onCheckIn(selectedOccupantForAction.id, "awaiting-evac-chair", "commander-action", "Evac chair assistance requested at Stairwell A landing", "inside-building");
+                      setActionFeedbackMsg(`🛞 Stryker Evac Chair assistance assigned for ${selectedOccupantForAction.name} at Stairwell A.`);
+                      setSelectedOccupantForAction(null);
+                    }}
+                    className="p-3.5 bg-purple-700 hover:bg-purple-600 text-white rounded-2xl transition cursor-pointer flex items-start gap-3 shadow-sm active:scale-95 text-left border-2 border-purple-600"
+                  >
+                    <span className="text-2xl shrink-0">🛞</span>
+                    <div>
+                      <div className="font-black text-sm">Assign Evac Chair</div>
+                      <div className="text-[11px] text-purple-100 font-medium mt-0.5">
+                        Mobility assistance to Stairwell A
+                      </div>
+                    </div>
+                  </button>
+                </div>
+
+                {/* Secondary Quick Contact & Badge Out Row */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-2 border-t border-slate-200">
+                  {selectedOccupantForAction.phone ? (
+                    <a
+                      href={`tel:${selectedOccupantForAction.phone.replace(/[^\d+]/g, "")}`}
+                      className="p-3 bg-sky-700 hover:bg-sky-600 text-white rounded-xl transition cursor-pointer flex items-center justify-center gap-2 shadow-xs font-bold text-xs text-center"
+                    >
+                      <span className="text-base">📞</span>
+                      <span>Call Mobile ({selectedOccupantForAction.phone})</span>
+                    </a>
+                  ) : (
+                    <button
+                      disabled
+                      className="p-3 bg-slate-100 text-slate-400 font-bold rounded-xl cursor-not-allowed flex items-center justify-center gap-2 text-xs text-center"
+                    >
+                      <span>📞</span>
+                      <span>No Registered Phone</span>
+                    </button>
+                  )}
 
                   <button
                     type="button"
@@ -838,53 +917,11 @@ export const Step2SignedIn: React.FC<Step2SignedInProps> = ({
                       setActionFeedbackMsg(`🚪 ${selectedOccupantForAction.name} marked Badged Out.`);
                       setSelectedOccupantForAction(null);
                     }}
-                    className="p-3 bg-slate-700 hover:bg-slate-600 text-white font-bold rounded-xl transition cursor-pointer flex items-center justify-center gap-2 shadow-xs"
+                    className="p-3 bg-slate-700 hover:bg-slate-600 text-white rounded-xl transition cursor-pointer flex items-center justify-center gap-2 shadow-xs font-bold text-xs text-center"
                   >
-                    <span>🚪</span>
-                    <span>Badge Out / Left</span>
+                    <span className="text-base">🚪</span>
+                    <span>Badge Out / Left Building</span>
                   </button>
-
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      await onCheckIn(selectedOccupantForAction.id, "awaiting-evac-chair", "commander-action", "Evac chair assistance requested at Stairwell A landing", "inside-building");
-                      setActionFeedbackMsg(`🛞 Stryker Evac Chair assistance assigned for ${selectedOccupantForAction.name} at Stairwell A.`);
-                      setSelectedOccupantForAction(null);
-                    }}
-                    className="p-3 bg-amber-600 hover:bg-amber-500 text-white font-bold rounded-xl transition cursor-pointer flex items-center justify-center gap-2 shadow-xs"
-                  >
-                    <span>🛞</span>
-                    <span>Assign Evac Chair</span>
-                  </button>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2 border-t border-slate-200">
-                  <button
-                    type="button"
-                    onClick={() => handleSendDirectPing(selectedOccupantForAction)}
-                    className="p-3 bg-red-600 hover:bg-red-500 text-white font-black rounded-xl transition cursor-pointer flex items-center justify-center gap-2 shadow-xs"
-                  >
-                    <span>🚨</span>
-                    <span>{directPingSuccessId === selectedOccupantForAction.id ? "✓ Ping Transmitted!" : "Send Direct Evac Ping"}</span>
-                  </button>
-
-                  {selectedOccupantForAction.phone ? (
-                    <a
-                      href={`tel:${selectedOccupantForAction.phone.replace(/[^\d+]/g, "")}`}
-                      className="p-3 bg-sky-600 hover:bg-sky-500 text-white font-bold rounded-xl transition cursor-pointer flex items-center justify-center gap-2 shadow-xs text-center"
-                    >
-                      <span>📞</span>
-                      <span>Call {selectedOccupantForAction.phone}</span>
-                    </a>
-                  ) : (
-                    <button
-                      disabled
-                      className="p-3 bg-slate-200 text-slate-500 font-bold rounded-xl cursor-not-allowed flex items-center justify-center gap-2 text-center"
-                    >
-                      <span>📞</span>
-                      <span>No Phone Listed</span>
-                    </button>
-                  )}
                 </div>
               </div>
             </div>

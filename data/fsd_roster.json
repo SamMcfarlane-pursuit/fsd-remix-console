@@ -1,5 +1,36 @@
 [
   {
+    "id": "OCC-103",
+    "name": "Cc",
+    "phone": "7185781547",
+    "company": "Con Edison",
+    "quadrant": "NW",
+    "status": "safe",
+    "role": "Employee",
+    "badgedOut": false,
+    "offSiteToday": false,
+    "unaccountedMinutes": 0,
+    "desk": "07-NW-Workstation",
+    "locationCategory": "inside-building",
+    "lastLocation": "07-NW-Workstation (NW)",
+    "lastBadgeTime": "12:06:56 PM",
+    "notes": "Marked in-building",
+    "checkInMethod": "manual-toggle",
+    "xCoord": 14,
+    "yCoord": 22,
+    "likelyMia": false,
+    "geofenceValidation": {
+      "isInsideBuilding": true,
+      "isAtAssemblyPoint": false,
+      "locationCategory": "inside-building",
+      "assemblyPoint": null,
+      "confidence": "HIGH",
+      "distanceMeters": null,
+      "verifiedAt": "2026-10-12T16:06:56.457Z",
+      "auditDetails": "Physical CAD boundary verified on Floor 07 [X:14, Y:22] -> NW Zone"
+    }
+  },
+  {
     "id": "OCC-102",
     "name": "Samuel Mcfarlane",
     "phone": "9297915697",

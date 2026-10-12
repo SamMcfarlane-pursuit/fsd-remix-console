@@ -1,6 +1,7 @@
 import React, { useState } from "react";
-import { EmergencyAlertPayload, QuadrantId, StatusSnapshot } from "../../types";
+import { EmergencyAlertPayload, Occupant, QuadrantId, StatusSnapshot } from "../../types";
 import { speakEmergencyBroadcast, testAiVoice } from "../../lib/audioBroadcast";
+import { OccupantSafetyActionModal } from "../OccupantSafetyActionModal";
 
 interface Step4BroadcastProps {
   snapshot: StatusSnapshot | null;
@@ -16,6 +17,14 @@ interface Step4BroadcastProps {
   onBackToStep3?: () => void;
   stairwell?: string;
   assemblyPoint?: string;
+  onCheckIn?: (
+    occupantId: string,
+    status: any,
+    via?: string,
+    notes?: string,
+    locationCategory?: any,
+    assemblyPoint?: string
+  ) => Promise<void>;
 }
 
 export const Step4Broadcast: React.FC<Step4BroadcastProps> = ({
@@ -26,10 +35,12 @@ export const Step4Broadcast: React.FC<Step4BroadcastProps> = ({
   onBackToStep3,
   stairwell,
   assemblyPoint,
+  onCheckIn,
 }) => {
   const hazard = snapshot?.hazardType || "office-fire";
   const isIncident = snapshot?.mode === "incident";
   const [isPlayingTestVoice, setIsPlayingTestVoice] = useState(false);
+  const [selectedOccupantForAction, setSelectedOccupantForAction] = useState<Occupant | null>(null);
 
   const resolvedStairwell = stairwell || "Stairwell A (East Core - Union Sq East)";
   const resolvedAssembly = assemblyPoint || "Assembly Point A (Union Sq East / Park Plaza)";
@@ -575,11 +586,21 @@ export const Step4Broadcast: React.FC<Step4BroadcastProps> = ({
                 {snapshot.occupants.map((occ) => (
                   <div key={occ.id} className="pt-1.5 first:pt-0 flex items-center justify-between text-xs">
                     <div>
-                      <div className="font-bold text-[#0F2537] flex items-center gap-1">
-                        <span>{occ.name}</span>
+                      <div className="font-bold text-[#0F2537] flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedOccupantForAction(occ)}
+                          className="hover:text-[#005DAA] flex items-center gap-1.5 cursor-pointer text-left group"
+                          title="Click name to view building location and execute individual life-safety actions"
+                        >
+                          <span className="group-hover:underline">{occ.name}</span>
+                          <span className="text-[9px] bg-sky-100 group-hover:bg-[#005DAA] text-[#005DAA] group-hover:text-white border border-sky-300 px-1 py-0.2 rounded font-mono font-bold transition">
+                            🛡️ Action
+                          </span>
+                        </button>
                         <span className="text-[10px] text-slate-500 font-mono">({occ.id})</span>
                       </div>
-                      <div className="text-[10px] text-slate-500 font-mono flex items-center gap-1.5">
+                      <div className="text-[10px] text-slate-500 font-mono flex items-center gap-1.5 mt-0.5">
                         {occ.phone && occ.phone !== "No phone registered" ? (
                           <a
                             href={`tel:${occ.phone.replace(/[^0-9+]/g, "")}`}
@@ -641,6 +662,13 @@ export const Step4Broadcast: React.FC<Step4BroadcastProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Individual Occupant Safety Action Modal */}
+      <OccupantSafetyActionModal
+        occupant={selectedOccupantForAction}
+        onClose={() => setSelectedOccupantForAction(null)}
+        onCheckIn={onCheckIn}
+      />
     </div>
   );
 };

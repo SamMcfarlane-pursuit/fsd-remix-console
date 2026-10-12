@@ -1010,6 +1010,7 @@ export default function App() {
                 onBackToStep3={() => setCurrentStep(3)}
                 stairwell={stairwell}
                 assemblyPoint={assemblyPoint}
+                onCheckIn={handleCheckIn}
               />
             )}
 
