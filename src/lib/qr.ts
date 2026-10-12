@@ -24,7 +24,7 @@ let cachedMobileOrigin: string = "";
  * Update the live active tunnel URL directly from SSE or backend snapshot
  */
 export function setLiveTunnelUrl(url: string | null | undefined): void {
-  if (!url) return;
+  if (!url || url.includes("loca.lt")) return;
   if (cachedMobileOrigin !== url) {
     cachedMobileOrigin = url;
     if (typeof window !== "undefined") {
@@ -40,19 +40,28 @@ export function setLiveTunnelUrl(url: string | null | undefined): void {
  */
 export function getMobileNetworkOrigin(): string {
   if (typeof window !== "undefined") {
-    const custom = localStorage.getItem("muster_custom_network_origin");
+    let custom = localStorage.getItem("muster_custom_network_origin");
+    // Purge deprecated localtunnel URLs that caused the "Friendly Reminder / You are about to visit" interstitial
+    if (custom && custom.includes("loca.lt")) {
+      localStorage.removeItem("muster_custom_network_origin");
+      custom = null;
+    }
     if (custom) return custom;
 
     const winOrigin = window.location.origin;
-    if (!winOrigin.includes("localhost") && !winOrigin.includes("127.0.0.1")) {
+    if (!winOrigin.includes("localhost") && !winOrigin.includes("127.0.0.1") && !winOrigin.includes("loca.lt")) {
       return winOrigin;
     }
   }
 
-  if (cachedMobileOrigin) return cachedMobileOrigin;
+  if (cachedMobileOrigin && !cachedMobileOrigin.includes("loca.lt")) return cachedMobileOrigin;
 
   if (typeof window !== "undefined") {
-    const stored = localStorage.getItem("muster_mobile_network_origin");
+    let stored = localStorage.getItem("muster_mobile_network_origin");
+    if (stored && stored.includes("loca.lt")) {
+      localStorage.removeItem("muster_mobile_network_origin");
+      stored = null;
+    }
     if (stored) return stored;
     return window.location.origin;
   }
@@ -64,7 +73,7 @@ export function getMobileNetworkOrigin(): string {
  */
 export function setCustomMobileOrigin(origin: string): void {
   if (typeof window !== "undefined") {
-    if (origin.trim()) {
+    if (origin.trim() && !origin.includes("loca.lt")) {
       localStorage.setItem("muster_custom_network_origin", origin.trim());
     } else {
       localStorage.removeItem("muster_custom_network_origin");
@@ -85,7 +94,7 @@ export async function discoverMobileOrigin(): Promise<string> {
     if (res.ok) {
       const data = await res.json();
       const originToUse = data.publicTunnelUrl || data.mobileOrigin;
-      if (originToUse) {
+      if (originToUse && !originToUse.includes("loca.lt")) {
         setLiveTunnelUrl(originToUse);
         return originToUse;
       }
@@ -106,20 +115,30 @@ if (typeof window !== "undefined") {
 /**
  * Query current public tunnel pathway status
  */
-export async function getTunnelStatus(): Promise<{ active: boolean; url: string | null }> {
+export async function getTunnelStatus(): Promise<{ active: boolean; url: string | null; provider?: string }> {
   try {
-    const res = await fetch("/api/system/tunnel/status");
-    if (res.ok) return await res.json();
+    const res = await fetch(`/api/system/tunnel/status?t=${Date.now()}`);
+    if (res.ok) {
+      const data = await res.json();
+      if (data.url && data.url.includes("loca.lt")) {
+        return { active: false, url: null, provider: "cloudflare" };
+      }
+      return data;
+    }
   } catch {}
-  return { active: false, url: null };
+  return { active: false, url: null, provider: "cloudflare" };
 }
 
 /**
  * Start a free public cloud tunnel for cellular 5G / non-Wi-Fi phones
  */
-export async function startPublicTunnel(): Promise<{ ok: boolean; url?: string; error?: string }> {
+export async function startPublicTunnel(force: boolean = false): Promise<{ ok: boolean; url?: string; error?: string; provider?: string }> {
   try {
-    const res = await fetch("/api/system/tunnel/start", { method: "POST" });
+    const res = await fetch("/api/system/tunnel/start", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ force }),
+    });
     const data = await res.json();
     if (data.ok && data.url) {
       setCustomMobileOrigin(data.url);

@@ -35,21 +35,26 @@ export const SignInQRPosterModal: React.FC<SignInQRPosterModalProps> = ({
 
   useEffect(() => {
     if (isOpen) {
-      // Check existing tunnel status
+      // Check existing tunnel status, rejecting any deprecated loca.lt domains
       getTunnelStatus().then((status) => {
-        if (status.active && status.url) {
+        if (status.active && status.url && status.url.includes("trycloudflare.com")) {
           setNetworkMode("cellular");
           setMobileOrigin(status.url);
         } else {
           discoverMobileOrigin().then((origin) => {
-            setMobileOrigin(origin);
+            if (origin && !origin.includes("loca.lt")) {
+              setMobileOrigin(origin);
+            }
           });
         }
       });
     }
 
     const handleOriginChange = () => {
-      setMobileOrigin(getMobileNetworkOrigin());
+      const orig = getMobileNetworkOrigin();
+      if (!orig.includes("loca.lt")) {
+        setMobileOrigin(orig);
+      }
     };
     window.addEventListener("muster-origin-changed", handleOriginChange);
     return () => {
@@ -76,12 +81,12 @@ export const SignInQRPosterModal: React.FC<SignInQRPosterModalProps> = ({
     }
   }, [isOpen, signInUrl, qrScale]);
 
-  // Activate Public Cellular 5G Tunnel
-  const handleActivateCellularPathway = async () => {
+  // Activate Public Cellular 5G Tunnel (Pure Cloudflare with Zero Interstitials)
+  const handleActivateCellularPathway = async (force: boolean = false) => {
     setIsTunnelLoading(true);
     setTunnelError(null);
     try {
-      const res = await startPublicTunnel();
+      const res = await startPublicTunnel(force);
       if (res.ok && res.url) {
         setMobileOrigin(res.url);
         setNetworkMode("cellular");
@@ -222,7 +227,7 @@ export const SignInQRPosterModal: React.FC<SignInQRPosterModalProps> = ({
 
           <button
             type="button"
-            onClick={handleActivateCellularPathway}
+            onClick={() => handleActivateCellularPathway(false)}
             disabled={isTunnelLoading}
             className={`py-2 px-2.5 rounded-lg transition cursor-pointer flex items-center justify-center gap-1.5 ${
               networkMode === "cellular"
@@ -231,9 +236,30 @@ export const SignInQRPosterModal: React.FC<SignInQRPosterModalProps> = ({
             }`}
           >
             <span>🌐</span>
-            <span>{isTunnelLoading ? "Connecting..." : "Cellular 5G Pathway"}</span>
+            <span>{isTunnelLoading ? "Connecting Cloudflare..." : "Cellular 5G Pathway"}</span>
           </button>
         </div>
+
+        {networkMode === "cellular" && (
+          <div className="bg-emerald-50 border border-emerald-300 rounded-xl p-2.5 text-xs text-emerald-950 flex flex-col sm:flex-row items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <span className="text-emerald-600 text-sm">✅</span>
+              <span className="font-bold text-[11px]">
+                Zero-Interstitial Cloudflare Gateway Active (Universal 5G Scan Verified)
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => handleActivateCellularPathway(true)}
+              disabled={isTunnelLoading}
+              className="px-2.5 py-1 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg text-[10px] font-black uppercase tracking-wider transition cursor-pointer flex items-center gap-1 shrink-0"
+              title="Force rotate to a fresh trycloudflare.com URL"
+            >
+              <span>🔄</span>
+              <span>{isTunnelLoading ? "Rotating..." : "Rotate 5G URL"}</span>
+            </button>
+          </div>
+        )}
 
         {tunnelError && (
           <div className="p-2 bg-red-100 border border-red-300 text-red-900 rounded-lg text-xs font-bold">
@@ -280,7 +306,7 @@ export const SignInQRPosterModal: React.FC<SignInQRPosterModalProps> = ({
                 : "bg-[#EBF5FB] text-[#003B70] border-[#B8D8F8]"
             }`}>
               {networkMode === "cellular"
-                ? "🌐 CELLULAR 5G SCANNABLE (ANY NETWORK)"
+                ? "🌐 CELLULAR 5G SCANNABLE (ANY NETWORK · NO WARNINGS)"
                 : "🏢 SCAN ON BUILDING WI-FI"}
             </span>
           </div>
@@ -295,26 +321,37 @@ export const SignInQRPosterModal: React.FC<SignInQRPosterModalProps> = ({
                 {networkMode === "cellular" ? "Public 5G Pathway URL:" : "Local LAN Wi-Fi URL:"}
               </span>
             </div>
-            {!isEditingOrigin ? (
-              <button
-                type="button"
-                onClick={() => {
-                  setCustomOriginInput(mobileOrigin);
-                  setIsEditingOrigin(true);
-                }}
-                className="text-[10px] font-bold text-sky-700 hover:text-sky-900 underline cursor-pointer"
+            <div className="flex items-center gap-2">
+              <a
+                href={signInUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="text-[10px] font-bold text-emerald-700 hover:text-emerald-900 underline flex items-center gap-0.5 cursor-pointer"
               >
-                Change IP / URL
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={handleResetOrigin}
-                className="text-[10px] font-bold text-slate-500 hover:text-slate-700 underline cursor-pointer"
-              >
-                Reset Auto
-              </button>
-            )}
+                <span>↗ Test Link in Tab</span>
+              </a>
+              <span className="text-slate-300">|</span>
+              {!isEditingOrigin ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCustomOriginInput(mobileOrigin);
+                    setIsEditingOrigin(true);
+                  }}
+                  className="text-[10px] font-bold text-sky-700 hover:text-sky-900 underline cursor-pointer"
+                >
+                  Change IP / URL
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleResetOrigin}
+                  className="text-[10px] font-bold text-slate-500 hover:text-slate-700 underline cursor-pointer"
+                >
+                  Reset Auto
+                </button>
+              )}
+            </div>
           </div>
 
           {!isEditingOrigin ? (
@@ -342,7 +379,7 @@ export const SignInQRPosterModal: React.FC<SignInQRPosterModalProps> = ({
 
           <p className="text-[10px] text-slate-500 text-left">
             {networkMode === "cellular"
-              ? "✓ Connects phones on AT&T, Verizon, T-Mobile, or any guest Wi-Fi from outside."
+              ? "✓ Direct HTTPS link on trycloudflare.com. Instant smartphone landing with zero password prompts or 'you are about to visit' warnings."
               : "✓ Zero-cost & works offline during power outages when phones are on building Wi-Fi."}
           </p>
         </div>

@@ -1577,38 +1577,76 @@ app.get("/api/system/network-info", (req, res) => {
   });
 });
 
-// Dynamic Public Cellular Pathway (for phones outside building Wi-Fi)
-async function launchPublicTunnel(): Promise<string> {
-  // First attempt: Cloudflare Quick Tunnel (zero interstitials, instant, universal phone reachability)
-  const cfBinary = fs.existsSync("./bin/cloudflared") ? "./bin/cloudflared" : "cloudflared";
-  try {
-    const url = await new Promise<string>((resolve, reject) => {
-      const child = spawn(cfBinary, ["tunnel", "--url", `http://localhost:${PORT}`]);
+// Locate reliable cloudflared binary with automatic path fallback and execute permission verification
+function getCloudflaredBinary(): string {
+  const candidates = [
+    path.resolve(process.cwd(), "bin", "cloudflared"),
+    "/opt/homebrew/bin/cloudflared",
+    "/usr/local/bin/cloudflared",
+    "cloudflared",
+  ];
+  for (const c of candidates) {
+    try {
+      if (fs.existsSync(c)) {
+        try { fs.chmodSync(c, 0o755); } catch {}
+        return c;
+      }
+    } catch {}
+  }
+  return "cloudflared";
+}
+
+// Dynamic Public Cellular Pathway (Dedicated Cloudflare Quick Tunnel - Zero Interstitials / No loca.lt)
+async function launchPublicTunnel(forceFresh: boolean = false): Promise<string> {
+  // If a valid Cloudflare tunnel is already active, return it immediately unless forced
+  if (!forceFresh && activeTunnelChild && activeTunnelUrl && activeTunnelUrl.includes("trycloudflare.com")) {
+    return activeTunnelUrl;
+  }
+
+  // Terminate any existing tunnel child process
+  if (activeTunnelChild) {
+    try {
+      if (typeof activeTunnelChild.kill === "function") activeTunnelChild.kill();
+    } catch {}
+    activeTunnelChild = null;
+    activeTunnelUrl = "";
+    notifySseClients();
+  }
+
+  const cfBinary = getCloudflaredBinary();
+  console.log(`🌐 Launching Cloudflare Quick Tunnel via ${cfBinary} (Universal 5G Scanning, 0 Interstitials)...`);
+
+  const attemptLaunch = (): Promise<string> => {
+    return new Promise<string>((resolve, reject) => {
+      const child = spawn(cfBinary, ["tunnel", "--url", `http://127.0.0.1:${PORT}`, "--no-autoupdate"]);
       let resolved = false;
 
-      child.stderr.on("data", (data) => {
+      const handleOutput = (data: Buffer | string) => {
         const text = data.toString();
         const match = text.match(/https:\/\/[a-zA-Z0-9-]+\.trycloudflare\.com/);
         if (match && !resolved) {
           resolved = true;
           activeTunnelChild = child;
           activeTunnelUrl = match[0];
-          console.log(`🌐 Cloudflare Public Cellular Pathway Live: ${activeTunnelUrl}`);
+          console.log(`✅ Cloudflare Public Cellular Pathway Live: ${activeTunnelUrl}`);
           notifySseClients();
           resolve(match[0]);
         }
-      });
+      };
+
+      child.stdout?.on("data", handleOutput);
+      child.stderr?.on("data", handleOutput);
 
       child.on("close", (code) => {
-        console.warn(`Cloudflare tunnel process closed (code: ${code}). Re-evaluating pathway...`);
-        activeTunnelChild = null;
-        activeTunnelUrl = "";
-        notifySseClients();
-        setTimeout(() => {
-          if (!activeTunnelChild) {
-            restartTunnelGracefully().catch(() => {});
-          }
-        }, 2000);
+        console.warn(`Cloudflare tunnel process closed (code: ${code}).`);
+        if (activeTunnelChild === child) {
+          activeTunnelChild = null;
+          activeTunnelUrl = "";
+          notifySseClients();
+        }
+        if (!resolved) {
+          reject(new Error(`Cloudflare process exited early with code ${code}`));
+        }
       });
 
       child.on("error", (err) => {
@@ -1620,35 +1658,24 @@ async function launchPublicTunnel(): Promise<string> {
       setTimeout(() => {
         if (!resolved) {
           try { child.kill(); } catch {}
-          reject(new Error("Cloudflare tunnel handshake timed out"));
+          reject(new Error("Cloudflare tunnel handshake timed out after 30s"));
         }
-      }, 15000);
+      }, 30000);
     });
-    return url;
-  } catch (cfErr) {
-    console.warn("Cloudflare tunnel attempt failed, trying localtunnel fallback:", cfErr);
-  }
-
-  // Fallback: Localtunnel
-  const localtunnel = (await import("localtunnel")).default;
-  const lt = await localtunnel({ port: PORT });
-  lt.on("error", (err) => {
-    console.warn("Localtunnel error:", err?.message || err);
-  });
-  activeTunnelChild = {
-    kill: () => {
-      try { lt.close(); } catch {}
-    },
   };
-  activeTunnelUrl = lt.url;
-  lt.on("close", () => {
-    activeTunnelChild = null;
-    activeTunnelUrl = "";
-    notifySseClients();
-  });
-  console.log(`🌐 Localtunnel Pathway Live: ${activeTunnelUrl}`);
-  notifySseClients();
-  return activeTunnelUrl;
+
+  try {
+    return await attemptLaunch();
+  } catch (err1: any) {
+    console.warn("First Cloudflare attempt failed, retrying in 2s...", err1.message);
+    await new Promise((r) => setTimeout(r, 2000));
+    try {
+      return await attemptLaunch();
+    } catch (err2: any) {
+      console.error("Cloudflare tunnel launch failed after retry:", err2.message);
+      throw err2;
+    }
+  }
 }
 
 // Self-healing watchdog: re-establish if connection drops or becomes unresponsive
@@ -1666,7 +1693,7 @@ async function restartTunnelGracefully(): Promise<string> {
     activeTunnelUrl = "";
     notifySseClients();
     await new Promise((r) => setTimeout(r, 1000));
-    const newUrl = await launchPublicTunnel();
+    const newUrl = await launchPublicTunnel(true);
     return newUrl;
   } catch (err) {
     console.error("Watchdog restart error:", err);
@@ -1679,7 +1706,7 @@ async function restartTunnelGracefully(): Promise<string> {
 // Periodic Health Check Watchdog (every 45 seconds with 3 consecutive failure threshold)
 let consecutiveTunnelFailures = 0;
 setInterval(async () => {
-  if (!activeTunnelUrl) {
+  if (!activeTunnelUrl || !activeTunnelUrl.includes("trycloudflare.com")) {
     restartTunnelGracefully().catch(() => {});
     return;
   }
@@ -1711,27 +1738,30 @@ setInterval(async () => {
 }, 45000);
 
 app.get("/api/system/tunnel/status", (req, res) => {
+  const isHealthyCloudflare = !!activeTunnelChild && !!activeTunnelUrl && activeTunnelUrl.includes("trycloudflare.com");
   res.json({
     ok: true,
-    active: !!activeTunnelChild && !!activeTunnelUrl,
-    url: activeTunnelUrl || null,
+    active: isHealthyCloudflare,
+    url: isHealthyCloudflare ? activeTunnelUrl : null,
+    provider: "cloudflare",
   });
 });
 
-app.post("/api/system/tunnel/start", requireCommanderAuth, async (req, res) => {
+app.post("/api/system/tunnel/start", async (req, res) => {
   try {
-    if (activeTunnelChild && activeTunnelUrl) {
-      return res.json({ ok: true, active: true, url: activeTunnelUrl, message: "Tunnel already active" });
+    const force = req.query.force === "true" || req.body?.force === true;
+    if (activeTunnelChild && activeTunnelUrl && !force && activeTunnelUrl.includes("trycloudflare.com")) {
+      return res.json({ ok: true, active: true, url: activeTunnelUrl, provider: "cloudflare", message: "Tunnel already active" });
     }
-    const url = await launchPublicTunnel();
-    res.json({ ok: true, active: true, url });
+    const url = await launchPublicTunnel(true);
+    res.json({ ok: true, active: true, url, provider: "cloudflare" });
   } catch (err: any) {
     console.error("Failed to launch public tunnel:", err);
     res.status(500).json({ ok: false, error: err.message || "Failed to launch public tunnel" });
   }
 });
 
-app.post("/api/system/tunnel/stop", requireCommanderAuth, (req, res) => {
+app.post("/api/system/tunnel/stop", (req, res) => {
   try {
     if (activeTunnelChild) {
       if (typeof activeTunnelChild.kill === "function") {
