@@ -74,11 +74,11 @@
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "desk": "07-NW-Workstation",
-    "locationCategory": "assembly-point",
-    "lastLocation": "Assembly Point A (Park Plaza)",
-    "lastBadgeTime": "12:17:44 PM",
-    "notes": "Verified Safe Outside at Assembly Point A",
-    "checkInMethod": "fsd-safety-action-modal",
+    "locationCategory": "outside-assembly",
+    "lastLocation": "Assembly Point A (Union Sq East / Park Plaza)",
+    "lastBadgeTime": "12:59:14 PM",
+    "notes": "LIFE SAVED: Extracted from Floor 07 and verified Safe Outside at Assembly Point A (Park Plaza)",
+    "checkInMethod": "rescue-procedure",
     "xCoord": 26,
     "yCoord": 14,
     "likelyMia": false,
@@ -92,6 +92,6 @@
       "verifiedAt": "2026-10-12T08:42:29.471Z",
       "auditDetails": "Default Floor 07 station constraints applied"
     },
-    "assemblyPoint": "Assembly Point A (Park Plaza)"
+    "assemblyPoint": "Assembly Point A (Union Sq East / Park Plaza)"
   }
 ]

@@ -25,6 +25,7 @@ interface Step5AllSafeProps {
   onClearIncident?: () => Promise<void>;
   onReturnToStep1?: () => void;
   onOpenWalkieTalkie?: () => void;
+  onOpenRescueProcedure?: (occ: Occupant) => void;
 }
 
 export const Step5AllSafe: React.FC<Step5AllSafeProps> = ({
@@ -37,6 +38,7 @@ export const Step5AllSafe: React.FC<Step5AllSafeProps> = ({
   onClearIncident,
   onReturnToStep1,
   onOpenWalkieTalkie,
+  onOpenRescueProcedure,
 }) => {
   const totalExpected = snapshot?.expectedOnFloor ?? occupants.length;
   const accounted = snapshot?.accounted ?? occupants.filter((o) => o.status === "safe").length;
@@ -720,6 +722,20 @@ export const Step5AllSafe: React.FC<Step5AllSafeProps> = ({
                             ♿ Evac Chair Requested
                           </span>
                         )}
+                        {(occ.status === "need-help" || occ.status === "awaiting-evac-chair") && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (onOpenRescueProcedure) onOpenRescueProcedure(occ);
+                              else setSelectedOccupantForAction(occ);
+                            }}
+                            className="px-2.5 py-1 rounded-lg bg-red-600 hover:bg-red-500 text-white font-black text-[11px] cursor-pointer shadow-md flex items-center gap-1 active:scale-95 transition animate-pulse"
+                            title="Execute Life-Saving Rescue Procedure & CAD Pinpoint"
+                          >
+                            <span>🆘</span>
+                            <span>Locate &amp; Rescue</span>
+                          </button>
+                        )}
                         {occ.status === "mia" && (
                           <span className="px-2 py-0.5 rounded-full bg-red-100 text-red-900 font-bold text-[10px]">
                             🔴 MIA
@@ -844,6 +860,7 @@ export const Step5AllSafe: React.FC<Step5AllSafeProps> = ({
         occupant={selectedOccupantForAction}
         onClose={() => setSelectedOccupantForAction(null)}
         onCheckIn={onCheckIn}
+        onOpenRescueProcedure={onOpenRescueProcedure}
       />
     </div>
   );

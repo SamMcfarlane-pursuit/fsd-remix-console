@@ -16,9 +16,10 @@ import { NavigationGuideModal } from "./components/NavigationGuideModal";
 import { PinModal } from "./components/PinModal";
 import { WalkieTalkieModal } from "./components/WalkieTalkieModal";
 import { AccessibleEmergencyAlertBanner } from "./components/AccessibleEmergencyAlertBanner";
+import { EmergencyRescueProcedureModal } from "./components/EmergencyRescueProcedureModal";
 import { setAudioMuted, getAudioMuted } from "./lib/audioBroadcast";
 import { UserRole, setStoredRole, getStoredRole } from "./lib/authGuard";
-import { AuthUser, EmergencyAlertPayload, LocationCategory, OccupantStatus, StatusSnapshot, QuadrantId } from "./types";
+import { AuthUser, EmergencyAlertPayload, LocationCategory, Occupant, OccupantStatus, StatusSnapshot, QuadrantId } from "./types";
 import { validateGeofence, LocationMetadata, FLOOR_07_CONSTRAINTS } from "./lib/geofence";
 import { appendLedgerEntry } from "./lib/ledger";
 import {
@@ -136,6 +137,8 @@ export default function App() {
   const [isWalkieTalkieOpen, setIsWalkieTalkieOpen] = useState<boolean>(false);
   const [stairwell, setStairwell] = useState<string>("Stairwell A (East Core - Union Sq East)");
   const [assemblyPoint, setAssemblyPoint] = useState<string>("Assembly Point A (Union Sq East / Park Plaza)");
+  const [distressRescueTarget, setDistressRescueTarget] = useState<Occupant | null>(null);
+  const [isRescueModalOpen, setIsRescueModalOpen] = useState<boolean>(false);
 
   // Check URL query parameters on initial load (e.g. ?mode=signin or mobile scan)
   useEffect(() => {
@@ -947,6 +950,49 @@ export default function App() {
         </div>
       ) : (
         <div className="flex-1 flex flex-col">
+          {/* Active Emergency Distress & Life-Saving Protocol Banner */}
+          {occupantsList.some((o) => o.status === "need-help" || o.status === "awaiting-evac-chair") && (
+            <div className="bg-red-700 border-b-4 border-amber-400 p-3 sm:p-4 text-white shadow-xl flex flex-wrap items-center justify-between gap-3 animate-pulse">
+              <div className="flex items-center gap-3">
+                <span className="text-2xl sm:text-3xl animate-bounce">🚨</span>
+                <div>
+                  <div className="text-[11px] font-black text-amber-300 uppercase tracking-widest flex items-center gap-2">
+                    <span>CRITICAL LIFE-SAFETY RESCUE REQUIRED</span>
+                    <span className="bg-black/50 text-white text-[9px] px-1.5 py-0.5 rounded font-mono">
+                      {occupantsList.filter((o) => o.status === "need-help" || o.status === "awaiting-evac-chair").length} IN DISTRESS
+                    </span>
+                  </div>
+                  <div className="text-xs sm:text-sm font-black mt-0.5">
+                    {occupantsList
+                      .filter((o) => o.status === "need-help" || o.status === "awaiting-evac-chair")
+                      .map((d) => `${d.name} (${d.quadrant})`)
+                      .join(" · ")}{" "}
+                    reported emergency distress inside building!
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const firstDistressed = occupantsList.find(
+                      (o) => o.status === "need-help" || o.status === "awaiting-evac-chair"
+                    );
+                    if (firstDistressed) {
+                      setDistressRescueTarget(firstDistressed);
+                      setIsRescueModalOpen(true);
+                    }
+                  }}
+                  className="px-4 py-2 bg-amber-400 hover:bg-amber-300 text-black font-black text-xs uppercase tracking-wider rounded-xl shadow-md cursor-pointer transition flex items-center gap-1.5"
+                >
+                  <span>🧭</span>
+                  <span>Locate &amp; Execute Rescue Procedure →</span>
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* THE 5-STEP PROCESS BAR (Matches image exactly) */}
           <UserFlowStepper
             snapshot={snapshot}
@@ -983,6 +1029,10 @@ export default function App() {
                 onRefreshState={refreshState}
                 onProceedNext={() => setCurrentStep(3)}
                 onOpenWalkieTalkie={() => setIsWalkieTalkieOpen(true)}
+                onOpenRescueProcedure={(occ) => {
+                  setDistressRescueTarget(occ);
+                  setIsRescueModalOpen(true);
+                }}
               />
             )}
 
@@ -1026,6 +1076,10 @@ export default function App() {
                 onClearIncident={handleClearIncident}
                 onReturnToStep1={() => setCurrentStep(1)}
                 onOpenWalkieTalkie={() => setIsWalkieTalkieOpen(true)}
+                onOpenRescueProcedure={(occ) => {
+                  setDistressRescueTarget(occ);
+                  setIsRescueModalOpen(true);
+                }}
               />
             )}
           </main>
@@ -1151,6 +1205,19 @@ export default function App() {
         alert={snapshot?.latestEmergencyAlert}
         currentOccupant={occupantsList[0]}
         onCheckIn={handleCheckIn}
+        stairwell={stairwell}
+        assemblyPoint={assemblyPoint}
+      />
+
+      {/* Emergency Distress Rescue & Life-Saving Procedure Modal */}
+      <EmergencyRescueProcedureModal
+        isOpen={isRescueModalOpen}
+        onClose={() => setIsRescueModalOpen(false)}
+        occupant={distressRescueTarget || occupantsList.find((o) => o.status === "need-help" || o.status === "awaiting-evac-chair") || null}
+        distressedList={occupantsList.filter((o) => o.status === "need-help" || o.status === "awaiting-evac-chair")}
+        onSelectOccupant={(occ) => setDistressRescueTarget(occ)}
+        onCheckIn={handleCheckIn}
+        onOpenWalkieTalkie={() => setIsWalkieTalkieOpen(true)}
         stairwell={stairwell}
         assemblyPoint={assemblyPoint}
       />

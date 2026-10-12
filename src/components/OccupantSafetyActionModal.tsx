@@ -14,6 +14,7 @@ interface OccupantSafetyActionModalProps {
   ) => Promise<any> | void;
   onSendDirectPing?: (occ: Occupant) => void;
   onFeedbackMessage?: (msg: string) => void;
+  onOpenRescueProcedure?: (occ: Occupant) => void;
 }
 
 const QUADRANT_LABELS: Record<QuadrantId, string> = {
@@ -29,6 +30,7 @@ export const OccupantSafetyActionModal: React.FC<OccupantSafetyActionModalProps>
   onCheckIn,
   onSendDirectPing,
   onFeedbackMessage,
+  onOpenRescueProcedure,
 }) => {
   const [pingSent, setPingSent] = useState(false);
   const [localFeedback, setLocalFeedback] = useState<string | null>(null);
@@ -306,6 +308,36 @@ export const OccupantSafetyActionModal: React.FC<OccupantSafetyActionModalProps>
                 Instant 1-Click Execution
               </span>
             </div>
+
+            {/* High Priority Rescue Card if in Distress */}
+            {(occupant.status === "need-help" || occupant.status === "awaiting-evac-chair") && (
+              <div className="p-4 bg-red-950 border-2 border-red-500 rounded-2xl flex flex-wrap items-center justify-between gap-3 text-white animate-pulse">
+                <div className="flex items-center gap-3">
+                  <span className="text-3xl">🆘</span>
+                  <div>
+                    <div className="font-black text-xs sm:text-sm text-amber-300 uppercase">
+                      CRITICAL EMERGENCY: OCCUPANT REPORTED DISTRESS
+                    </div>
+                    <div className="text-[11px] text-red-200 mt-0.5">
+                      Status: {occupant.status.toUpperCase()} · Immediate rescue protocol recommended
+                    </div>
+                  </div>
+                </div>
+
+                {onOpenRescueProcedure && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onClose();
+                      onOpenRescueProcedure(occupant);
+                    }}
+                    className="px-4 py-2 bg-amber-400 hover:bg-amber-300 text-black font-black text-xs uppercase rounded-xl shadow-md cursor-pointer shrink-0 transition"
+                  >
+                    Open Rescue Protocol →
+                  </button>
+                )}
+              </div>
+            )}
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
               {/* Action 1: Mark Safe Outside */}

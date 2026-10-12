@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from "react";
 import { Occupant, OccupantStatus, QuadrantId, StatusSnapshot } from "../../types";
+import { OccupantSafetyActionModal } from "../OccupantSafetyActionModal";
 
 interface Step2SignedInProps {
   snapshot: StatusSnapshot | null;
@@ -22,6 +23,7 @@ interface Step2SignedInProps {
   onRefreshState: () => void;
   onProceedNext: () => void;
   onOpenWalkieTalkie?: () => void;
+  onOpenRescueProcedure?: (occ: Occupant) => void;
 }
 
 export const Step2SignedIn: React.FC<Step2SignedInProps> = ({
@@ -32,6 +34,7 @@ export const Step2SignedIn: React.FC<Step2SignedInProps> = ({
   onRefreshState,
   onProceedNext,
   onOpenWalkieTalkie,
+  onOpenRescueProcedure,
 }) => {
   const [selectedQuadrant, setSelectedQuadrant] = useState<string>("ALL");
   const [searchQuery, setSearchQuery] = useState<string>("");
@@ -568,6 +571,20 @@ export const Step2SignedIn: React.FC<Step2SignedInProps> = ({
                       </td>
                       <td className="p-3.5 text-right">
                         <div className="flex items-center justify-end gap-1.5">
+                          {(occ.status === "need-help" || occ.status === "awaiting-evac-chair") && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (onOpenRescueProcedure) onOpenRescueProcedure(occ);
+                                else setSelectedOccupantForAction(occ);
+                              }}
+                              className="px-2.5 py-1.5 rounded-xl bg-red-600 hover:bg-red-500 text-white font-black text-xs cursor-pointer shadow-md flex items-center gap-1 active:scale-95 transition animate-pulse"
+                              title="Execute Life-Saving Rescue Procedure & CAD Pinpoint"
+                            >
+                              <span>🆘</span>
+                              <span>Rescue</span>
+                            </button>
+                          )}
                           <button
                             type="button"
                             onClick={() => setSelectedOccupantForAction(occ)}
@@ -813,6 +830,36 @@ export const Step2SignedIn: React.FC<Step2SignedInProps> = ({
                     Instant 1-Click Execution
                   </span>
                 </div>
+
+                {(selectedOccupantForAction.status === "need-help" || selectedOccupantForAction.status === "awaiting-evac-chair") && (
+                  <div className="p-3.5 bg-red-950 border-2 border-red-500 rounded-2xl flex flex-wrap items-center justify-between gap-3 text-white animate-pulse">
+                    <div className="flex items-center gap-2.5">
+                      <span className="text-2xl">🆘</span>
+                      <div>
+                        <div className="font-black text-xs text-amber-300 uppercase">
+                          CRITICAL DISTRESS: OCCUPANT REQUIRES RESCUE
+                        </div>
+                        <div className="text-[11px] text-red-200 mt-0.5">
+                          Follow NYC Life-Saving Procedure: Locate CAD pin &amp; dispatch rescue team.
+                        </div>
+                      </div>
+                    </div>
+
+                    {onOpenRescueProcedure && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const occ = selectedOccupantForAction;
+                          setSelectedOccupantForAction(null);
+                          onOpenRescueProcedure(occ);
+                        }}
+                        className="px-3.5 py-1.5 bg-amber-400 hover:bg-amber-300 text-black font-black text-xs uppercase rounded-xl shadow-md cursor-pointer shrink-0 transition"
+                      >
+                        Open Rescue Protocol →
+                      </button>
+                    )}
+                  </div>
+                )}
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                   {/* Action 1: Mark Safe Outside */}
