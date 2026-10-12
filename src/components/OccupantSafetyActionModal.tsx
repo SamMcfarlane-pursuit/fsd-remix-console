@@ -14,7 +14,6 @@ interface OccupantSafetyActionModalProps {
   ) => Promise<any> | void;
   onSendDirectPing?: (occ: Occupant) => void;
   onFeedbackMessage?: (msg: string) => void;
-  onOpenRescueProcedure?: (occ: Occupant) => void;
 }
 
 const QUADRANT_LABELS: Record<QuadrantId, string> = {
@@ -30,7 +29,6 @@ export const OccupantSafetyActionModal: React.FC<OccupantSafetyActionModalProps>
   onCheckIn,
   onSendDirectPing,
   onFeedbackMessage,
-  onOpenRescueProcedure,
 }) => {
   const [pingSent, setPingSent] = useState(false);
   const [localFeedback, setLocalFeedback] = useState<string | null>(null);
@@ -97,25 +95,10 @@ export const OccupantSafetyActionModal: React.FC<OccupantSafetyActionModalProps>
     onClose();
   };
 
-  const handlePing = async () => {
+  const handlePing = () => {
     setPingSent(true);
     if (onSendDirectPing) {
       onSendDirectPing(occupant);
-    }
-    try {
-      await fetch("/api/emergency-alert", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "x-fsd-pin": "7007" },
-        body: JSON.stringify({
-          title: `URGENT DIRECTIVE: ${occupant.name.toUpperCase()} (SECTOR ${occupant.quadrant})`,
-          narrative: `DIRECT LIFE-SAFETY DIRECTIVE FOR ${occupant.name.toUpperCase()}: Please evacuate immediately via designated exit stairwells to outside Assembly Point A. Do not use elevators. Tap safe button upon reaching street level.`,
-          priority: "CRITICAL",
-          targetQuadrants: [occupant.quadrant],
-          channels: ["PUSH_NOTIFICATION", "SMS_BACKUP", "MESH_AUDIO_BEACON"],
-        }),
-      });
-    } catch (err) {
-      console.warn("Direct emergency ping failed:", err);
     }
     triggerFeedback(`🚨 Urgent Evacuation Ping transmitted to ${occupant.name}'s phone.`);
     setTimeout(() => setPingSent(false), 4000);
@@ -163,13 +146,12 @@ export const OccupantSafetyActionModal: React.FC<OccupantSafetyActionModalProps>
                 <span>LOCATION INSIDE BUILDING (4 IRVING PL · FL 07)</span>
               </span>
               <span
-                className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-full border ${
-                  isPresent
+                className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-full border ${isPresent
                     ? "bg-emerald-100 text-emerald-900 border-emerald-300"
                     : occupant.badgedOut
-                    ? "bg-slate-200 text-slate-700 border-slate-300"
-                    : "bg-blue-100 text-blue-900 border-blue-300"
-                }`}
+                      ? "bg-slate-200 text-slate-700 border-slate-300"
+                      : "bg-blue-100 text-blue-900 border-blue-300"
+                  }`}
               >
                 {isPresent ? "In Building (Floor 07)" : occupant.badgedOut ? "Badged Out" : "Offsite"}
               </span>
@@ -308,36 +290,6 @@ export const OccupantSafetyActionModal: React.FC<OccupantSafetyActionModalProps>
                 Instant 1-Click Execution
               </span>
             </div>
-
-            {/* High Priority Rescue Card if in Distress */}
-            {(occupant.status === "need-help" || occupant.status === "awaiting-evac-chair") && (
-              <div className="p-4 bg-red-950 border-2 border-red-500 rounded-2xl flex flex-wrap items-center justify-between gap-3 text-white animate-pulse">
-                <div className="flex items-center gap-3">
-                  <span className="text-3xl">🆘</span>
-                  <div>
-                    <div className="font-black text-xs sm:text-sm text-amber-300 uppercase">
-                      CRITICAL EMERGENCY: OCCUPANT REPORTED DISTRESS
-                    </div>
-                    <div className="text-[11px] text-red-200 mt-0.5">
-                      Status: {occupant.status.toUpperCase()} · Immediate rescue protocol recommended
-                    </div>
-                  </div>
-                </div>
-
-                {onOpenRescueProcedure && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onClose();
-                      onOpenRescueProcedure(occupant);
-                    }}
-                    className="px-4 py-2 bg-amber-400 hover:bg-amber-300 text-black font-black text-xs uppercase rounded-xl shadow-md cursor-pointer shrink-0 transition"
-                  >
-                    Open Rescue Protocol →
-                  </button>
-                )}
-              </div>
-            )}
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
               {/* Action 1: Mark Safe Outside */}

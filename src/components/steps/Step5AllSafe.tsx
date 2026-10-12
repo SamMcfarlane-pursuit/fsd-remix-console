@@ -25,7 +25,6 @@ interface Step5AllSafeProps {
   onClearIncident?: () => Promise<void>;
   onReturnToStep1?: () => void;
   onOpenWalkieTalkie?: () => void;
-  onOpenRescueProcedure?: (occ: Occupant) => void;
 }
 
 export const Step5AllSafe: React.FC<Step5AllSafeProps> = ({
@@ -38,7 +37,6 @@ export const Step5AllSafe: React.FC<Step5AllSafeProps> = ({
   onClearIncident,
   onReturnToStep1,
   onOpenWalkieTalkie,
-  onOpenRescueProcedure,
 }) => {
   const totalExpected = snapshot?.expectedOnFloor ?? occupants.length;
   const accounted = snapshot?.accounted ?? occupants.filter((o) => o.status === "safe").length;
@@ -443,8 +441,8 @@ export const Step5AllSafe: React.FC<Step5AllSafeProps> = ({
               {snapshot?.drillMetrics?.p95TimeToSafeSec !== null && snapshot?.drillMetrics?.p95TimeToSafeSec !== undefined
                 ? formatDuration(snapshot.drillMetrics.p95TimeToSafeSec)
                 : percentAccounted >= 95
-                ? formatDuration(Math.round(liveElapsedSec * 0.85))
-                : "--:--"}
+                  ? formatDuration(Math.round(liveElapsedSec * 0.85))
+                  : "--:--"}
             </div>
             <div className="text-[11px] text-[#475569]">
               {percentAccounted >= 95 ? (
@@ -473,13 +471,12 @@ export const Step5AllSafe: React.FC<Step5AllSafeProps> = ({
           </div>
 
           {/* Card 4: Compliance Status */}
-          <div className={`p-4 rounded-xl border flex flex-col justify-between ${
-            is100PercentAllSafe
+          <div className={`p-4 rounded-xl border flex flex-col justify-between ${is100PercentAllSafe
               ? liveElapsedSec <= 240
                 ? "bg-emerald-50/80 border-emerald-300 text-emerald-950"
                 : "bg-amber-50/80 border-amber-300 text-amber-950"
               : "bg-blue-50/70 border-blue-200 text-blue-950"
-          }`}>
+            }`}>
             <div className="text-[11px] font-mono font-bold uppercase tracking-wider flex items-center justify-between">
               <span>NYC Fire Code 3 RCNY §401-06</span>
               <span className="text-xs">📜</span>
@@ -522,11 +519,10 @@ export const Step5AllSafe: React.FC<Step5AllSafeProps> = ({
               return (
                 <div
                   key={q.id}
-                  className={`p-3.5 rounded-xl border transition ${
-                    isQCleared
+                  className={`p-3.5 rounded-xl border transition ${isQCleared
                       ? "bg-emerald-50/70 border-emerald-200 text-emerald-950"
                       : "bg-[#F8FAFC] border-[#CBDCEE] text-[#0F2537]"
-                  }`}
+                    }`}
                 >
                   <div className="flex items-center justify-between text-xs font-bold mb-1">
                     <span className="truncate">{q.label}</span>
@@ -538,9 +534,8 @@ export const Step5AllSafe: React.FC<Step5AllSafeProps> = ({
                   {/* Progress bar */}
                   <div className="w-full bg-slate-200 h-2 rounded-full overflow-hidden my-2">
                     <div
-                      className={`h-full transition-all duration-300 rounded-full ${
-                        isQCleared ? "bg-emerald-500" : "bg-[#005DAA]"
-                      }`}
+                      className={`h-full transition-all duration-300 rounded-full ${isQCleared ? "bg-emerald-500" : "bg-[#005DAA]"
+                        }`}
                       style={{ width: `${percentQ}%` }}
                     />
                   </div>
@@ -578,11 +573,10 @@ export const Step5AllSafe: React.FC<Step5AllSafeProps> = ({
             <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
               <h3 className="text-base font-black text-[#0F2537]">Headcount Accountability</h3>
               <span
-                className={`text-xs font-mono font-black px-2.5 py-0.5 rounded ${
-                  is100PercentAllSafe
+                className={`text-xs font-mono font-black px-2.5 py-0.5 rounded ${is100PercentAllSafe
                     ? "bg-emerald-100 text-emerald-900 border border-emerald-300"
                     : "bg-amber-100 text-amber-900"
-                }`}
+                  }`}
               >
                 {percentAccounted}% Closed
               </span>
@@ -600,9 +594,8 @@ export const Step5AllSafe: React.FC<Step5AllSafeProps> = ({
               {/* Progress bar */}
               <div className="w-full bg-slate-200 h-3 rounded-full overflow-hidden mt-4">
                 <div
-                  className={`h-full transition-all duration-500 rounded-full ${
-                    is100PercentAllSafe ? "bg-emerald-500" : "bg-[#005DAA]"
-                  }`}
+                  className={`h-full transition-all duration-500 rounded-full ${is100PercentAllSafe ? "bg-emerald-500" : "bg-[#005DAA]"
+                    }`}
                   style={{ width: `${percentAccounted}%` }}
                 />
               </div>
@@ -659,21 +652,19 @@ export const Step5AllSafe: React.FC<Step5AllSafeProps> = ({
               <div className="flex items-center gap-1">
                 <button
                   onClick={() => setFilterAttention("ALL_UNACCOUNTED")}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
-                    filterAttention === "ALL_UNACCOUNTED"
+                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${filterAttention === "ALL_UNACCOUNTED"
                       ? "bg-[#005DAA] text-white"
                       : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                  }`}
+                    }`}
                 >
                   All Unverified ({occupants.filter((o) => o.status !== "safe").length})
                 </button>
                 <button
                   onClick={() => setFilterAttention("NEED_HELP")}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
-                    filterAttention === "NEED_HELP"
+                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${filterAttention === "NEED_HELP"
                       ? "bg-amber-600 text-white"
                       : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                  }`}
+                    }`}
                 >
                   Need Help ({needHelp})
                 </button>
@@ -721,20 +712,6 @@ export const Step5AllSafe: React.FC<Step5AllSafeProps> = ({
                           <span className="px-2 py-0.5 rounded-full bg-purple-100 text-purple-900 font-bold text-[10px]">
                             ♿ Evac Chair Requested
                           </span>
-                        )}
-                        {(occ.status === "need-help" || occ.status === "awaiting-evac-chair") && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              if (onOpenRescueProcedure) onOpenRescueProcedure(occ);
-                              else setSelectedOccupantForAction(occ);
-                            }}
-                            className="px-2.5 py-1 rounded-lg bg-red-600 hover:bg-red-500 text-white font-black text-[11px] cursor-pointer shadow-md flex items-center gap-1 active:scale-95 transition animate-pulse"
-                            title="Execute Life-Saving Rescue Procedure & CAD Pinpoint"
-                          >
-                            <span>🆘</span>
-                            <span>Locate &amp; Rescue</span>
-                          </button>
                         )}
                         {occ.status === "mia" && (
                           <span className="px-2 py-0.5 rounded-full bg-red-100 text-red-900 font-bold text-[10px]">
@@ -860,7 +837,6 @@ export const Step5AllSafe: React.FC<Step5AllSafeProps> = ({
         occupant={selectedOccupantForAction}
         onClose={() => setSelectedOccupantForAction(null)}
         onCheckIn={onCheckIn}
-        onOpenRescueProcedure={onOpenRescueProcedure}
       />
     </div>
   );

@@ -8,6 +8,8 @@ interface ActualBuildingFloorMapProps {
   targetStairwell?: string;
   showEgressPath?: boolean;
   className?: string;
+  onSelectQuadrant?: (quad: QuadrantId) => void;
+  quadrantCounts?: Partial<Record<QuadrantId, number>>;
 }
 
 /**
@@ -21,6 +23,8 @@ export const ActualBuildingFloorMap: React.FC<ActualBuildingFloorMapProps> = ({
   targetStairwell = "Stairwell A",
   showEgressPath = true,
   className = "",
+  onSelectQuadrant,
+  quadrantCounts,
 }) => {
   const isTargetNW = targetQuadrant === "NW";
   const isTargetNE = targetQuadrant === "NE";
@@ -233,7 +237,10 @@ export const ActualBuildingFloorMap: React.FC<ActualBuildingFloorMapProps> = ({
           {/* FOUR PRIMARY QUADRANT SECTORS (NO OCCUPANT NAMES)        */}
           {/* ======================================================== */}
           {/* Sector NW: Strategic Planning (07-800) */}
-          <g>
+          <g
+            onClick={() => onSelectQuadrant?.("NW")}
+            className={onSelectQuadrant ? "cursor-pointer transition hover:opacity-85" : ""}
+          >
             <rect
               x="78"
               y="42"
@@ -250,10 +257,21 @@ export const ActualBuildingFloorMap: React.FC<ActualBuildingFloorMapProps> = ({
             <text x="88" y="74" fill="#64748B" fontSize="7.5" fontWeight="500">
               Workstation Pods 07-801 to 07-841 · Conf Rm A
             </text>
+            {quadrantCounts?.NW !== undefined && (
+              <g transform="translate(230, 84)">
+                <rect width="80" height="20" rx="10" fill="#005DAA" />
+                <text x="40" y="13" textAnchor="middle" fill="#FFFFFF" fontSize="8" fontWeight="bold">
+                  {quadrantCounts.NW} inside
+                </text>
+              </g>
+            )}
           </g>
 
           {/* Sector NE: Gas Operations & Investigations (07-200) */}
-          <g>
+          <g
+            onClick={() => onSelectQuadrant?.("NE")}
+            className={onSelectQuadrant ? "cursor-pointer transition hover:opacity-85" : ""}
+          >
             <rect
               x="542"
               y="42"
@@ -270,10 +288,21 @@ export const ActualBuildingFloorMap: React.FC<ActualBuildingFloorMapProps> = ({
             <text x="552" y="74" fill="#64748B" fontSize="7.5" fontWeight="500">
               Control Center · PSC Supply · Conf Rm 07-240
             </text>
+            {quadrantCounts?.NE !== undefined && (
+              <g transform="translate(694, 84)">
+                <rect width="80" height="20" rx="10" fill="#005DAA" />
+                <text x="40" y="13" textAnchor="middle" fill="#FFFFFF" fontSize="8" fontWeight="bold">
+                  {quadrantCounts.NE} inside
+                </text>
+              </g>
+            )}
           </g>
 
           {/* Sector SW: AMI & Ombudsman (07-700) */}
-          <g>
+          <g
+            onClick={() => onSelectQuadrant?.("SW")}
+            className={onSelectQuadrant ? "cursor-pointer transition hover:opacity-85" : ""}
+          >
             <rect
               x="78"
               y="302"
@@ -290,10 +319,21 @@ export const ActualBuildingFloorMap: React.FC<ActualBuildingFloorMapProps> = ({
             <text x="88" y="336" fill="#64748B" fontSize="7.5" fontWeight="500">
               Team Rooms A-D · Implementation Area
             </text>
+            {quadrantCounts?.SW !== undefined && (
+              <g transform="translate(230, 344)">
+                <rect width="80" height="20" rx="10" fill="#005DAA" />
+                <text x="40" y="13" textAnchor="middle" fill="#FFFFFF" fontSize="8" fontWeight="bold">
+                  {quadrantCounts.SW} inside
+                </text>
+              </g>
+            )}
           </g>
 
           {/* Sector SE: Steam Operations & Bulk Power (07-500) */}
-          <g>
+          <g
+            onClick={() => onSelectQuadrant?.("SE")}
+            className={onSelectQuadrant ? "cursor-pointer transition hover:opacity-85" : ""}
+          >
             <rect
               x="542"
               y="302"
@@ -310,6 +350,14 @@ export const ActualBuildingFloorMap: React.FC<ActualBuildingFloorMapProps> = ({
             <text x="552" y="336" fill="#64748B" fontSize="7.5" fontWeight="500">
               Steam Ops Control Rm · Desks 07-501 to 07-595
             </text>
+            {quadrantCounts?.SE !== undefined && (
+              <g transform="translate(694, 344)">
+                <rect width="80" height="20" rx="10" fill="#005DAA" />
+                <text x="40" y="13" textAnchor="middle" fill="#FFFFFF" fontSize="8" fontWeight="bold">
+                  {quadrantCounts.SE} inside
+                </text>
+              </g>
+            )}
           </g>
 
           {/* ======================================================== */}

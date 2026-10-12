@@ -2,11 +2,6 @@ import React, { useState } from "react";
 import { EmergencyAlertPayload, Occupant, QuadrantId, StatusSnapshot } from "../../types";
 import { speakEmergencyBroadcast, testAiVoice } from "../../lib/audioBroadcast";
 import { OccupantSafetyActionModal } from "../OccupantSafetyActionModal";
-import {
-  EmergencyLanguage,
-  SUPPORTED_LANGUAGES,
-  translateEmergencyNarrative,
-} from "../../lib/emergencyTranslations";
 
 interface Step4BroadcastProps {
   snapshot: StatusSnapshot | null;
@@ -46,7 +41,6 @@ export const Step4Broadcast: React.FC<Step4BroadcastProps> = ({
   const isIncident = snapshot?.mode === "incident";
   const [isPlayingTestVoice, setIsPlayingTestVoice] = useState(false);
   const [selectedOccupantForAction, setSelectedOccupantForAction] = useState<Occupant | null>(null);
-  const [previewLang, setPreviewLang] = useState<EmergencyLanguage>("es");
 
   const resolvedStairwell = stairwell || "Stairwell A (East Core - Union Sq East)";
   const resolvedAssembly = assemblyPoint || "Assembly Point A (Union Sq East / Park Plaza)";
@@ -441,9 +435,8 @@ export const Step4Broadcast: React.FC<Step4BroadcastProps> = ({
                   key={p.id}
                   type="button"
                   onClick={() => setPriority(p.id as any)}
-                  className={`p-3 rounded-xl border-2 text-xs font-black transition cursor-pointer text-center ${
-                    priority === p.id ? `${p.bg} shadow-xs ring-2 ring-slate-900/10` : "border-slate-200 text-slate-600 bg-white"
-                  }`}
+                  className={`p-3 rounded-xl border-2 text-xs font-black transition cursor-pointer text-center ${priority === p.id ? `${p.bg} shadow-xs ring-2 ring-slate-900/10` : "border-slate-200 text-slate-600 bg-white"
+                    }`}
                 >
                   {p.label}
                 </button>
@@ -479,70 +472,6 @@ export const Step4Broadcast: React.FC<Step4BroadcastProps> = ({
             />
           </div>
 
-          {/* Multi-Language Accessibility & Barrier-Free Transmission Preview */}
-          <div className="bg-[#F0F6FC] border border-[#B8D8F8] rounded-2xl p-4 space-y-3">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <span className="text-[11px] font-mono font-black text-[#005DAA] uppercase tracking-wider flex items-center gap-1.5">
-                <span>🌐</span>
-                <span>Multi-Language Accessibility Preview (ESL / Universal Safety)</span>
-              </span>
-              <div className="flex items-center gap-1">
-                {SUPPORTED_LANGUAGES.map((l) => (
-                  <button
-                    key={l.code}
-                    type="button"
-                    onClick={() => setPreviewLang(l.code)}
-                    className={`px-2 py-0.5 rounded text-[11px] font-bold transition cursor-pointer ${
-                      previewLang === l.code
-                        ? "bg-[#005DAA] text-white shadow-xs"
-                        : "bg-white text-slate-700 hover:bg-slate-100 border border-[#CBDCEE]"
-                    }`}
-                  >
-                    {l.flag} {l.code.toUpperCase()}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="p-3 bg-white rounded-xl border border-[#CBDCEE] text-xs space-y-2">
-              <div className="font-bold text-[#0F2537] flex items-center justify-between">
-                <span>
-                  Preview in {SUPPORTED_LANGUAGES.find((l) => l.code === previewLang)?.name} ({SUPPORTED_LANGUAGES.find((l) => l.code === previewLang)?.nativeName})
-                </span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
-                    window.speechSynthesis.cancel();
-                    const meta = SUPPORTED_LANGUAGES.find((l) => l.code === previewLang);
-                    const textToSpeak = translateEmergencyNarrative(narrative, previewLang);
-                    const utterance = new SpeechSynthesisUtterance(textToSpeak);
-                    utterance.lang = meta?.speechLang || "en-US";
-                    utterance.rate = 0.95;
-                    const voices = window.speechSynthesis.getVoices();
-                    const voice = voices.find((v) => v.lang.startsWith(utterance.lang)) || voices[0];
-                    if (voice) utterance.voice = voice;
-                    utterance.onstart = () => setIsPlayingTestVoice(true);
-                    utterance.onend = () => setIsPlayingTestVoice(false);
-                    utterance.onerror = () => setIsPlayingTestVoice(false);
-                    window.speechSynthesis.speak(utterance);
-                  }}
-                  className="px-2.5 py-1 bg-amber-100 hover:bg-amber-200 text-amber-900 rounded-lg font-bold text-[10px] flex items-center gap-1 transition cursor-pointer"
-                >
-                  <span>🔊</span>
-                  <span>{isPlayingTestVoice ? "Playing Voice..." : "Listen Voice"}</span>
-                </button>
-              </div>
-              <p className="text-[#334155] leading-relaxed italic bg-slate-50 p-2.5 rounded-lg border border-slate-100">
-                "{translateEmergencyNarrative(narrative, previewLang)}"
-              </p>
-              <div className="text-[10px] text-emerald-700 font-medium flex items-center gap-1">
-                <span>✓</span>
-                <span>Automatic multi-language translation, acoustic PA chime, and screen alert will be dispatched to all occupant devices.</span>
-              </div>
-            </div>
-          </div>
-
           {/* Target Zones */}
           <div>
             <label className="block text-xs font-bold text-[#475569] uppercase tracking-wider mb-2">
@@ -552,11 +481,10 @@ export const Step4Broadcast: React.FC<Step4BroadcastProps> = ({
               <button
                 type="button"
                 onClick={() => handleToggleAll(true)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-black transition cursor-pointer ${
-                  targetAll
+                className={`px-3 py-1.5 rounded-xl text-xs font-black transition cursor-pointer ${targetAll
                     ? "bg-[#005DAA] text-white shadow-xs"
                     : "bg-[#F0F6FC] text-[#005DAA] border border-[#CBDCEE]"
-                }`}
+                  }`}
               >
                 ✓ ALL FLOOR 07 ({snapshot?.occupants?.length ?? snapshot?.expectedOnFloor ?? 0} Personnel)
               </button>
@@ -568,11 +496,10 @@ export const Step4Broadcast: React.FC<Step4BroadcastProps> = ({
                     key={qid}
                     type="button"
                     onClick={() => handleToggleQuadrant(qid)}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
-                      isSelected
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${isSelected
                         ? "bg-[#005DAA] text-white"
                         : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                    }`}
+                      }`}
                   >
                     Quadrant {qid}
                   </button>

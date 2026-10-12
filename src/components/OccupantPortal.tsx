@@ -15,7 +15,6 @@ import {
 } from "../lib/offlineQueue";
 import { authenticateWithBiometrics } from "../lib/biometrics";
 import { playRadioIncomingAlert } from "../lib/audioBroadcast";
-import { AccessibleEmergencyAlertBanner } from "./AccessibleEmergencyAlertBanner";
 
 interface OccupantPortalProps {
   snapshot: StatusSnapshot | null;
@@ -70,7 +69,7 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
           };
         }
       }
-    } catch {}
+    } catch { }
     return null;
   });
 
@@ -88,7 +87,7 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
         const stored = localStorage.getItem("muster_registered_occupant_id") || localStorage.getItem("muster_occupant_id");
         if (stored) return stored;
       }
-    } catch {}
+    } catch { }
     return savedOccupantId || (localRegisteredOccupant ? localRegisteredOccupant.id : null) || occupants.find((o) => o.role === "Visitor")?.id || occupants[0]?.id || "OCC-196";
   });
 
@@ -192,7 +191,7 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
     try {
       if (typeof window !== "undefined") {
         const params = new URLSearchParams(window.location.search);
-        
+
         // Force new sign-in flow if explicitly requested via query param
         const isForceNew =
           params.get("force_new") === "1" ||
@@ -219,7 +218,7 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
         // Newcomer with no existing pass stored -> sign-in registration format
         return "newcomer-signin";
       }
-    } catch {}
+    } catch { }
     return "newcomer-signin";
   });
 
@@ -246,10 +245,6 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [eventToken, setEventToken] = useState<string | null>(null);
   const [eventDetails, setEventDetails] = useState<{ name: string; date: string } | null>(null);
-
-  // Quick Direct Phone Number / Badge Connect Input
-  const [connectNumberInput, setConnectNumberInput] = useState("");
-  const [isConnectingDirect, setIsConnectingDirect] = useState(false);
 
   // Cache active roster whenever roster size changes
   const lastCachedRosterLenRef = useRef<number>(0);
@@ -319,68 +314,13 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
   // Check if current name/phone matches someone already in database
   const matchingExistingUser = (signName.trim().length >= 2 || signPhone.trim().length >= 4)
     ? occupants.find(
-        (o) =>
-          (signName.trim() && o.name.toLowerCase() === signName.trim().toLowerCase()) ||
-          (signName.trim().length >= 4 && o.name.toLowerCase().includes(signName.trim().toLowerCase())) ||
-          (signPhone.trim().length >= 4 && o.phone && o.phone.replace(/\D/g, "").includes(signPhone.replace(/\D/g, ""))) ||
-          (signName.trim() && o.id.toLowerCase() === signName.trim().toLowerCase())
-      )
+      (o) =>
+        (signName.trim() && o.name.toLowerCase() === signName.trim().toLowerCase()) ||
+        (signName.trim().length >= 4 && o.name.toLowerCase().includes(signName.trim().toLowerCase())) ||
+        (signPhone.trim().length >= 4 && o.phone && o.phone.replace(/\D/g, "").includes(signPhone.replace(/\D/g, ""))) ||
+        (signName.trim() && o.id.toLowerCase() === signName.trim().toLowerCase())
+    )
     : null;
-
-  // Direct Connect by Mobile Number or Badge ID
-  const handleDirectConnect = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    const query = connectNumberInput.trim();
-    if (!query) {
-      setErrorMessage("Please enter your mobile phone number or badge ID to connect.");
-      return;
-    }
-    setIsConnectingDirect(true);
-    setErrorMessage(null);
-    try {
-      const res = await fetch("/api/occupant/connect", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone: query, action: signAction === "leave" ? "leave" : "enter" }),
-      });
-      const data = await res.json();
-      if (res.ok && data.occupant) {
-        const occ: Occupant = data.occupant;
-        setSelectedUserId(occ.id);
-        setSavedOccupantId(occ.id);
-        setLocalRegisteredOccupant(occ);
-        try {
-          localStorage.setItem("muster_registered_occupant_id", occ.id);
-          localStorage.setItem("muster_occupant_id", occ.id);
-          localStorage.setItem("muster_registered_name", occ.name);
-          if (occ.phone) localStorage.setItem("muster_registered_phone", occ.phone);
-          localStorage.setItem("muster_registered_quad", occ.quadrant);
-          localStorage.setItem("muster_registered_role", occ.role);
-          if (occ.company) localStorage.setItem("muster_registered_company", occ.company);
-          localStorage.setItem("muster_registered_occupant_json", JSON.stringify(occ));
-        } catch (e) {}
-        setViewState("confirmed");
-        setActionSubmittedMsg(`⚡ Connected as ${occ.name} (${occ.id})! Phone & presence saved directly. Floor 07 pass active.`);
-        setTimeout(() => setActionSubmittedMsg(null), 8000);
-      } else {
-        // Local fallback check
-        const digits = query.replace(/\D/g, "");
-        const localMatch =
-          (digits.length >= 4 ? occupants.find((o) => o.phone && o.phone.replace(/\D/g, "").endsWith(digits)) : undefined) ||
-          occupants.find((o) => o.id.toUpperCase() === query.toUpperCase()) ||
-          occupants.find((o) => o.name.toLowerCase().includes(query.toLowerCase()));
-        if (localMatch) {
-          await handleDirectSignInExisting(localMatch);
-        } else {
-          setErrorMessage(data.error || "No occupant found for that number or ID. You can register below.");
-        }
-      }
-    } catch (err: any) {
-      setErrorMessage(err.message || "Failed to connect with that number.");
-    } finally {
-      setIsConnectingDirect(false);
-    }
-  };
 
   // Direct Sign-In for recognized user in database (with offline resilience)
   const handleDirectSignInExisting = async (existingUser: Occupant) => {
@@ -388,7 +328,6 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
     setErrorMessage(null);
     try {
       let isOfflineSaved = false;
-      const phoneToSave = signPhone.trim() || existingUser.phone;
       try {
         const res = await fetch("/api/occupant/presence", {
           method: "POST",
@@ -396,7 +335,6 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
           body: JSON.stringify({
             occupantId: existingUser.id,
             action: signAction === "leave" ? "leave" : "enter",
-            phone: phoneToSave,
           }),
         });
         if (!res.ok) throw new Error("Presence endpoint returned error");
@@ -405,7 +343,6 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
         queueOfflineAction("presence-toggle", {
           occupantId: existingUser.id,
           action: signAction === "leave" ? "leave" : "enter",
-          phone: phoneToSave,
         });
         isOfflineSaved = true;
       }
@@ -417,12 +354,12 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
         localStorage.setItem("muster_registered_occupant_id", existingUser.id);
         localStorage.setItem("muster_occupant_id", existingUser.id);
         localStorage.setItem("muster_registered_name", existingUser.name);
-        if (phoneToSave) localStorage.setItem("muster_registered_phone", phoneToSave);
+        if (existingUser.phone) localStorage.setItem("muster_registered_phone", existingUser.phone);
         localStorage.setItem("muster_registered_quad", existingUser.quadrant);
         localStorage.setItem("muster_registered_role", existingUser.role);
         if (existingUser.company) localStorage.setItem("muster_registered_company", existingUser.company);
         localStorage.setItem("muster_registered_occupant_json", JSON.stringify(existingUser));
-      } catch (e) {}
+      } catch (e) { }
       setViewState("confirmed");
       setActionSubmittedMsg(
         isOfflineSaved
@@ -517,7 +454,7 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
           setViewState("newcomer-signin");
         }
       }
-    } catch {}
+    } catch { }
   }, []);
 
   // Sync role & company when userType changes
@@ -662,7 +599,7 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
               localStorage.setItem("muster_registered_role", data.occupant.role);
               localStorage.setItem("muster_registered_company", data.occupant.company || "Con Edison");
               localStorage.setItem("muster_registered_occupant_json", JSON.stringify(data.occupant));
-            } catch {}
+            } catch { }
             setViewState("confirmed");
             if (onCheckIn) {
               onCheckIn(
@@ -707,26 +644,26 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
       const endpoint = eventToken ? `/api/checkin/${eventToken}` : `/api/occupant/sign-in-register`;
       const payload = eventToken
         ? {
-            full_name: signName.trim(),
-            phone: signPhone.trim(),
-            email: `${signName.toLowerCase().replace(/[^a-z0-9]/g, ".")}@${userType === "employee" ? "coned.com" : "visitor.net"}`,
-            org: signCompany.trim() || (userType === "employee" ? "Con Edison" : "Visitor"),
-            role: signRole,
-            quadrant: signQuad,
-            action: signAction,
-            signature_data: signatureData,
-            signature_type: signatureType,
-          }
+          full_name: signName.trim(),
+          phone: signPhone.trim(),
+          email: `${signName.toLowerCase().replace(/[^a-z0-9]/g, ".")}@${userType === "employee" ? "coned.com" : "visitor.net"}`,
+          org: signCompany.trim() || (userType === "employee" ? "Con Edison" : "Visitor"),
+          role: signRole,
+          quadrant: signQuad,
+          action: signAction,
+          signature_data: signatureData,
+          signature_type: signatureType,
+        }
         : {
-            name: signName.trim(),
-            phone: signPhone.trim(),
-            company: signCompany.trim() || "Con Edison",
-            role: signRole,
-            quadrant: signQuad,
-            action: signAction,
-            signature_data: signatureData,
-            signature_type: signatureType,
-          };
+          name: signName.trim(),
+          phone: signPhone.trim(),
+          company: signCompany.trim() || "Con Edison",
+          role: signRole,
+          quadrant: signQuad,
+          action: signAction,
+          signature_data: signatureData,
+          signature_type: signatureType,
+        };
 
       let data: any = null;
       let isOfflineSaved = false;
@@ -825,8 +762,8 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
         isOfflineSaved
           ? `🟠 Offline: ${action === "leave" ? "Badge-out" : "Badge-in"} recorded locally and queued for sync.`
           : action === "leave"
-          ? `🚪 Badged Out: ${currentUser.name} marked as LEFT BUILDING (Off-Site). Roster updated.`
-          : `🏢 Badged In: ${currentUser.name} verified as IN BUILDING (Floor 07). Roster updated.`
+            ? `🚪 Badged Out: ${currentUser.name} marked as LEFT BUILDING (Off-Site). Roster updated.`
+            : `🏢 Badged In: ${currentUser.name} verified as IN BUILDING (Floor 07). Roster updated.`
       );
       setTimeout(() => setActionSubmittedMsg(null), 5000);
     } catch (err) {
@@ -898,14 +835,14 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
       const meta = coords
         ? { coords, source: "gps" as const }
         : {
-            cad: {
-              x: 250,
-              y: 180,
-              floor: 7,
-              quadrant: currentUser.quadrant || "NW",
-            },
-            source: "kiosk_beacon" as const,
-          };
+          cad: {
+            x: 250,
+            y: 180,
+            floor: 7,
+            quadrant: currentUser.quadrant || "NW",
+          },
+          source: "kiosk_beacon" as const,
+        };
 
       const geoResult = validateGeofence(meta, FLOOR_07_CONSTRAINTS);
 
@@ -919,10 +856,9 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
       );
 
       setActionSubmittedMsg(
-        `🛰️ Geo-Fence Verified: ${
-          geoResult.locationCategory === "outside-assembly"
-            ? `Outdoor Assembly Point (${geoResult.assemblyPoint})`
-            : geoResult.locationCategory === "inside-building"
+        `🛰️ Geo-Fence Verified: ${geoResult.locationCategory === "outside-assembly"
+          ? `Outdoor Assembly Point (${geoResult.assemblyPoint})`
+          : geoResult.locationCategory === "inside-building"
             ? `In-Building (Floor 07 · ${geoResult.detectedQuadrant || currentUser.quadrant} Quadrant)`
             : "Off-Site / Remote"
         }. Telemetry transmitted!`
@@ -979,13 +915,6 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
 
   return (
     <div className="max-w-2xl mx-auto p-4 sm:p-6 space-y-5 text-[#0F2537]">
-      {/* Universal Multi-Language Accessible Emergency Life-Safety Banner */}
-      <AccessibleEmergencyAlertBanner
-        alert={snapshot?.latestEmergencyAlert}
-        currentOccupant={currentUser}
-        onCheckIn={onCheckIn}
-      />
-
       {/* Top Banner */}
       <div className="bg-[#EBF5FB] border border-[#B8D8F8] p-3.5 rounded-2xl flex items-center justify-between gap-3 text-xs shadow-xs">
         <div className="flex items-center gap-2.5">
@@ -1021,7 +950,7 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
                   localStorage.removeItem("muster_occupant_id");
                   localStorage.removeItem("muster_registered_phone");
                   localStorage.removeItem("muster_registered_name");
-                } catch {}
+                } catch { }
                 setSavedOccupantId(null);
                 setViewState("newcomer-signin");
                 onLogout();
@@ -1170,9 +1099,8 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
 
       {/* Offline Status & Sync Queue HUD */}
       {(!isOnline || offlinePendingCount > 0) && (
-        <div className={`p-3 rounded-xl border flex items-center justify-between gap-3 text-xs ${
-          !isOnline ? "bg-amber-500/10 border-amber-500/40 text-amber-900" : "bg-sky-500/10 border-sky-500/30 text-sky-900"
-        }`}>
+        <div className={`p-3 rounded-xl border flex items-center justify-between gap-3 text-xs ${!isOnline ? "bg-amber-500/10 border-amber-500/40 text-amber-900" : "bg-sky-500/10 border-sky-500/30 text-sky-900"
+          }`}>
           <div className="flex items-center gap-2">
             <span className={`w-2.5 h-2.5 rounded-full ${!isOnline ? "bg-amber-500 animate-pulse" : "bg-emerald-500"}`} />
             <div>
@@ -1229,9 +1157,8 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
           </div>
 
           {/* Prominent Welcome Back & Sign-In Confirmation Card */}
-          <div className={`bg-white border-2 rounded-2xl p-5 sm:p-6 shadow-sm space-y-4 ${
-            currentUser.role === "Visitor" ? "border-amber-500" : "border-[#005DAA]"
-          }`}>
+          <div className={`bg-white border-2 rounded-2xl p-5 sm:p-6 shadow-sm space-y-4 ${currentUser.role === "Visitor" ? "border-amber-500" : "border-[#005DAA]"
+            }`}>
             <div className="flex items-start justify-between gap-3 border-b border-[#B8D8F8] pb-4">
               <div>
                 <div className="inline-flex items-center gap-1.5 bg-emerald-100 border border-emerald-400 text-emerald-900 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider mb-2">
@@ -1239,11 +1166,10 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
                   <span>SIGNED IN & ACCOUNTED FOR</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider ${
-                    currentUser.role === "Visitor"
+                  <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider ${currentUser.role === "Visitor"
                       ? "bg-amber-100 text-amber-900 border border-amber-300"
                       : "bg-[#003B70] text-white"
-                  }`}>
+                    }`}>
                     {currentUser.role === "Visitor" ? "🎟️ VISITOR / GUEST PASS" : "🏢 CON EDISON EMPLOYEE"}
                   </span>
                   <span className="text-xs text-slate-500 font-mono">PASS ID: {currentUser.id}</span>
@@ -1258,11 +1184,10 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
                 </div>
               </div>
 
-              <div className={`w-12 h-12 rounded-2xl text-white flex items-center justify-center font-black text-lg shadow-xs shrink-0 ${
-                currentUser.role === "Visitor"
+              <div className={`w-12 h-12 rounded-2xl text-white flex items-center justify-center font-black text-lg shadow-xs shrink-0 ${currentUser.role === "Visitor"
                   ? "bg-gradient-to-br from-amber-600 to-amber-700"
                   : "bg-gradient-to-br from-[#003B70] to-[#005DAA]"
-              }`}>
+                }`}>
                 {currentUser.name.split(" ").map((n) => n[0]).join("")}
               </div>
             </div>
@@ -1278,11 +1203,10 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
                     {currentUser.badgedOut ? "⚪ Badged Out / Off-Site" : `🟢 In Building (Floor 07 · Sector ${currentUser.quadrant})`}
                   </span>
                 </div>
-                <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-black uppercase border ${
-                  currentUser.badgedOut
+                <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-black uppercase border ${currentUser.badgedOut
                     ? "bg-slate-200 text-slate-800 border-slate-300"
                     : "bg-emerald-100 text-emerald-950 border-emerald-400"
-                }`}>
+                  }`}>
                   <span>{currentUser.badgedOut ? "🚪 OFF-SITE" : "🏢 PRESENT & ACCOUNTED"}</span>
                 </span>
               </div>
@@ -1291,11 +1215,10 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
                 <button
                   type="button"
                   onClick={() => handleTogglePresence("enter")}
-                  className={`py-3 px-3 rounded-xl font-black text-xs uppercase tracking-wider transition cursor-pointer flex items-center justify-center gap-1.5 ${
-                    !currentUser.badgedOut
+                  className={`py-3 px-3 rounded-xl font-black text-xs uppercase tracking-wider transition cursor-pointer flex items-center justify-center gap-1.5 ${!currentUser.badgedOut
                       ? "bg-emerald-600 text-white shadow-sm ring-2 ring-emerald-500"
                       : "bg-white text-emerald-900 border border-emerald-300 hover:bg-emerald-50"
-                  }`}
+                    }`}
                 >
                   <span>🏢</span>
                   <span>In Building</span>
@@ -1304,11 +1227,10 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
                 <button
                   type="button"
                   onClick={() => handleTogglePresence("leave")}
-                  className={`py-3 px-3 rounded-xl font-black text-xs uppercase tracking-wider transition cursor-pointer flex items-center justify-center gap-1.5 ${
-                    currentUser.badgedOut
+                  className={`py-3 px-3 rounded-xl font-black text-xs uppercase tracking-wider transition cursor-pointer flex items-center justify-center gap-1.5 ${currentUser.badgedOut
                       ? "bg-amber-600 text-white shadow-sm ring-2 ring-amber-500"
                       : "bg-white text-amber-900 border border-amber-300 hover:bg-amber-50"
-                  }`}
+                    }`}
                 >
                   <span>🚪</span>
                   <span>Left Building</span>
@@ -1317,18 +1239,16 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
             </div>
 
             {/* Scannable Personal QR Code Badge */}
-            <div className={`p-4 rounded-2xl border text-center space-y-3 ${
-              currentUser.role === "Visitor"
+            <div className={`p-4 rounded-2xl border text-center space-y-3 ${currentUser.role === "Visitor"
                 ? "bg-amber-50/70 border-amber-300"
                 : "bg-[#F8FAFC] border-[#B8D8F8]"
-            }`}>
+              }`}>
               <div className="text-[10px] font-black uppercase text-[#005DAA] tracking-wider">
                 {currentUser.role === "Visitor" ? "🎟️ Official Guest / Visitor Turnstile Pass" : "🏢 Official Employee Turnstile Pass"}
               </div>
 
-              <div className={`w-44 h-44 mx-auto bg-white border-2 p-2.5 rounded-2xl flex items-center justify-center shadow-inner ${
-                currentUser.role === "Visitor" ? "border-amber-500" : "border-[#005DAA]"
-              }`}>
+              <div className={`w-44 h-44 mx-auto bg-white border-2 p-2.5 rounded-2xl flex items-center justify-center shadow-inner ${currentUser.role === "Visitor" ? "border-amber-500" : "border-[#005DAA]"
+                }`}>
                 {occupantQrUrl ? (
                   <img
                     src={occupantQrUrl}
@@ -1385,7 +1305,7 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
                       localStorage.removeItem("muster_occupant_id");
                       localStorage.removeItem("muster_registered_phone");
                       localStorage.removeItem("muster_registered_name");
-                    } catch {}
+                    } catch { }
                     setSavedOccupantId(null);
                     setViewState("newcomer-signin");
                   }}
@@ -1411,28 +1331,25 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
             {/* OFFICIAL LIFE-SAFETY EMERGENCY ESCAPE & EVACUATION GUIDE  */}
             {/* NYC Fire Code 3 RCNY §401-06 Compliance Protocols        */}
             {/* ========================================================= */}
-            <div className={`rounded-2xl border-2 shadow-lg transition-all overflow-hidden ${
-              snapshot?.incidentActive
+            <div className={`rounded-2xl border-2 shadow-lg transition-all overflow-hidden ${snapshot?.incidentActive
                 ? "bg-gradient-to-br from-red-950 via-slate-900 to-red-900 border-red-500 ring-2 ring-red-400 text-white"
                 : "bg-gradient-to-br from-[#0B1728] via-[#0E2038] to-[#0A1626] border-[#005DAA] text-white"
-            }`}>
+              }`}>
               {/* Emergency Escape Header Bar */}
               <div className="p-4 sm:p-5 border-b border-white/10 flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
-                  <div className={`w-11 h-11 rounded-2xl flex items-center justify-center font-black text-xl shadow-md shrink-0 ${
-                    snapshot?.incidentActive
+                  <div className={`w-11 h-11 rounded-2xl flex items-center justify-center font-black text-xl shadow-md shrink-0 ${snapshot?.incidentActive
                       ? "bg-red-600 text-white animate-pulse"
                       : "bg-[#005DAA] text-white"
-                  }`}>
+                    }`}>
                     {snapshot?.incidentActive ? "🚨" : "🛡️"}
                   </div>
                   <div>
                     <div className="flex flex-wrap items-center gap-1.5">
-                      <span className={`text-[10px] font-mono font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full ${
-                        snapshot?.incidentActive
+                      <span className={`text-[10px] font-mono font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full ${snapshot?.incidentActive
                           ? "bg-red-600 text-white animate-pulse"
                           : "bg-sky-500/20 text-[#38BDF8] border border-sky-400/30"
-                      }`}>
+                        }`}>
                         {snapshot?.incidentActive ? "ACTIVE EVACUATION ORDER" : "NYC FIRE CODE 3 RCNY §401-06"}
                       </span>
                       <span className="text-[10px] font-mono text-slate-300 hidden sm:inline">
@@ -1539,44 +1456,40 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
                     <button
                       type="button"
                       onClick={() => setActiveEvacTab("map")}
-                      className={`flex-1 py-2 px-1.5 rounded-lg transition cursor-pointer text-center ${
-                        activeEvacTab === "map"
+                      className={`flex-1 py-2 px-1.5 rounded-lg transition cursor-pointer text-center ${activeEvacTab === "map"
                           ? "bg-[#005DAA] text-white shadow-xs font-black"
                           : "text-slate-400 hover:text-white"
-                      }`}
+                        }`}
                     >
                       🗺️ Stair Map
                     </button>
                     <button
                       type="button"
                       onClick={() => setActiveEvacTab("route")}
-                      className={`flex-1 py-2 px-1.5 rounded-lg transition cursor-pointer text-center ${
-                        activeEvacTab === "route"
+                      className={`flex-1 py-2 px-1.5 rounded-lg transition cursor-pointer text-center ${activeEvacTab === "route"
                           ? "bg-[#005DAA] text-white shadow-xs font-black"
                           : "text-slate-400 hover:text-white"
-                      }`}
+                        }`}
                     >
                       🚶‍♂️ 5-Step Egress
                     </button>
                     <button
                       type="button"
                       onClick={() => setActiveEvacTab("equipment")}
-                      className={`flex-1 py-2 px-1.5 rounded-lg transition cursor-pointer text-center ${
-                        activeEvacTab === "equipment"
+                      className={`flex-1 py-2 px-1.5 rounded-lg transition cursor-pointer text-center ${activeEvacTab === "equipment"
                           ? "bg-[#005DAA] text-white shadow-xs font-black"
                           : "text-slate-400 hover:text-white"
-                      }`}
+                        }`}
                     >
                       🛞 Life Safety
                     </button>
                     <button
                       type="button"
                       onClick={() => setActiveEvacTab("contacts")}
-                      className={`flex-1 py-2 px-1.5 rounded-lg transition cursor-pointer text-center ${
-                        activeEvacTab === "contacts"
+                      className={`flex-1 py-2 px-1.5 rounded-lg transition cursor-pointer text-center ${activeEvacTab === "contacts"
                           ? "bg-[#005DAA] text-white shadow-xs font-black"
                           : "text-slate-400 hover:text-white"
-                      }`}
+                        }`}
                     >
                       🚨 Emergency Dials
                     </button>
@@ -2268,22 +2181,21 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
                     <span>🚨</span>
                     <span>Emergency Assistance &amp; Situation Report (SitRep)</span>
                   </div>
-                  <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-full border ${
-                    currentUser.status === "safe"
+                  <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-full border ${currentUser.status === "safe"
                       ? "bg-emerald-100 text-emerald-800 border-emerald-300"
                       : currentUser.status === "awaiting-evac-chair"
-                      ? "bg-amber-100 text-amber-900 border-amber-300 animate-pulse"
-                      : currentUser.status === "need-help"
-                      ? "bg-red-200 text-red-950 border-red-400 animate-pulse"
-                      : "bg-slate-200 text-slate-700 border-slate-300"
-                  }`}>
+                        ? "bg-amber-100 text-amber-900 border-amber-300 animate-pulse"
+                        : currentUser.status === "need-help"
+                          ? "bg-red-200 text-red-950 border-red-400 animate-pulse"
+                          : "bg-slate-200 text-slate-700 border-slate-300"
+                    }`}>
                     {currentUser.status === "safe"
                       ? "🟢 SAFE & ACCOUNTED"
                       : currentUser.status === "awaiting-evac-chair"
-                      ? "🛞 EVAC CHAIR REQUESTED"
-                      : currentUser.status === "need-help"
-                      ? "🚨 SOS ACTIVE"
-                      : "⚪ UNACCOUNTED"}
+                        ? "🛞 EVAC CHAIR REQUESTED"
+                        : currentUser.status === "need-help"
+                          ? "🚨 SOS ACTIVE"
+                          : "⚪ UNACCOUNTED"}
                   </span>
                 </div>
 
@@ -2412,11 +2324,10 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
                 setSignRole("Employee");
                 setSignCompany("Con Edison");
               }}
-              className={`py-2.5 rounded-lg transition cursor-pointer flex items-center justify-center gap-1.5 ${
-                userType === "employee"
+              className={`py-2.5 rounded-lg transition cursor-pointer flex items-center justify-center gap-1.5 ${userType === "employee"
                   ? "bg-[#005DAA] text-white shadow-sm font-black"
                   : "text-[#475569] hover:bg-white"
-              }`}
+                }`}
             >
               <span>🏢</span>
               <span>Con Edison Worker</span>
@@ -2428,48 +2339,14 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
                 setSignRole("Visitor");
                 setSignCompany("Guest / Visitor");
               }}
-              className={`py-2.5 rounded-lg transition cursor-pointer flex items-center justify-center gap-1.5 ${
-                userType === "visitor"
+              className={`py-2.5 rounded-lg transition cursor-pointer flex items-center justify-center gap-1.5 ${userType === "visitor"
                   ? "bg-amber-600 text-white shadow-sm font-black"
                   : "text-[#475569] hover:bg-white"
-              }`}
+                }`}
             >
               <span>🎟️</span>
               <span>Visitor / Guest</span>
             </button>
-          </div>
-
-          {/* FAST CONNECT BY PHONE NUMBER OR BADGE ID */}
-          <div className="bg-gradient-to-r from-[#003B70] via-[#005DAA] to-[#00A3E0] text-white p-4 rounded-2xl shadow-md border border-[#005DAA]/30">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <span className="text-lg">📲</span>
-                <span className="font-black text-xs sm:text-sm uppercase tracking-wider">Fast Connect By Phone Number</span>
-              </div>
-              <span className="text-[10px] font-mono bg-white/20 text-white px-2 py-0.5 rounded font-bold uppercase tracking-wider">
-                Instant Roster Sync
-              </span>
-            </div>
-            <p className="text-xs text-sky-100 mb-3">
-              Enter your mobile number or OCC badge ID to link directly, save your contact for life-safety alerts, and open your live Floor 07 pass.
-            </p>
-            <form onSubmit={handleDirectConnect} className="flex flex-col sm:flex-row gap-2">
-              <input
-                type="tel"
-                value={connectNumberInput}
-                onChange={(e) => setConnectNumberInput(e.target.value)}
-                placeholder="e.g. (212) 555-0195, 0195, or OCC-101"
-                className="flex-1 bg-white text-[#0F2537] placeholder-slate-400 font-mono text-sm px-3.5 py-2.5 rounded-xl border-2 border-transparent focus:border-amber-400 focus:outline-none font-semibold shadow-inner"
-              />
-              <button
-                type="submit"
-                disabled={isConnectingDirect || !connectNumberInput.trim()}
-                className="px-5 py-2.5 bg-amber-500 hover:bg-amber-400 active:bg-amber-600 text-slate-950 font-black text-xs uppercase tracking-wider rounded-xl transition cursor-pointer shadow-md flex items-center justify-center gap-2 disabled:opacity-50 shrink-0"
-              >
-                <span>{isConnectingDirect ? "⏳" : "⚡"}</span>
-                <span>{isConnectingDirect ? "CONNECTING..." : "CONNECT & GO FORTH →"}</span>
-              </button>
-            </form>
           </div>
 
           {/* RECOGNIZED EXISTING USER QUICK SIGN-IN HELPER */}
@@ -2562,11 +2439,10 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
                 <button
                   type="button"
                   onClick={() => setSignAction("enter")}
-                  className={`p-3 rounded-xl border text-xs font-black transition cursor-pointer flex flex-col items-center gap-1 ${
-                    signAction === "enter"
+                  className={`p-3 rounded-xl border text-xs font-black transition cursor-pointer flex flex-col items-center gap-1 ${signAction === "enter"
                       ? "bg-emerald-600 text-white border-emerald-700 shadow-sm"
                       : "bg-[#F0F6FC] text-[#0F2537] border-[#B8D8F8] hover:bg-white"
-                  }`}
+                    }`}
                 >
                   <span className="text-base">🟢</span>
                   <span>Entering Building</span>
@@ -2576,11 +2452,10 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
                 <button
                   type="button"
                   onClick={() => setSignAction("leave")}
-                  className={`p-3 rounded-xl border text-xs font-black transition cursor-pointer flex flex-col items-center gap-1 ${
-                    signAction === "leave"
+                  className={`p-3 rounded-xl border text-xs font-black transition cursor-pointer flex flex-col items-center gap-1 ${signAction === "leave"
                       ? "bg-slate-700 text-white border-slate-900 shadow-sm"
                       : "bg-[#F0F6FC] text-[#0F2537] border-[#B8D8F8] hover:bg-white"
-                  }`}
+                    }`}
                 >
                   <span className="text-base">⚪</span>
                   <span>Leaving Building</span>
@@ -2590,11 +2465,10 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
                 <button
                   type="button"
                   onClick={() => setSignAction("muster")}
-                  className={`p-3 rounded-xl border text-xs font-black transition cursor-pointer flex flex-col items-center gap-1 ${
-                    signAction === "muster"
+                  className={`p-3 rounded-xl border text-xs font-black transition cursor-pointer flex flex-col items-center gap-1 ${signAction === "muster"
                       ? "bg-[#005DAA] text-white border-[#003B70] shadow-sm"
                       : "bg-[#F0F6FC] text-[#0F2537] border-[#B8D8F8] hover:bg-white"
-                  }`}
+                    }`}
                 >
                   <span className="text-base">🚨</span>
                   <span>Muster Check-In</span>
@@ -2734,7 +2608,7 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
                 setSavedOccupantId(e.target.value);
                 try {
                   localStorage.setItem("muster_registered_occupant_id", e.target.value);
-                } catch {}
+                } catch { }
                 setViewState("confirmed");
               }}
               className="bg-[#F0F6FC] border border-[#B8D8F8] rounded-lg px-2.5 py-1.5 font-bold text-[#005DAA] text-xs focus:outline-none w-full sm:w-auto"

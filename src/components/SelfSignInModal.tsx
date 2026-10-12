@@ -61,12 +61,12 @@ export const SelfSignInModal: React.FC<SelfSignInModalProps> = ({
   // Check if current name/phone matches someone already in database
   const matchingExistingUser = (name.trim().length >= 2 || phone.trim().length >= 4)
     ? occupants.find(
-        (o) =>
-          (name.trim() && o.name.toLowerCase() === name.trim().toLowerCase()) ||
-          (name.trim().length >= 4 && o.name.toLowerCase().includes(name.trim().toLowerCase())) ||
-          (phone.trim().length >= 4 && o.phone && o.phone.replace(/\D/g, "").includes(phone.replace(/\D/g, ""))) ||
-          (name.trim() && o.id.toLowerCase() === name.trim().toLowerCase())
-      )
+      (o) =>
+        (name.trim() && o.name.toLowerCase() === name.trim().toLowerCase()) ||
+        (name.trim().length >= 4 && o.name.toLowerCase().includes(name.trim().toLowerCase())) ||
+        (phone.trim().length >= 4 && o.phone && o.phone.replace(/\D/g, "").includes(phone.replace(/\D/g, ""))) ||
+        (name.trim() && o.id.toLowerCase() === name.trim().toLowerCase())
+    )
     : null;
 
   // Direct Sign-In for recognized user in database
@@ -80,7 +80,6 @@ export const SelfSignInModal: React.FC<SelfSignInModalProps> = ({
         body: JSON.stringify({
           occupantId: existingUser.id,
           action: presenceAction === "leave" ? "leave" : "enter",
-          phone: phone.trim() || existingUser.phone,
         }),
       });
       const data = await res.json();
@@ -90,7 +89,7 @@ export const SelfSignInModal: React.FC<SelfSignInModalProps> = ({
           localStorage.setItem("muster_registered_occupant_id", existingUser.id);
           localStorage.setItem("muster_registered_name", existingUser.name);
           if (existingUser.phone) localStorage.setItem("muster_registered_phone", existingUser.phone);
-        } catch (e) {}
+        } catch (e) { }
         setDirectNotifyMsg(`⚡ Direct Sign-In Verified! Welcome back ${existingUser.name} (${existingUser.id}). You are recorded as PRESENT & ACCOUNTED on Floor 07.`);
         onSuccess();
       } else {
@@ -174,8 +173,8 @@ export const SelfSignInModal: React.FC<SelfSignInModalProps> = ({
         presenceAction === "leave"
           ? "offsite"
           : presenceAction === "muster"
-          ? "outside-assembly"
-          : "inside-building",
+            ? "outside-assembly"
+            : "inside-building",
     };
 
     try {
@@ -306,11 +305,10 @@ export const SelfSignInModal: React.FC<SelfSignInModalProps> = ({
               <button
                 type="button"
                 onClick={() => setIsScanningBadge(!isScanningBadge)}
-                className={`px-3.5 py-1.5 rounded-lg text-xs font-black uppercase tracking-wider transition cursor-pointer shrink-0 shadow-xs ${
-                  isScanningBadge
+                className={`px-3.5 py-1.5 rounded-lg text-xs font-black uppercase tracking-wider transition cursor-pointer shrink-0 shadow-xs ${isScanningBadge
                     ? "bg-red-100 text-red-700 border border-red-300"
                     : "bg-[#005DAA] text-white hover:bg-[#004884]"
-                }`}
+                  }`}
               >
                 {isScanningBadge ? "Close Camera ✕" : "Scan Badge QR"}
               </button>
@@ -421,11 +419,10 @@ export const SelfSignInModal: React.FC<SelfSignInModalProps> = ({
               <div className="text-xs">
                 Presence:{" "}
                 <span
-                  className={`font-black uppercase px-2.5 py-0.5 rounded ${
-                    allocatedOccupant.badgedOut
+                  className={`font-black uppercase px-2.5 py-0.5 rounded ${allocatedOccupant.badgedOut
                       ? "bg-slate-200 text-slate-700"
                       : "bg-emerald-100 text-emerald-800"
-                  }`}
+                    }`}
                 >
                   {allocatedOccupant.badgedOut ? "⚪ Left Building (Off-Site)" : "🟢 In Building (Floor 07)"}
                 </span>
@@ -491,11 +488,10 @@ export const SelfSignInModal: React.FC<SelfSignInModalProps> = ({
                 <button
                   type="button"
                   onClick={() => setPresenceAction("enter")}
-                  className={`p-2.5 rounded-xl border text-xs font-black transition cursor-pointer flex flex-col items-center gap-1 ${
-                    presenceAction === "enter"
+                  className={`p-2.5 rounded-xl border text-xs font-black transition cursor-pointer flex flex-col items-center gap-1 ${presenceAction === "enter"
                       ? "bg-emerald-600 text-white border-emerald-700 shadow-sm"
                       : "bg-[#F0F6FC] text-[#0F2537] border-[#B8D8F8] hover:bg-white"
-                  }`}
+                    }`}
                 >
                   <span className="text-base">🟢</span>
                   <span>Entering Building</span>
@@ -505,11 +501,10 @@ export const SelfSignInModal: React.FC<SelfSignInModalProps> = ({
                 <button
                   type="button"
                   onClick={() => setPresenceAction("leave")}
-                  className={`p-2.5 rounded-xl border text-xs font-black transition cursor-pointer flex flex-col items-center gap-1 ${
-                    presenceAction === "leave"
+                  className={`p-2.5 rounded-xl border text-xs font-black transition cursor-pointer flex flex-col items-center gap-1 ${presenceAction === "leave"
                       ? "bg-slate-700 text-white border-slate-900 shadow-sm"
                       : "bg-[#F0F6FC] text-[#0F2537] border-[#B8D8F8] hover:bg-white"
-                  }`}
+                    }`}
                 >
                   <span className="text-base">⚪</span>
                   <span>Leaving Building</span>
@@ -519,11 +514,10 @@ export const SelfSignInModal: React.FC<SelfSignInModalProps> = ({
                 <button
                   type="button"
                   onClick={() => setPresenceAction("muster")}
-                  className={`p-2.5 rounded-xl border text-xs font-black transition cursor-pointer flex flex-col items-center gap-1 ${
-                    presenceAction === "muster"
+                  className={`p-2.5 rounded-xl border text-xs font-black transition cursor-pointer flex flex-col items-center gap-1 ${presenceAction === "muster"
                       ? "bg-[#005DAA] text-white border-[#003B70] shadow-sm"
                       : "bg-[#F0F6FC] text-[#0F2537] border-[#B8D8F8] hover:bg-white"
-                  }`}
+                    }`}
                 >
                   <span className="text-base">🚨</span>
                   <span>Muster Check-In</span>

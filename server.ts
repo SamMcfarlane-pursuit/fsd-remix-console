@@ -283,6 +283,23 @@ function generateInitialRoster(targetCount: number = 195): Occupant[] {
 const DATA_DIR = path.join(process.cwd(), "data");
 const ROSTER_FILE = path.join(DATA_DIR, "fsd_roster.json");
 
+function loadPersistedRoster(): Occupant[] {
+  try {
+    if (fs.existsSync(ROSTER_FILE)) {
+      const data = fs.readFileSync(ROSTER_FILE, "utf-8");
+      const parsed = JSON.parse(data);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed;
+      }
+    }
+  } catch (err) {
+    console.warn("Could not read persisted roster file:", err);
+  }
+  const initial = generateInitialRoster(195);
+  savePersistedRoster(initial);
+  return initial;
+}
+
 let lastPersistedRosterJson = "";
 
 function savePersistedRoster(roster: Occupant[]): void {
@@ -299,29 +316,6 @@ function savePersistedRoster(roster: Occupant[]): void {
   } catch (err) {
     console.warn("Could not write persisted roster file:", err);
   }
-}
-
-function loadPersistedRoster(): Occupant[] {
-  try {
-    if (fs.existsSync(ROSTER_FILE)) {
-      const data = fs.readFileSync(ROSTER_FILE, "utf-8");
-      const parsed = JSON.parse(data);
-      if (Array.isArray(parsed) && parsed.length >= 195) {
-        // Enforce mock policy: ensure no real personal phone numbers exist in the roster
-        const hasRealPhone = parsed.some((occ: any) => typeof occ.phone === "string" && !occ.phone.includes("555"));
-        if (!hasRealPhone) {
-          return parsed;
-        }
-      }
-    }
-  } catch (err) {
-    console.warn("Could not read persisted roster file:", err);
-  }
-  // Setup auto-clears old roster and loads 195 people with fake 555 numbers for the meeting demonstration
-  console.log("Auto-seeding pristine 195 mock personnel with fake 555 numbers for meeting demonstration...");
-  const initial = generateInitialRoster(195);
-  savePersistedRoster(initial);
-  return initial;
 }
 
 let occupantsRoster: Occupant[] = loadPersistedRoster();
@@ -1596,10 +1590,10 @@ function getCloudflaredBinary(): string {
   for (const c of candidates) {
     try {
       if (fs.existsSync(c)) {
-        try { fs.chmodSync(c, 0o755); } catch {}
+        try { fs.chmodSync(c, 0o755); } catch { }
         return c;
       }
-    } catch {}
+    } catch { }
   }
   return "cloudflared";
 }
@@ -1615,7 +1609,7 @@ async function launchPublicTunnel(forceFresh: boolean = false): Promise<string> 
   if (activeTunnelChild) {
     try {
       if (typeof activeTunnelChild.kill === "function") activeTunnelChild.kill();
-    } catch {}
+    } catch { }
     activeTunnelChild = null;
     activeTunnelUrl = "";
     notifySseClients();
@@ -1665,7 +1659,7 @@ async function launchPublicTunnel(forceFresh: boolean = false): Promise<string> 
 
       setTimeout(() => {
         if (!resolved) {
-          try { child.kill(); } catch {}
+          try { child.kill(); } catch { }
           reject(new Error("Cloudflare tunnel handshake timed out after 30s"));
         }
       }, 30000);
@@ -1695,7 +1689,7 @@ async function restartTunnelGracefully(): Promise<string> {
     if (activeTunnelChild) {
       try {
         if (typeof activeTunnelChild.kill === "function") activeTunnelChild.kill();
-      } catch {}
+      } catch { }
       activeTunnelChild = null;
     }
     activeTunnelUrl = "";
@@ -1715,7 +1709,7 @@ async function restartTunnelGracefully(): Promise<string> {
 let consecutiveTunnelFailures = 0;
 setInterval(async () => {
   if (!activeTunnelUrl || !activeTunnelUrl.includes("trycloudflare.com")) {
-    restartTunnelGracefully().catch(() => {});
+    restartTunnelGracefully().catch(() => { });
     return;
   }
   try {
@@ -1730,7 +1724,7 @@ setInterval(async () => {
       if (consecutiveTunnelFailures >= 3) {
         console.warn(`Watchdog detected persistent non-200 tunnel status (${checkRes.status}). Triggering refresh.`);
         consecutiveTunnelFailures = 0;
-        restartTunnelGracefully().catch(() => {});
+        restartTunnelGracefully().catch(() => { });
       }
     } else {
       consecutiveTunnelFailures = 0;
@@ -1740,7 +1734,7 @@ setInterval(async () => {
     if (consecutiveTunnelFailures >= 3) {
       console.warn("Watchdog: Tunnel unreachable from outside across 3 checks. Rotating to fresh tunnel endpoint...");
       consecutiveTunnelFailures = 0;
-      restartTunnelGracefully().catch(() => {});
+      restartTunnelGracefully().catch(() => { });
     }
   }
 }, 45000);
@@ -2312,8 +2306,6 @@ app.post("/api/occupant/sign-in-register", (req, res) => {
     occupant.lastLocation = action === "muster" ? "Outside Assembly Point" : `${occupant.desk || "Floor 07"} (${occupant.quadrant})`;
   }
 
-  savePersistedRoster(occupantsRoster);
-
   const ledgerItem = appendLedger("qr-occupant-presence-event", {
     occupantId: occupant.id,
     name: occupant.name,
@@ -2338,67 +2330,9 @@ app.post("/api/occupant/sign-in-register", (req, res) => {
   });
 });
 
-// Direct Connect & Sign-In by Mobile Phone Number or Badge Code
-app.post("/api/occupant/connect", (req, res) => {
-  const { phone, code, action = "enter" } = req.body;
-  const input = (phone || code || "").trim();
-  const digits = input.replace(/\D/g, "");
-
-  const phoneKey = (p?: string) => (p || "").replace(/\D/g, "").slice(-10);
-  let occupant =
-    (digits.length >= 4 ? occupantsRoster.find((o) => phoneKey(o.phone).endsWith(digits.slice(-10))) : undefined) ||
-    occupantsRoster.find((o) => o.id.toUpperCase() === input.toUpperCase()) ||
-    (digits.length >= 2 ? occupantsRoster.find((o) => o.id.toUpperCase() === `OCC-${digits}`) : undefined) ||
-    occupantsRoster.find((o) => o.name.toLowerCase() === input.toLowerCase());
-
-  if (!occupant) {
-    res.status(404).json({ ok: false, error: "No profile found for that number or ID." });
-    return;
-  }
-
-  if (phone && typeof phone === "string" && phone.trim()) {
-    occupant.phone = phone.trim();
-  }
-
-  const isLeaving = action === "leave";
-  if (isLeaving) {
-    occupant.badgedOut = true;
-    occupant.offSiteToday = true;
-    occupant.locationCategory = "offsite";
-    occupant.status = "safe";
-    occupant.lastLocation = "Off-Site / Exited Building";
-  } else {
-    occupant.badgedOut = false;
-    occupant.offSiteToday = false;
-    occupant.locationCategory = "inside-building";
-    occupant.status = statusForInBuildingPresence(occupant);
-    occupant.lastLocation = `${occupant.desk || "Floor 07"} (${occupant.quadrant})`;
-  }
-  occupant.lastBadgeTime = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-
-  savePersistedRoster(occupantsRoster);
-  notifySseClients();
-
-  const ledgerItem = appendLedger("phone-direct-connected", {
-    occupantId: occupant.id,
-    name: occupant.name,
-    phone: occupant.phone,
-    presence: isLeaving ? "LEFT_BUILDING" : "IN_BUILDING",
-    timestamp: occupant.lastBadgeTime,
-  });
-
-  res.json({
-    ok: true,
-    occupant,
-    message: `Connected successfully! Welcome back ${occupant.name}.`,
-    ledgerEntry: ledgerItem,
-    snapshot: getDerivedSnapshot(),
-  });
-});
-
 // Quick Presence Toggle Endpoint (Enter vs Leave Building)
 app.post("/api/occupant/presence", (req, res) => {
-  const { occupantId, action, phone } = req.body; // action: "enter" | "leave" | "toggle"
+  const { occupantId, action } = req.body; // action: "enter" | "leave" | "toggle"
 
   if (!occupantId) {
     res.status(400).json({ error: "occupantId is required" });
@@ -2409,10 +2343,6 @@ app.post("/api/occupant/presence", (req, res) => {
   if (!occupant) {
     res.status(404).json({ error: "Occupant not found" });
     return;
-  }
-
-  if (phone && typeof phone === "string" && phone.trim()) {
-    occupant.phone = phone.trim();
   }
 
   const isLeaving =
@@ -2436,8 +2366,6 @@ app.post("/api/occupant/presence", (req, res) => {
     occupant.lastLocation = `${occupant.desk || "Floor 07"} (${occupant.quadrant})`;
     occupant.lastBadgeTime = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   }
-
-  savePersistedRoster(occupantsRoster);
 
   const ledgerItem = appendLedger("presence-toggle-event", {
     occupantId: occupant.id,
@@ -3331,8 +3259,8 @@ Produce a JSON object with:
         snapshot.awaitingEvacChair > 0
           ? `${snapshot.awaitingEvacChair} occupant(s) in Area of Rescue Assistance assisted via evacuation chair.`
           : snapshot.mia > 0
-          ? `${snapshot.mia} occupant(s) unverified or requiring manual warden sweep.`
-          : "No active MIA exceptions or structural trapped occupants remaining on floor.",
+            ? `${snapshot.mia} occupant(s) unverified or requiring manual warden sweep.`
+            : "No active MIA exceptions or structural trapped occupants remaining on floor.",
       recommendedCorrectiveActions: [
         "Maintain secondary Stairwell B clear of transit obstructions.",
         "Ensure all visitor guests complete 5G QR sign-in before entering quadrant desks.",

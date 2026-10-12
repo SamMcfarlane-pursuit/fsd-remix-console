@@ -15,11 +15,9 @@ import EmergencyAlertModal from "./components/EmergencyAlertModal";
 import { NavigationGuideModal } from "./components/NavigationGuideModal";
 import { PinModal } from "./components/PinModal";
 import { WalkieTalkieModal } from "./components/WalkieTalkieModal";
-import { AccessibleEmergencyAlertBanner } from "./components/AccessibleEmergencyAlertBanner";
-import { EmergencyRescueProcedureModal } from "./components/EmergencyRescueProcedureModal";
 import { setAudioMuted, getAudioMuted } from "./lib/audioBroadcast";
 import { UserRole, setStoredRole, getStoredRole } from "./lib/authGuard";
-import { AuthUser, EmergencyAlertPayload, LocationCategory, Occupant, OccupantStatus, StatusSnapshot, QuadrantId } from "./types";
+import { AuthUser, EmergencyAlertPayload, LocationCategory, OccupantStatus, StatusSnapshot, QuadrantId } from "./types";
 import { validateGeofence, LocationMetadata, FLOOR_07_CONSTRAINTS } from "./lib/geofence";
 import { appendLedgerEntry } from "./lib/ledger";
 import {
@@ -66,7 +64,7 @@ export default function App() {
           };
           try {
             sessionStorage.setItem("muster_auth_user", JSON.stringify(guestUser));
-          } catch {}
+          } catch { }
           return guestUser;
         }
       }
@@ -114,7 +112,7 @@ export default function App() {
           return "admin";
         }
       }
-    } catch {}
+    } catch { }
     return "admin";
   });
 
@@ -122,7 +120,7 @@ export default function App() {
     setViewModeState(mode);
     try {
       sessionStorage.setItem("muster_view_mode", mode);
-    } catch {}
+    } catch { }
   }, []);
 
   const [isAlertModalOpen, setIsAlertModalOpen] = useState(false);
@@ -137,8 +135,6 @@ export default function App() {
   const [isWalkieTalkieOpen, setIsWalkieTalkieOpen] = useState<boolean>(false);
   const [stairwell, setStairwell] = useState<string>("Stairwell A (East Core - Union Sq East)");
   const [assemblyPoint, setAssemblyPoint] = useState<string>("Assembly Point A (Union Sq East / Park Plaza)");
-  const [distressRescueTarget, setDistressRescueTarget] = useState<Occupant | null>(null);
-  const [isRescueModalOpen, setIsRescueModalOpen] = useState<boolean>(false);
 
   // Check URL query parameters on initial load (e.g. ?mode=signin or mobile scan)
   useEffect(() => {
@@ -173,7 +169,7 @@ export default function App() {
           setAuthUser(guestUser);
           try {
             sessionStorage.setItem("muster_auth_user", JSON.stringify(guestUser));
-          } catch {}
+          } catch { }
         }
       }
     } catch (e) {
@@ -241,7 +237,7 @@ export default function App() {
       if (typeof window !== "undefined" && window.history && window.history.replaceState) {
         window.history.replaceState({}, document.title, window.location.pathname);
       }
-    } catch {}
+    } catch { }
 
     // 3. Clear all cached occupant and auth tokens
     try {
@@ -398,18 +394,18 @@ export default function App() {
       source: via.includes("kiosk")
         ? "kiosk_beacon"
         : via.includes("qr")
-        ? "qr_scanner"
-        : "manual",
+          ? "qr_scanner"
+          : "manual",
       claimedZone: assemblyPoint || locationCategory,
       cad:
         existingOccupant?.xCoord && existingOccupant?.yCoord
           ? {
-              x: existingOccupant.xCoord,
-              y: existingOccupant.yCoord,
-              floor: 7,
-              quadrant: existingOccupant.quadrant,
-              deskId: existingOccupant.desk,
-            }
+            x: existingOccupant.xCoord,
+            y: existingOccupant.yCoord,
+            floor: 7,
+            quadrant: existingOccupant.quadrant,
+            deskId: existingOccupant.desk,
+          }
           : undefined,
     };
 
@@ -426,8 +422,8 @@ export default function App() {
       resolvedCategory === "outside-assembly"
         ? resolvedAssemblyPoint || "Assembly Point A (Park Plaza)"
         : resolvedCategory === "inside-building"
-        ? `${existingOccupant?.quadrant || geoResult.detectedQuadrant || "NW"} Floor 07`
-        : "Off-Site / Remote";
+          ? `${existingOccupant?.quadrant || geoResult.detectedQuadrant || "NW"} Floor 07`
+          : "Off-Site / Remote";
 
     try {
       await appendLedgerEntry({
@@ -493,7 +489,7 @@ export default function App() {
         try {
           const raw = localStorage.getItem("muster_registered_occupant_json");
           if (raw) newOcc = JSON.parse(raw);
-        } catch {}
+        } catch { }
         if (!newOcc) {
           newOcc = {
             id: occupantId,
@@ -588,14 +584,14 @@ export default function App() {
       const updatedOccupants = (prev.occupants || []).map((o) =>
         idSet.has(o.id)
           ? {
-              ...o,
-              status,
-              badgedOut: isLeaving ? true : isEntering ? false : o.badgedOut,
-              offSiteToday: isLeaving ? true : isEntering ? false : o.offSiteToday,
-              notes: notes || o.notes,
-              locationCategory: isLeaving ? "offsite" : isEntering ? "inside-building" : o.locationCategory,
-              lastLocation: isLeaving ? "Off-Site / Exited Building" : o.lastLocation,
-            }
+            ...o,
+            status,
+            badgedOut: isLeaving ? true : isEntering ? false : o.badgedOut,
+            offSiteToday: isLeaving ? true : isEntering ? false : o.offSiteToday,
+            notes: notes || o.notes,
+            locationCategory: isLeaving ? "offsite" : isEntering ? "inside-building" : o.locationCategory,
+            lastLocation: isLeaving ? "Off-Site / Exited Building" : o.lastLocation,
+          }
           : o
       );
       const accounted = updatedOccupants.filter((o) => o.status === "safe").length;
@@ -725,7 +721,7 @@ export default function App() {
           localStorage.removeItem("muster_registered_name");
           localStorage.removeItem("muster_registered_phone");
           localStorage.removeItem("muster_occupant_id");
-        } catch (e) {}
+        } catch (e) { }
         await refreshState();
         alert("✅ Database cleaned successfully! Mock names removed. System is 100% ready to intake personnel and dispatch drill notifications.");
       }
@@ -772,166 +768,161 @@ export default function App() {
       {/* Top Life-Safety Operational Header (Strictly Commander View) */}
       {viewMode === "admin" && (
         <header
-          className={`px-4 sm:px-6 py-3 flex items-center justify-between border-b transition-colors shadow-md z-40 sticky top-0 ${
-            snapshot?.incidentActive
+          className={`px-4 sm:px-6 py-3 flex items-center justify-between border-b transition-colors shadow-md z-40 sticky top-0 ${snapshot?.incidentActive
               ? snapshot?.mode === "incident"
                 ? "bg-[#990000] border-[#FF4D4D] text-white"
                 : "bg-[#003B70] border-[#005DAA] text-white"
               : "bg-[#003B70] border-[#005DAA] text-white"
-          }`}
+            }`}
         >
-        <div className="flex items-center gap-3 min-w-0">
-          <div
-            className={`flex items-center justify-center w-3 h-3 shrink-0 rounded-full animate-pulse shadow-sm ${
-              snapshot?.incidentActive ? "bg-[#FF6B00]" : "bg-emerald-400"
-            }`}
-          />
-          <div className="flex flex-col min-w-0">
-            <h1 className="text-sm sm:text-base font-black tracking-tight leading-none flex items-center gap-2 truncate">
-              <span className="truncate">
-                {snapshot?.incidentActive
-                  ? `🔴 LIVE ${snapshot.mode?.toUpperCase()} ACTIVE · FLOOR 07`
-                  : "🟢 MUSTERCOMMAND · 4 IRVING PL FLOOR 07"}
-              </span>
-              <span className="hidden sm:inline-block text-[9px] font-mono font-bold uppercase tracking-widest bg-[#0A1424]/80 text-[#38BDF8] px-2 py-0.5 rounded border border-[#00A3E0]/40 shrink-0">
-                5-STEP LIFE-SAFETY ENGINE
-              </span>
-              <span className="hidden lg:inline-flex items-center gap-1 text-[9px] font-mono font-bold uppercase tracking-wider bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded border border-amber-500/40 shrink-0">
-                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
-                <span>Firestore Cloud Sync</span>
-              </span>
-            </h1>
-            <p className="text-[10px] sm:text-[11px] font-bold text-[#829AB8] uppercase tracking-widest mt-0.5 truncate">
-              STATUS: {snapshot?.incidentActive ? "ACTIVE EVACUATION" : "NORMAL READINESS"} · HAZARD: {snapshot?.hazardType?.toUpperCase() || "OFFICE FIRE"}
-            </p>
-          </div>
-        </div>
-
-        {/* Header Right Actions */}
-        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-          {/* Navigation & Directory Guide Button */}
-          <button
-            onClick={() => setIsGuideModalOpen(true)}
-            className="rounded-xl bg-sky-500/20 hover:bg-sky-500/30 border border-sky-400/40 px-3 py-2 min-h-[38px] text-xs font-black text-sky-200 transition cursor-pointer flex items-center gap-1.5 shadow-xs"
-            title="Open Platform Navigation Guide & Step Legend"
-          >
-            <span>🧭</span>
-            <span className="hidden md:inline">Directory &amp; Guide</span>
-          </button>
-
-          {/* Audio Siren & Voice Broadcast Mute Toggle */}
-          <button
-            onClick={() => {
-              const next = !isMuted;
-              setIsMuted(next);
-              setAudioMuted(next);
-            }}
-            className={`rounded-xl border px-2.5 sm:px-3 py-2 min-h-[38px] text-xs font-black transition cursor-pointer flex items-center gap-1.5 shadow-xs ${
-              isMuted
-                ? "bg-amber-500/20 border-amber-400/50 text-amber-200"
-                : "bg-white/10 hover:bg-white/20 border-white/20 text-white"
-            }`}
-            title={isMuted ? "Siren & Voice Directives Muted (Click to Enable)" : "Audio Siren & Voice Active (Click to Mute)"}
-          >
-            <span>{isMuted ? "🔇" : "🔊"}</span>
-            <span className="hidden md:inline">{isMuted ? "Muted" : "Audio On"}</span>
-          </button>
-
-          {/* Warden Walkie-Talkie Push-to-Talk Radio Modal Trigger */}
-          <button
-            id="header-walkie-talkie-btn"
-            onClick={() => setIsWalkieTalkieOpen(true)}
-            className="rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-slate-950 px-3 py-2 min-h-[38px] text-xs font-black transition cursor-pointer flex items-center gap-1.5 shadow-md border border-amber-300 active:scale-95"
-            title="Open Warden Walkie-Talkie Radio (Live PTT Emergency Voice Broadcast)"
-          >
-            <span className="text-sm animate-pulse">📻</span>
-            <span className="hidden sm:inline">Walkie-Talkie</span>
-            <span className="text-[9px] bg-black/25 text-amber-950 px-1.5 py-0.5 rounded font-mono font-black hidden lg:inline">
-              PTT
-            </span>
-          </button>
-
-          {/* Status Report Quick Modal */}
-          <button
-            onClick={() => setIsStatusReportModalOpen(true)}
-            className="rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 px-3 py-2 min-h-[38px] text-xs font-bold text-white transition cursor-pointer flex items-center gap-1.5"
-            title="View Building Status & Stairwell Report"
-          >
-            <span>📋</span>
-            <span className="hidden lg:inline">Report</span>
-          </button>
-
-          {/* Clean / Reset Database Button (Strictly Commander Only) */}
-          {viewMode === "admin" && (
-            <button
-              onClick={handleCleanDatabase}
-              className="rounded-xl bg-white/10 hover:bg-rose-500/20 border border-white/20 hover:border-rose-400/50 px-3 py-2 min-h-[38px] text-xs font-bold text-white transition cursor-pointer flex items-center gap-1.5"
-              title="Clean Database & Reset to Pristine Ready-for-Usage State"
-            >
-              <span>🧹</span>
-              <span className="hidden lg:inline">Clean Data</span>
-            </button>
-          )}
-
-          {/* Role & Mode Switcher Pill */}
-          <div className="flex items-center bg-[#07192C] p-1 rounded-xl border border-[#1E3A60]">
-            <button
-              onClick={() => {
-                if (viewMode === "occupant") {
-                  setTargetPinRole("commander");
-                  setIsPinModalOpen(true);
-                } else {
-                  setViewMode("admin");
-                }
-              }}
-              className={`px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-black uppercase tracking-wider transition cursor-pointer flex items-center gap-1.5 ${
-                viewMode === "admin"
-                  ? "bg-[#005DAA] text-white shadow-sm"
-                  : "text-slate-400 hover:text-white"
-              }`}
-              title="Switch to 5-Step FSD Commander Deck (Protected by 4-digit PIN 7007)"
-            >
-              <span>🛡️</span>
-              <span className="hidden sm:inline">Commander Deck</span>
-            </button>
-            <button
-              onClick={() => setViewMode("occupant")}
-              className={`px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-black uppercase tracking-wider transition cursor-pointer flex items-center gap-1.5 ${
-                viewMode === "occupant"
-                  ? "bg-emerald-600 text-white shadow-sm"
-                  : "text-slate-400 hover:text-white"
-              }`}
-              title="Switch to Mobile Occupant Portal (Turnstile Pass & Muster)"
-            >
-              <span>📱</span>
-              <span className="hidden sm:inline">Occupant Portal</span>
-            </button>
-          </div>
-
-          <div className="h-6 w-[1px] bg-white/20 hidden sm:block" />
-
-          {/* Accounted Counter */}
-          <div className="text-right hidden sm:block">
-            <div className="text-[9px] uppercase text-[#829AB8] font-bold tracking-widest">Accounted</div>
-            <div className="text-sm sm:text-base font-mono font-bold leading-none text-[#38BDF8]">
-              {snapshot?.accounted || 0}
-              <span className="text-[10px] text-[#829AB8]">/{snapshot?.expectedOnFloor ?? snapshot?.occupants?.length ?? 0}</span>
+          <div className="flex items-center gap-3 min-w-0">
+            <div
+              className={`flex items-center justify-center w-3 h-3 shrink-0 rounded-full animate-pulse shadow-sm ${snapshot?.incidentActive ? "bg-[#FF6B00]" : "bg-emerald-400"
+                }`}
+            />
+            <div className="flex flex-col min-w-0">
+              <h1 className="text-sm sm:text-base font-black tracking-tight leading-none flex items-center gap-2 truncate">
+                <span className="truncate">
+                  {snapshot?.incidentActive
+                    ? `🔴 LIVE ${snapshot.mode?.toUpperCase()} ACTIVE · FLOOR 07`
+                    : "🟢 MUSTERCOMMAND · 4 IRVING PL FLOOR 07"}
+                </span>
+                <span className="hidden sm:inline-block text-[9px] font-mono font-bold uppercase tracking-widest bg-[#0A1424]/80 text-[#38BDF8] px-2 py-0.5 rounded border border-[#00A3E0]/40 shrink-0">
+                  5-STEP LIFE-SAFETY ENGINE
+                </span>
+                <span className="hidden lg:inline-flex items-center gap-1 text-[9px] font-mono font-bold uppercase tracking-wider bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded border border-amber-500/40 shrink-0">
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
+                  <span>Firestore Cloud Sync</span>
+                </span>
+              </h1>
+              <p className="text-[10px] sm:text-[11px] font-bold text-[#829AB8] uppercase tracking-widest mt-0.5 truncate">
+                STATUS: {snapshot?.incidentActive ? "ACTIVE EVACUATION" : "NORMAL READINESS"} · HAZARD: {snapshot?.hazardType?.toUpperCase() || "OFFICE FIRE"}
+              </p>
             </div>
           </div>
 
-          <div className="h-6 w-[1px] bg-white/20" />
+          {/* Header Right Actions */}
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+            {/* Navigation & Directory Guide Button */}
+            <button
+              onClick={() => setIsGuideModalOpen(true)}
+              className="rounded-xl bg-sky-500/20 hover:bg-sky-500/30 border border-sky-400/40 px-3 py-2 min-h-[38px] text-xs font-black text-sky-200 transition cursor-pointer flex items-center gap-1.5 shadow-xs"
+              title="Open Platform Navigation Guide & Step Legend"
+            >
+              <span>🧭</span>
+              <span className="hidden md:inline">Directory &amp; Guide</span>
+            </button>
 
-          {/* Sign Out Button */}
-          <button
-            onClick={handleLogout}
-            title="Sign Out"
-            className="bg-white/10 hover:bg-white/20 border border-white/20 text-white rounded-xl px-2.5 py-2 text-[11px] font-bold transition cursor-pointer flex items-center gap-1"
-          >
-            <span>🚪</span>
-            <span className="hidden sm:inline">Sign Out</span>
-          </button>
-        </div>
-      </header>
+            {/* Audio Siren & Voice Broadcast Mute Toggle */}
+            <button
+              onClick={() => {
+                const next = !isMuted;
+                setIsMuted(next);
+                setAudioMuted(next);
+              }}
+              className={`rounded-xl border px-2.5 sm:px-3 py-2 min-h-[38px] text-xs font-black transition cursor-pointer flex items-center gap-1.5 shadow-xs ${isMuted
+                  ? "bg-amber-500/20 border-amber-400/50 text-amber-200"
+                  : "bg-white/10 hover:bg-white/20 border-white/20 text-white"
+                }`}
+              title={isMuted ? "Siren & Voice Directives Muted (Click to Enable)" : "Audio Siren & Voice Active (Click to Mute)"}
+            >
+              <span>{isMuted ? "🔇" : "🔊"}</span>
+              <span className="hidden md:inline">{isMuted ? "Muted" : "Audio On"}</span>
+            </button>
+
+            {/* Warden Walkie-Talkie Push-to-Talk Radio Modal Trigger */}
+            <button
+              id="header-walkie-talkie-btn"
+              onClick={() => setIsWalkieTalkieOpen(true)}
+              className="rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-slate-950 px-3 py-2 min-h-[38px] text-xs font-black transition cursor-pointer flex items-center gap-1.5 shadow-md border border-amber-300 active:scale-95"
+              title="Open Warden Walkie-Talkie Radio (Live PTT Emergency Voice Broadcast)"
+            >
+              <span className="text-sm animate-pulse">📻</span>
+              <span className="hidden sm:inline">Walkie-Talkie</span>
+              <span className="text-[9px] bg-black/25 text-amber-950 px-1.5 py-0.5 rounded font-mono font-black hidden lg:inline">
+                PTT
+              </span>
+            </button>
+
+            {/* Status Report Quick Modal */}
+            <button
+              onClick={() => setIsStatusReportModalOpen(true)}
+              className="rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 px-3 py-2 min-h-[38px] text-xs font-bold text-white transition cursor-pointer flex items-center gap-1.5"
+              title="View Building Status & Stairwell Report"
+            >
+              <span>📋</span>
+              <span className="hidden lg:inline">Report</span>
+            </button>
+
+            {/* Clean / Reset Database Button (Strictly Commander Only) */}
+            {viewMode === "admin" && (
+              <button
+                onClick={handleCleanDatabase}
+                className="rounded-xl bg-white/10 hover:bg-rose-500/20 border border-white/20 hover:border-rose-400/50 px-3 py-2 min-h-[38px] text-xs font-bold text-white transition cursor-pointer flex items-center gap-1.5"
+                title="Clean Database & Reset to Pristine Ready-for-Usage State"
+              >
+                <span>🧹</span>
+                <span className="hidden lg:inline">Clean Data</span>
+              </button>
+            )}
+
+            {/* Role & Mode Switcher Pill */}
+            <div className="flex items-center bg-[#07192C] p-1 rounded-xl border border-[#1E3A60]">
+              <button
+                onClick={() => {
+                  if (viewMode === "occupant") {
+                    setTargetPinRole("commander");
+                    setIsPinModalOpen(true);
+                  } else {
+                    setViewMode("admin");
+                  }
+                }}
+                className={`px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-black uppercase tracking-wider transition cursor-pointer flex items-center gap-1.5 ${viewMode === "admin"
+                    ? "bg-[#005DAA] text-white shadow-sm"
+                    : "text-slate-400 hover:text-white"
+                  }`}
+                title="Switch to 5-Step FSD Commander Deck (Protected by 4-digit PIN 7007)"
+              >
+                <span>🛡️</span>
+                <span className="hidden sm:inline">Commander Deck</span>
+              </button>
+              <button
+                onClick={() => setViewMode("occupant")}
+                className={`px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-black uppercase tracking-wider transition cursor-pointer flex items-center gap-1.5 ${viewMode === "occupant"
+                    ? "bg-emerald-600 text-white shadow-sm"
+                    : "text-slate-400 hover:text-white"
+                  }`}
+                title="Switch to Mobile Occupant Portal (Turnstile Pass & Muster)"
+              >
+                <span>📱</span>
+                <span className="hidden sm:inline">Occupant Portal</span>
+              </button>
+            </div>
+
+            <div className="h-6 w-[1px] bg-white/20 hidden sm:block" />
+
+            {/* Accounted Counter */}
+            <div className="text-right hidden sm:block">
+              <div className="text-[9px] uppercase text-[#829AB8] font-bold tracking-widest">Accounted</div>
+              <div className="text-sm sm:text-base font-mono font-bold leading-none text-[#38BDF8]">
+                {snapshot?.accounted || 0}
+                <span className="text-[10px] text-[#829AB8]">/{snapshot?.expectedOnFloor ?? snapshot?.occupants?.length ?? 0}</span>
+              </div>
+            </div>
+
+            <div className="h-6 w-[1px] bg-white/20" />
+
+            {/* Sign Out Button */}
+            <button
+              onClick={handleLogout}
+              title="Sign Out"
+              className="bg-white/10 hover:bg-white/20 border border-white/20 text-white rounded-xl px-2.5 py-2 text-[11px] font-bold transition cursor-pointer flex items-center gap-1"
+            >
+              <span>🚪</span>
+              <span className="hidden sm:inline">Sign Out</span>
+            </button>
+          </div>
+        </header>
       )}
 
       {/* Main View: Either 5-Step Commander Console OR Occupant Mobile Portal */}
@@ -950,49 +941,6 @@ export default function App() {
         </div>
       ) : (
         <div className="flex-1 flex flex-col">
-          {/* Active Emergency Distress & Life-Saving Protocol Banner */}
-          {occupantsList.some((o) => o.status === "need-help" || o.status === "awaiting-evac-chair") && (
-            <div className="bg-rose-700 border-b-2 border-rose-900 px-4 py-2.5 text-white shadow-md flex flex-wrap items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <span className="w-2.5 h-2.5 rounded-full bg-amber-300 animate-ping shrink-0" />
-                <div>
-                  <div className="text-[10px] font-mono font-bold text-amber-300 uppercase tracking-widest flex items-center gap-2">
-                    <span>CRITICAL LIFE-SAFETY DISTRESS REPORTED</span>
-                    <span className="bg-black/40 text-white text-[9px] px-1.5 py-0.2 rounded font-mono">
-                      {occupantsList.filter((o) => o.status === "need-help" || o.status === "awaiting-evac-chair").length} IN DISTRESS
-                    </span>
-                  </div>
-                  <div className="text-xs sm:text-sm font-bold mt-0.5">
-                    {occupantsList
-                      .filter((o) => o.status === "need-help" || o.status === "awaiting-evac-chair")
-                      .map((d) => `${d.name} (${d.quadrant})`)
-                      .join(" · ")}{" "}
-                    needs assistance inside building
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    const firstDistressed = occupantsList.find(
-                      (o) => o.status === "need-help" || o.status === "awaiting-evac-chair"
-                    );
-                    if (firstDistressed) {
-                      setDistressRescueTarget(firstDistressed);
-                      setIsRescueModalOpen(true);
-                    }
-                  }}
-                  className="px-3.5 py-1.5 bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-xs uppercase tracking-wider rounded-lg shadow-xs cursor-pointer transition flex items-center gap-1.5"
-                >
-                  <span>🧭</span>
-                  <span>Open Rescue SOP &amp; FDNY Slip →</span>
-                </button>
-              </div>
-            </div>
-          )}
-
           {/* THE 5-STEP PROCESS BAR (Matches image exactly) */}
           <UserFlowStepper
             snapshot={snapshot}
@@ -1029,10 +977,6 @@ export default function App() {
                 onRefreshState={refreshState}
                 onProceedNext={() => setCurrentStep(3)}
                 onOpenWalkieTalkie={() => setIsWalkieTalkieOpen(true)}
-                onOpenRescueProcedure={(occ) => {
-                  setDistressRescueTarget(occ);
-                  setIsRescueModalOpen(true);
-                }}
               />
             )}
 
@@ -1076,10 +1020,6 @@ export default function App() {
                 onClearIncident={handleClearIncident}
                 onReturnToStep1={() => setCurrentStep(1)}
                 onOpenWalkieTalkie={() => setIsWalkieTalkieOpen(true)}
-                onOpenRescueProcedure={(occ) => {
-                  setDistressRescueTarget(occ);
-                  setIsRescueModalOpen(true);
-                }}
               />
             )}
           </main>
@@ -1103,12 +1043,12 @@ export default function App() {
             {currentStep === 1
               ? "SCAN"
               : currentStep === 2
-              ? "SIGNED IN"
-              : currentStep === 3
-              ? "ALARM"
-              : currentStep === 4
-              ? "BROADCAST"
-              : "ALL SAFE"}
+                ? "SIGNED IN"
+                : currentStep === 3
+                  ? "ALARM"
+                  : currentStep === 4
+                    ? "BROADCAST"
+                    : "ALL SAFE"}
           </span>
         </div>
       </footer>
@@ -1198,28 +1138,6 @@ export default function App() {
           setViewMode("admin");
         }}
         onCancel={() => setIsPinModalOpen(false)}
-      />
-
-      {/* Universal Multi-Language Accessible Emergency Life-Safety Banner */}
-      <AccessibleEmergencyAlertBanner
-        alert={snapshot?.latestEmergencyAlert}
-        currentOccupant={occupantsList[0]}
-        onCheckIn={handleCheckIn}
-        stairwell={stairwell}
-        assemblyPoint={assemblyPoint}
-      />
-
-      {/* Emergency Distress Rescue & Life-Saving Procedure Modal */}
-      <EmergencyRescueProcedureModal
-        isOpen={isRescueModalOpen}
-        onClose={() => setIsRescueModalOpen(false)}
-        occupant={distressRescueTarget || occupantsList.find((o) => o.status === "need-help" || o.status === "awaiting-evac-chair") || null}
-        distressedList={occupantsList.filter((o) => o.status === "need-help" || o.status === "awaiting-evac-chair")}
-        onSelectOccupant={(occ) => setDistressRescueTarget(occ)}
-        onCheckIn={handleCheckIn}
-        onOpenWalkieTalkie={() => setIsWalkieTalkieOpen(true)}
-        stairwell={stairwell}
-        assemblyPoint={assemblyPoint}
       />
     </div>
   );
