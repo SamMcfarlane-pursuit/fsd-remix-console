@@ -15,6 +15,7 @@ import EmergencyAlertModal from "./components/EmergencyAlertModal";
 import { NavigationGuideModal } from "./components/NavigationGuideModal";
 import { PinModal } from "./components/PinModal";
 import { WalkieTalkieModal } from "./components/WalkieTalkieModal";
+import { AccessibleEmergencyAlertBanner } from "./components/AccessibleEmergencyAlertBanner";
 import { setAudioMuted, getAudioMuted } from "./lib/audioBroadcast";
 import { UserRole, setStoredRole, getStoredRole } from "./lib/authGuard";
 import { AuthUser, EmergencyAlertPayload, LocationCategory, OccupantStatus, StatusSnapshot, QuadrantId } from "./types";
@@ -1143,6 +1144,15 @@ export default function App() {
           setViewMode("admin");
         }}
         onCancel={() => setIsPinModalOpen(false)}
+      />
+
+      {/* Universal Multi-Language Accessible Emergency Life-Safety Banner */}
+      <AccessibleEmergencyAlertBanner
+        alert={snapshot?.latestEmergencyAlert}
+        currentOccupant={occupantsList[0]}
+        onCheckIn={handleCheckIn}
+        stairwell={stairwell}
+        assemblyPoint={assemblyPoint}
       />
     </div>
   );

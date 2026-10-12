@@ -13,7 +13,7 @@
     "desk": "07-NW-Workstation",
     "locationCategory": "inside-building",
     "lastLocation": "07-NW-Workstation (NW)",
-    "lastBadgeTime": "12:06:56 PM",
+    "lastBadgeTime": "12:36:56 PM",
     "notes": "Marked in-building",
     "checkInMethod": "manual-toggle",
     "xCoord": 14,
@@ -26,7 +26,7 @@
       "assemblyPoint": null,
       "confidence": "HIGH",
       "distanceMeters": null,
-      "verifiedAt": "2026-10-12T16:06:56.457Z",
+      "verifiedAt": "2026-10-12T16:36:56.276Z",
       "auditDetails": "Physical CAD boundary verified on Floor 07 [X:14, Y:22] -> NW Zone"
     }
   },
@@ -68,17 +68,17 @@
     "phone": "3478067290",
     "company": "Con Edison",
     "quadrant": "NW",
-    "status": "unaccounted",
+    "status": "safe",
     "role": "Employee",
     "badgedOut": false,
     "offSiteToday": false,
     "unaccountedMinutes": 0,
     "desk": "07-NW-Workstation",
-    "locationCategory": "inside-building",
-    "lastLocation": "07-NW-Workstation (NW)",
-    "lastBadgeTime": "04:42:29 AM",
-    "notes": "Self Sign-In via Mobile QR Code (liom paw)",
-    "checkInMethod": "qr-code-self-signin",
+    "locationCategory": "assembly-point",
+    "lastLocation": "Assembly Point A (Park Plaza)",
+    "lastBadgeTime": "12:17:44 PM",
+    "notes": "Verified Safe Outside at Assembly Point A",
+    "checkInMethod": "fsd-safety-action-modal",
     "xCoord": 26,
     "yCoord": 14,
     "likelyMia": false,
@@ -91,6 +91,7 @@
       "distanceMeters": null,
       "verifiedAt": "2026-10-12T08:42:29.471Z",
       "auditDetails": "Default Floor 07 station constraints applied"
-    }
+    },
+    "assemblyPoint": "Assembly Point A (Park Plaza)"
   }
 ]

@@ -95,10 +95,25 @@ export const OccupantSafetyActionModal: React.FC<OccupantSafetyActionModalProps>
     onClose();
   };
 
-  const handlePing = () => {
+  const handlePing = async () => {
     setPingSent(true);
     if (onSendDirectPing) {
       onSendDirectPing(occupant);
+    }
+    try {
+      await fetch("/api/emergency-alert", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-fsd-pin": "7007" },
+        body: JSON.stringify({
+          title: `URGENT DIRECTIVE: ${occupant.name.toUpperCase()} (SECTOR ${occupant.quadrant})`,
+          narrative: `DIRECT LIFE-SAFETY DIRECTIVE FOR ${occupant.name.toUpperCase()}: Please evacuate immediately via designated exit stairwells to outside Assembly Point A. Do not use elevators. Tap safe button upon reaching street level.`,
+          priority: "CRITICAL",
+          targetQuadrants: [occupant.quadrant],
+          channels: ["PUSH_NOTIFICATION", "SMS_BACKUP", "MESH_AUDIO_BEACON"],
+        }),
+      });
+    } catch (err) {
+      console.warn("Direct emergency ping failed:", err);
     }
     triggerFeedback(`🚨 Urgent Evacuation Ping transmitted to ${occupant.name}'s phone.`);
     setTimeout(() => setPingSent(false), 4000);

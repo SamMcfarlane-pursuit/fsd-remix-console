@@ -15,6 +15,7 @@ import {
 } from "../lib/offlineQueue";
 import { authenticateWithBiometrics } from "../lib/biometrics";
 import { playRadioIncomingAlert } from "../lib/audioBroadcast";
+import { AccessibleEmergencyAlertBanner } from "./AccessibleEmergencyAlertBanner";
 
 interface OccupantPortalProps {
   snapshot: StatusSnapshot | null;
@@ -916,6 +917,13 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
 
   return (
     <div className="max-w-2xl mx-auto p-4 sm:p-6 space-y-5 text-[#0F2537]">
+      {/* Universal Multi-Language Accessible Emergency Life-Safety Banner */}
+      <AccessibleEmergencyAlertBanner
+        alert={snapshot?.latestEmergencyAlert}
+        currentOccupant={currentUser}
+        onCheckIn={onCheckIn}
+      />
+
       {/* Top Banner */}
       <div className="bg-[#EBF5FB] border border-[#B8D8F8] p-3.5 rounded-2xl flex items-center justify-between gap-3 text-xs shadow-xs">
         <div className="flex items-center gap-2.5">
