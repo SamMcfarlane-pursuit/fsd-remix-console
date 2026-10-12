@@ -952,22 +952,22 @@ export default function App() {
         <div className="flex-1 flex flex-col">
           {/* Active Emergency Distress & Life-Saving Protocol Banner */}
           {occupantsList.some((o) => o.status === "need-help" || o.status === "awaiting-evac-chair") && (
-            <div className="bg-red-700 border-b-4 border-amber-400 p-3 sm:p-4 text-white shadow-xl flex flex-wrap items-center justify-between gap-3 animate-pulse">
+            <div className="bg-rose-700 border-b-2 border-rose-900 px-4 py-2.5 text-white shadow-md flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-3">
-                <span className="text-2xl sm:text-3xl animate-bounce">🚨</span>
+                <span className="w-2.5 h-2.5 rounded-full bg-amber-300 animate-ping shrink-0" />
                 <div>
-                  <div className="text-[11px] font-black text-amber-300 uppercase tracking-widest flex items-center gap-2">
-                    <span>CRITICAL LIFE-SAFETY RESCUE REQUIRED</span>
-                    <span className="bg-black/50 text-white text-[9px] px-1.5 py-0.5 rounded font-mono">
+                  <div className="text-[10px] font-mono font-bold text-amber-300 uppercase tracking-widest flex items-center gap-2">
+                    <span>CRITICAL LIFE-SAFETY DISTRESS REPORTED</span>
+                    <span className="bg-black/40 text-white text-[9px] px-1.5 py-0.2 rounded font-mono">
                       {occupantsList.filter((o) => o.status === "need-help" || o.status === "awaiting-evac-chair").length} IN DISTRESS
                     </span>
                   </div>
-                  <div className="text-xs sm:text-sm font-black mt-0.5">
+                  <div className="text-xs sm:text-sm font-bold mt-0.5">
                     {occupantsList
                       .filter((o) => o.status === "need-help" || o.status === "awaiting-evac-chair")
                       .map((d) => `${d.name} (${d.quadrant})`)
                       .join(" · ")}{" "}
-                    reported emergency distress inside building!
+                    needs assistance inside building
                   </div>
                 </div>
               </div>
@@ -984,10 +984,10 @@ export default function App() {
                       setIsRescueModalOpen(true);
                     }
                   }}
-                  className="px-4 py-2 bg-amber-400 hover:bg-amber-300 text-black font-black text-xs uppercase tracking-wider rounded-xl shadow-md cursor-pointer transition flex items-center gap-1.5"
+                  className="px-3.5 py-1.5 bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-xs uppercase tracking-wider rounded-lg shadow-xs cursor-pointer transition flex items-center gap-1.5"
                 >
                   <span>🧭</span>
-                  <span>Locate &amp; Execute Rescue Procedure →</span>
+                  <span>Open Rescue SOP &amp; FDNY Slip →</span>
                 </button>
               </div>
             </div>
