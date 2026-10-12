@@ -1,5 +1,6 @@
 import React from "react";
 import { QuadrantId } from "../types";
+import { Compass, Navigation, ShieldCheck } from "lucide-react";
 
 interface ActualBuildingFloorMapProps {
   targetQuadrant?: QuadrantId | string;
@@ -10,12 +11,12 @@ interface ActualBuildingFloorMapProps {
 }
 
 /**
- * Authentic Floor 07 Architectural CAD Map (4 Irving Place - Corporate HQ)
- * Recreated accurately from the official Con Edison As-Built Blueprints & Fire Team Training maps.
- * Renders building core, elevator banks, exit stairwells, and perimeter streets WITHOUT cluttered names.
+ * Enterprise Architectural Vector CAD Map — Floor 07 (4 Irving Place - Corporate HQ)
+ * Reconstructed accurately from official Con Edison Portfolio As-Built Blueprints & FDNY Fire Team maps.
+ * Renders building core, circulation corridors, elevator banks, and exit stairwells WITHOUT individual occupant names.
  */
 export const ActualBuildingFloorMap: React.FC<ActualBuildingFloorMapProps> = ({
-  targetQuadrant = "ALL",
+  targetQuadrant = "NW",
   targetDesk,
   targetStairwell = "Stairwell A",
   showEgressPath = true,
@@ -26,342 +27,468 @@ export const ActualBuildingFloorMap: React.FC<ActualBuildingFloorMapProps> = ({
   const isTargetSW = targetQuadrant === "SW";
   const isTargetSE = targetQuadrant === "SE";
 
-  const isStairA = !targetStairwell || targetStairwell.includes("Stairwell A") || targetStairwell.includes("Stair A");
+  const isStairA = !targetStairwell || targetStairwell.toLowerCase().includes("stairwell a") || targetStairwell.toLowerCase().includes("stair a");
 
-  // Coordinates for designated victim pin
-  const victimX = isTargetNE ? 680 : isTargetSW ? 260 : isTargetSE ? 680 : 260; // NW default
-  const victimY = isTargetSW ? 340 : isTargetSE ? 340 : 130; // NW/NE default
+  // Coordinate waypoints for corridor-guided egress (avoids cutting through courtyard or walls)
+  let userPin = { x: 200, y: 100, label: "Sector NW · Strategic Planning" };
+  let pathWaypoints = "200,100 200,135 680,135 735,210"; // NW -> North corridor -> East corridor -> Stair A
 
-  // Exit stair coordinate (Stair A on East, Stair B on West)
-  const exitStairX = isStairA ? 740 : 170;
-  const exitStairY = 220;
+  if (isTargetNE) {
+    userPin = { x: 620, y: 100, label: "Sector NE · Gas Operations" };
+    pathWaypoints = isStairA ? "620,100 680,135 735,210" : "620,100 620,135 180,135 125,210";
+  } else if (isTargetSW) {
+    userPin = { x: 200, y: 320, label: "Sector SW · AMI Operations" };
+    pathWaypoints = isStairA ? "200,320 200,285 680,285 735,210" : "200,320 180,285 125,210";
+  } else if (isTargetSE) {
+    userPin = { x: 620, y: 320, label: "Sector SE · Steam Operations" };
+    pathWaypoints = isStairA ? "620,320 680,285 735,210" : "620,320 620,285 180,285 125,210";
+  } else {
+    // Default NW
+    pathWaypoints = isStairA ? "200,100 200,135 680,135 735,210" : "200,100 180,135 125,210";
+  }
 
   return (
-    <div className={`w-full rounded-2xl border border-[#CBDCEE] bg-[#F8FAFC] p-3 text-[#0F2537] shadow-inner select-none ${className}`}>
-      {/* Top Legend Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] font-mono text-[#475569] mb-2 pb-1.5 border-b border-[#E2E8F0]">
-        <div className="flex items-center gap-3">
-          <span className="font-bold text-[#005DAA] flex items-center gap-1">
-            <span>🏢</span>
+    <div className={`w-full rounded-2xl border border-slate-200/90 bg-white p-3 sm:p-4 text-slate-800 shadow-xs select-none ${className}`}>
+      {/* Top Professional Header Bar */}
+      <div className="flex flex-wrap items-center justify-between gap-2 pb-2.5 mb-2 border-b border-slate-100 text-xs">
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 font-bold text-[#003B70]">
+            <span className="w-2 h-2 rounded-full bg-[#005DAA]" />
             <span>4 IRVING PLACE · FLOOR 07</span>
-          </span>
-          <span className="text-[#94A3B8]">|</span>
-          <span className="flex items-center gap-1">
-            <span className="w-2.5 h-2.5 rounded-sm bg-[#059669] inline-block" />
-            <span>Exit Stairwells</span>
-          </span>
-          <span className="flex items-center gap-1">
-            <span className="w-2.5 h-2.5 rounded-sm bg-[#38BDF8] inline-block" />
-            <span>Elevator Banks</span>
+          </div>
+          <span className="text-slate-300">|</span>
+          <span className="text-[11px] font-medium text-slate-500">
+            Architectural Egress Layout (Name-Free CAD)
           </span>
         </div>
 
-        <div className="flex items-center gap-2 text-[10px] text-[#64748B]">
-          <span>North Compass ▲</span>
-          <span className="bg-[#E2E8F0] px-1.5 py-0.5 rounded font-bold text-[#334155]">PORTFOLIO AS-BUILT</span>
+        {/* Legend pills */}
+        <div className="flex items-center gap-2 text-[11px] font-medium text-slate-600">
+          <span className="flex items-center gap-1">
+            <span className="w-2.5 h-2.5 rounded-sm bg-emerald-600" />
+            <span>Exit Stairs</span>
+          </span>
+          <span className="flex items-center gap-1">
+            <span className="w-2.5 h-2.5 rounded-sm bg-sky-200 border border-sky-400" />
+            <span>Elevators (Offline)</span>
+          </span>
+          <span className="flex items-center gap-1">
+            <span className="w-2.5 h-1 rounded-full bg-emerald-500" />
+            <span>Corridor Path</span>
+          </span>
         </div>
       </div>
 
-      {/* Responsive Architectural SVG Map */}
-      <svg
-        viewBox="0 0 900 460"
-        className="w-full h-auto max-h-[260px] font-sans"
-        aria-label="Floor 07 Building Map without occupant names"
-      >
-        <defs>
-          <pattern id="lightGrid" width="20" height="20" patternUnits="userSpaceOnUse">
-            <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#E2E8F0" strokeWidth="0.6" />
-          </pattern>
-        </defs>
-
-        {/* Blueprint background grid */}
-        <rect width="900" height="460" fill="url(#lightGrid)" rx="8" />
-
-        {/* ======================================================== */}
-        {/* SURROUNDING STREET BORDERS                               */}
-        {/* ======================================================== */}
-        {/* North Street: East 15th Street */}
-        <rect x="0" y="0" width="900" height="20" fill="#003B70" rx="4" />
-        <text x="450" y="14" textAnchor="middle" fill="#FFFFFF" fontSize="9" fontWeight="900" letterSpacing="3">
-          ▲ NORTH — EAST 15TH STREET ▲
-        </text>
-
-        {/* West Street: Irving Place */}
-        <rect x="0" y="20" width="22" height="420" fill="#003B70" />
-        <text
-          x="-230"
-          y="15"
-          transform="rotate(-90)"
-          textAnchor="middle"
-          fill="#FFFFFF"
-          fontSize="9"
-          fontWeight="900"
-          letterSpacing="2"
+      {/* Vector CAD SVG Map Canvas */}
+      <div className="relative rounded-xl overflow-hidden bg-[#F8FAFC] border border-slate-200">
+        <svg
+          viewBox="0 0 860 420"
+          className="w-full h-auto max-h-[260px] font-sans block"
+          aria-label="Floor 07 Building Egress Map"
         >
-          ◄ WEST — IRVING PLACE (MAIN ENTRANCE) ◄
-        </text>
+          <defs>
+            {/* Fine architectural grid */}
+            <pattern id="cadGrid" width="16" height="16" patternUnits="userSpaceOnUse">
+              <path d="M 16 0 L 0 0 0 16" fill="none" stroke="#E2E8F0" strokeWidth="0.5" />
+            </pattern>
+            {/* Hatch pattern for lightwell courtyard */}
+            <pattern id="courtyardHatch" width="8" height="8" patternTransform="rotate(45 0 0)" patternUnits="userSpaceOnUse">
+              <line x1="0" y1="0" x2="0" y2="8" stroke="#CBD5E1" strokeWidth="1" />
+            </pattern>
+            {/* Marker for route chevrons */}
+            <marker id="arrowHead" markerWidth="6" markerHeight="6" refX="4" refY="3" orient="auto">
+              <polygon points="0 0, 6 3, 0 6" fill="#059669" />
+            </marker>
+          </defs>
 
-        {/* East Street: Third Avenue */}
-        <rect x="878" y="20" width="22" height="420" fill="#003B70" />
-        <text
-          x="230"
-          y="-886"
-          transform="rotate(90)"
-          textAnchor="middle"
-          fill="#FFFFFF"
-          fontSize="9"
-          fontWeight="900"
-          letterSpacing="2"
-        >
-          ► EAST — THIRD AVENUE ►
-        </text>
+          {/* Blueprint background grid */}
+          <rect width="860" height="420" fill="url(#cadGrid)" />
 
-        {/* South Street: East 14th Street */}
-        <rect x="0" y="440" width="900" height="20" fill="#003B70" rx="4" />
-        <text x="450" y="454" textAnchor="middle" fill="#FFFFFF" fontSize="9" fontWeight="900" letterSpacing="3">
-          ▼ SOUTH — EAST 14TH STREET ▼
-        </text>
+          {/* ======================================================== */}
+          {/* PERIMETER STREET BOUNDARY LABELS (CLEAN ARCHITECTURAL)   */}
+          {/* ======================================================== */}
+          {/* North: East 15th St */}
+          <line x1="60" y1="24" x2="800" y2="24" stroke="#94A3B8" strokeWidth="1" strokeDasharray="4 4" />
+          <text x="430" y="18" textAnchor="middle" fill="#475569" fontSize="9.5" fontWeight="700" letterSpacing="1.5">
+            ▲ NORTH · EAST 15TH STREET ▲
+          </text>
 
-        {/* ======================================================== */}
-        {/* MAIN FLOOR SLAB BOUNDARY (4 Irving Place footprint)      */}
-        {/* ======================================================== */}
-        <rect
-          x="35"
-          y="28"
-          width="830"
-          height="404"
-          fill="#FFFFFF"
-          stroke="#005DAA"
-          strokeWidth="2.5"
-          rx="6"
-        />
+          {/* West: Irving Place */}
+          <line x1="50" y1="35" x2="50" y2="385" stroke="#94A3B8" strokeWidth="1" strokeDasharray="4 4" />
+          <text
+            x="-210"
+            y="38"
+            transform="rotate(-90)"
+            textAnchor="middle"
+            fill="#475569"
+            fontSize="9.5"
+            fontWeight="700"
+            letterSpacing="1"
+          >
+            ◄ WEST · IRVING PLACE (MAIN ENTRANCE) ◄
+          </text>
 
-        {/* ======================================================== */}
-        {/* CENTRAL COURTYARD LIGHTWELL CORE                         */}
-        {/* ======================================================== */}
-        <rect
-          x="375"
-          y="160"
-          width="150"
-          height="140"
-          fill="#F1F5F9"
-          stroke="#94A3B8"
-          strokeWidth="1.5"
-          rx="4"
-        />
-        <text x="450" y="225" textAnchor="middle" fill="#475569" fontSize="11" fontWeight="900" letterSpacing="2">
-          COURTYARD
-        </text>
-        <text x="450" y="242" textAnchor="middle" fill="#94A3B8" fontSize="8" fontWeight="bold">
-          (OPEN AIR CORE)
-        </text>
+          {/* East: Third Avenue */}
+          <line x1="810" y1="35" x2="810" y2="385" stroke="#94A3B8" strokeWidth="1" strokeDasharray="4 4" />
+          <text
+            x="210"
+            y="-822"
+            transform="rotate(90)"
+            textAnchor="middle"
+            fill="#475569"
+            fontSize="9.5"
+            fontWeight="700"
+            letterSpacing="1"
+          >
+            ► EAST · THIRD AVENUE (UNION SQ EAST) ►
+          </text>
 
-        {/* ======================================================== */}
-        {/* QUADRANT DIVISION BOUNDARIES & SECTOR LABELS             */}
-        {/* ======================================================== */}
-        {/* Sector NW: Strategic Planning (07-800) */}
-        <rect
-          x="45"
-          y="36"
-          width="320"
-          height="160"
-          fill={isTargetNW ? "#E0F2FE" : "#F8FAFC"}
-          stroke={isTargetNW ? "#005DAA" : "#CBDCEE"}
-          strokeWidth={isTargetNW ? "2.5" : "1"}
-          rx="4"
-        />
-        <text x="55" y="54" fill="#003B70" fontSize="10" fontWeight="900">
-          SECTOR NW · Strategic Planning (07-800)
-        </text>
-        <text x="55" y="68" fill="#64748B" fontSize="8" fontWeight="bold">
-          VP Office · Implementation Area
-        </text>
+          {/* South: East 14th St */}
+          <line x1="60" y1="396" x2="800" y2="396" stroke="#94A3B8" strokeWidth="1" strokeDasharray="4 4" />
+          <text x="430" y="411" textAnchor="middle" fill="#475569" fontSize="9.5" fontWeight="700" letterSpacing="1.5">
+            ▼ SOUTH · EAST 14TH STREET ▼
+          </text>
 
-        {/* Sector NE: Gas Ops & Security (07-200) */}
-        <rect
-          x="535"
-          y="36"
-          width="320"
-          height="160"
-          fill={isTargetNE ? "#E0F2FE" : "#F8FAFC"}
-          stroke={isTargetNE ? "#005DAA" : "#CBDCEE"}
-          strokeWidth={isTargetNE ? "2.5" : "1"}
-          rx="4"
-        />
-        <text x="545" y="54" fill="#003B70" fontSize="10" fontWeight="900">
-          SECTOR NE · Gas Operations &amp; Security (07-200)
-        </text>
-        <text x="545" y="68" fill="#64748B" fontSize="8" fontWeight="bold">
-          Control Center · Investigations Hub
-        </text>
-
-        {/* Sector SW: AMI & Ombudsman (07-700) */}
-        <rect
-          x="45"
-          y="260"
-          width="320"
-          height="160"
-          fill={isTargetSW ? "#E0F2FE" : "#F8FAFC"}
-          stroke={isTargetSW ? "#005DAA" : "#CBDCEE"}
-          strokeWidth={isTargetSW ? "2.5" : "1"}
-          rx="4"
-        />
-        <text x="55" y="278" fill="#003B70" fontSize="10" fontWeight="900">
-          SECTOR SW · AMI &amp; Ombudsman (07-700)
-        </text>
-        <text x="55" y="292" fill="#64748B" fontSize="8" fontWeight="bold">
-          Team Rooms A/B/C · Customer Operations
-        </text>
-
-        {/* Sector SE: Steam Operations (07-500) */}
-        <rect
-          x="535"
-          y="260"
-          width="320"
-          height="160"
-          fill={isTargetSE ? "#E0F2FE" : "#F8FAFC"}
-          stroke={isTargetSE ? "#005DAA" : "#CBDCEE"}
-          strokeWidth={isTargetSE ? "2.5" : "1"}
-          rx="4"
-        />
-        <text x="545" y="278" fill="#003B70" fontSize="10" fontWeight="900">
-          SECTOR SE · Steam Operations (07-500)
-        </text>
-        <text x="545" y="292" fill="#64748B" fontSize="8" fontWeight="bold">
-          Bulk Power · Control Ops (07-550)
-        </text>
-
-        {/* ======================================================== */}
-        {/* ELEVATOR BANKS (A, B, C, D, E, F, G)                     */}
-        {/* ======================================================== */}
-        {/* Bank G (North) */}
-        <g transform="translate(405, 42)">
-          <rect width="90" height="36" fill="#BAE6FD" stroke="#0284C7" strokeWidth="1.2" rx="3" />
-          <text x="45" y="16" textAnchor="middle" fill="#0369A1" fontSize="8" fontWeight="900">BANK 'G' ELEV</text>
-          <text x="45" y="28" textAnchor="middle" fill="#0C4A6E" fontSize="7" fontWeight="bold">Cars 12, 13</text>
-        </g>
-
-        {/* Bank E / Lobby E (NW Core) */}
-        <g transform="translate(145, 95)">
-          <rect width="80" height="42" fill="#BAE6FD" stroke="#0284C7" strokeWidth="1.2" rx="3" />
-          <text x="40" y="18" textAnchor="middle" fill="#0369A1" fontSize="8" fontWeight="900">BANK 'E'</text>
-          <text x="40" y="32" textAnchor="middle" fill="#0C4A6E" fontSize="7" fontWeight="bold">Lobby E (Cars 1-2)</text>
-        </g>
-
-        {/* Bank C / Bank B (Center Core) */}
-        <g transform="translate(385, 95)">
-          <rect width="130" height="42" fill="#BAE6FD" stroke="#0284C7" strokeWidth="1.2" rx="3" />
-          <text x="65" y="18" textAnchor="middle" fill="#0369A1" fontSize="8" fontWeight="900">BANK 'C' &amp; 'B'</text>
-          <text x="65" y="32" textAnchor="middle" fill="#0C4A6E" fontSize="7" fontWeight="bold">Passenger Cars 24-29</text>
-        </g>
-
-        {/* Bank D / Lobby D (East Core) */}
-        <g transform="translate(710, 95)">
-          <rect width="85" height="42" fill="#BAE6FD" stroke="#0284C7" strokeWidth="1.2" rx="3" />
-          <text x="42.5" y="18" textAnchor="middle" fill="#0369A1" fontSize="8" fontWeight="900">BANK 'D'</text>
-          <text x="42.5" y="32" textAnchor="middle" fill="#0C4A6E" fontSize="7" fontWeight="bold">Lobby D (Cars 31-35)</text>
-        </g>
-
-        {/* Bank A (Southeast Core) */}
-        <g transform="translate(680, 310)">
-          <rect width="85" height="40" fill="#BAE6FD" stroke="#0284C7" strokeWidth="1.2" rx="3" />
-          <text x="42.5" y="17" textAnchor="middle" fill="#0369A1" fontSize="8" fontWeight="900">BANK 'A'</text>
-          <text x="42.5" y="30" textAnchor="middle" fill="#0C4A6E" fontSize="7" fontWeight="bold">Cars 14-17</text>
-        </g>
-
-        {/* Bank T (South/Irving Base) */}
-        <g transform="translate(145, 310)">
-          <rect width="80" height="40" fill="#BAE6FD" stroke="#0284C7" strokeWidth="1.2" rx="3" />
-          <text x="40" y="17" textAnchor="middle" fill="#0369A1" fontSize="8" fontWeight="900">BANK 'T'</text>
-          <text x="40" y="30" textAnchor="middle" fill="#0C4A6E" fontSize="7" fontWeight="bold">Down to Bsmnt</text>
-        </g>
-
-        {/* ======================================================== */}
-        {/* OFFICIAL EXIT STAIRWELLS (GREEN FIRE CODE BOXES)         */}
-        {/* ======================================================== */}
-        {/* STAIR B (West Core - Irving Place side) */}
-        <g transform="translate(48, 195)">
+          {/* ======================================================== */}
+          {/* BUILDING EXTERIOR ENVELOPE (4 Irving Place footprint)    */}
+          {/* ======================================================== */}
           <rect
-            width="65"
-            height="50"
-            fill="#059669"
-            stroke="#047857"
-            strokeWidth="1.5"
-            rx="4"
-            className={!isStairA ? "animate-pulse" : ""}
+            x="70"
+            y="35"
+            width="720"
+            height="350"
+            rx="6"
+            fill="#FFFFFF"
+            stroke="#334155"
+            strokeWidth="2.5"
           />
-          <text x="32.5" y="22" textAnchor="middle" fill="#FFFFFF" fontSize="8.5" fontWeight="900">
-            STAIR B
-          </text>
-          <text x="32.5" y="34" textAnchor="middle" fill="#D1FAE5" fontSize="7" fontWeight="bold">
-            WEST EXIT
-          </text>
-          <circle cx="52" cy="12" r="4.5" fill="#DC2626" />
-          <text x="52" y="14" textAnchor="middle" fill="#FFFFFF" fontSize="5" fontWeight="black">SP</text>
-        </g>
 
-        {/* STAIR A (East Core - Third Ave / Union Sq East side) */}
-        <g transform="translate(787, 195)">
+          {/* ======================================================== */}
+          {/* BASE BUILDING CIRCULATION CORRIDORS                      */}
+          {/* ======================================================== */}
+          {/* Continuous Hallway Ring wrapping around core */}
+          <path
+            d="M 120 120 L 740 120 L 740 300 L 120 300 Z"
+            fill="none"
+            stroke="#F1F5F9"
+            strokeWidth="32"
+            strokeLinejoin="round"
+          />
+          <path
+            d="M 120 120 L 740 120 L 740 300 L 120 300 Z"
+            fill="none"
+            stroke="#E2E8F0"
+            strokeWidth="30"
+            strokeLinejoin="round"
+          />
+
+          {/* Hallway text markers */}
+          <text x="430" y="124" textAnchor="middle" fill="#94A3B8" fontSize="7.5" fontWeight="bold" letterSpacing="2">
+            BASE BUILDING CIRCULATION CORRIDOR
+          </text>
+          <text x="430" y="304" textAnchor="middle" fill="#94A3B8" fontSize="7.5" fontWeight="bold" letterSpacing="2">
+            BASE BUILDING CIRCULATION CORRIDOR
+          </text>
+
+          {/* ======================================================== */}
+          {/* CENTRAL OPEN-AIR COURTYARD LIGHTWELL                     */}
+          {/* ======================================================== */}
           <rect
-            width="65"
-            height="50"
-            fill="#059669"
-            stroke="#047857"
-            strokeWidth="1.5"
-            rx="4"
-            className={isStairA ? "animate-pulse" : ""}
+            x="345"
+            y="145"
+            width="170"
+            height="130"
+            rx="6"
+            fill="#F8FAFC"
+            stroke="#94A3B8"
+            strokeWidth="2"
           />
-          <text x="32.5" y="22" textAnchor="middle" fill="#FFFFFF" fontSize="8.5" fontWeight="900">
-            STAIR A
+          <rect
+            x="345"
+            y="145"
+            width="170"
+            height="130"
+            rx="6"
+            fill="url(#courtyardHatch)"
+            opacity="0.3"
+          />
+          <rect
+            x="375"
+            y="190"
+            width="110"
+            height="38"
+            rx="4"
+            fill="#FFFFFF"
+            stroke="#CBD5E1"
+            strokeWidth="1"
+          />
+          <text x="430" y="206" textAnchor="middle" fill="#1E293B" fontSize="9" fontWeight="900" letterSpacing="1.5">
+            COURTYARD
           </text>
-          <text x="32.5" y="34" textAnchor="middle" fill="#D1FAE5" fontSize="7" fontWeight="bold">
-            EAST EXIT
+          <text x="430" y="219" textAnchor="middle" fill="#64748B" fontSize="7" fontWeight="bold">
+            (OPEN-AIR LIGHTWELL)
           </text>
-          <circle cx="52" cy="12" r="4.5" fill="#DC2626" />
-          <text x="52" y="14" textAnchor="middle" fill="#FFFFFF" fontSize="5" fontWeight="black">SP</text>
-        </g>
 
-        {/* STAIR F & E (Center & North stair towers) */}
-        <rect x="375" y="95" width="22" height="25" fill="#10B981" rx="2" />
-        <text x="386" y="111" textAnchor="middle" fill="#FFFFFF" fontSize="6.5" fontWeight="black">F</text>
-
-        <rect x="503" y="95" width="22" height="25" fill="#10B981" rx="2" />
-        <text x="514" y="111" textAnchor="middle" fill="#FFFFFF" fontSize="6.5" fontWeight="black">G</text>
-
-        {/* ======================================================== */}
-        {/* EGRESS CORRIDOR ROUTING LINE                             */}
-        {/* ======================================================== */}
-        {showEgressPath && (
-          <>
-            <line
-              x1={victimX}
-              y1={victimY}
-              x2={exitStairX}
-              y2={exitStairY}
-              stroke="#059669"
-              strokeWidth="3.5"
-              strokeDasharray="6 4"
+          {/* ======================================================== */}
+          {/* FOUR PRIMARY QUADRANT SECTORS (NO OCCUPANT NAMES)        */}
+          {/* ======================================================== */}
+          {/* Sector NW: Strategic Planning (07-800) */}
+          <g>
+            <rect
+              x="78"
+              y="42"
+              width="240"
+              height="75"
+              rx="4"
+              fill={isTargetNW ? "#E0F2FE" : "#FFFFFF"}
+              stroke={isTargetNW ? "#0284C7" : "#CBD5E1"}
+              strokeWidth={isTargetNW ? "2" : "1"}
             />
-            {/* Pulsing Target Marker for current user position */}
-            <circle cx={victimX} cy={victimY} r="14" fill="#0284C7" opacity="0.25" className="animate-ping" />
-            <circle cx={victimX} cy={victimY} r="7" fill="#005DAA" stroke="#FFFFFF" strokeWidth="2" />
-            <text x={victimX} y={victimY - 10} textAnchor="middle" fill="#003B70" fontSize="8" fontWeight="900">
-              YOUR SECTOR ({targetQuadrant || "FLOOR 07"})
+            <text x="88" y="60" fill="#0F2537" fontSize="9" fontWeight="800">
+              SECTOR NW · Strategic Planning (07-800)
             </text>
-          </>
-        )}
-      </svg>
+            <text x="88" y="74" fill="#64748B" fontSize="7.5" fontWeight="500">
+              Workstation Pods 07-801 to 07-841 · Conf Rm A
+            </text>
+          </g>
 
-      {/* Bottom Route Indicator */}
-      <div className="mt-2 pt-2 border-t border-[#E2E8F0] flex flex-wrap items-center justify-between text-xs text-[#475569]">
-        <div className="flex items-center gap-1.5 font-bold text-[#0F2537]">
-          <span>🏃‍♂️ Primary Exit Route:</span>
-          <span className="text-[#059669] font-black">{isStairA ? "STAIRWELL A (East Core)" : "STAIRWELL B (West Core)"}</span>
-          <span className="text-[11px] text-[#64748B]">→ Descend directly to street level</span>
+          {/* Sector NE: Gas Operations & Investigations (07-200) */}
+          <g>
+            <rect
+              x="542"
+              y="42"
+              width="240"
+              height="75"
+              rx="4"
+              fill={isTargetNE ? "#E0F2FE" : "#FFFFFF"}
+              stroke={isTargetNE ? "#0284C7" : "#CBD5E1"}
+              strokeWidth={isTargetNE ? "2" : "1"}
+            />
+            <text x="552" y="60" fill="#0F2537" fontSize="9" fontWeight="800">
+              SECTOR NE · Gas Operations (07-200)
+            </text>
+            <text x="552" y="74" fill="#64748B" fontSize="7.5" fontWeight="500">
+              Control Center · PSC Supply · Conf Rm 07-240
+            </text>
+          </g>
+
+          {/* Sector SW: AMI & Ombudsman (07-700) */}
+          <g>
+            <rect
+              x="78"
+              y="302"
+              width="240"
+              height="75"
+              rx="4"
+              fill={isTargetSW ? "#E0F2FE" : "#FFFFFF"}
+              stroke={isTargetSW ? "#0284C7" : "#CBD5E1"}
+              strokeWidth={isTargetSW ? "2" : "1"}
+            />
+            <text x="88" y="322" fill="#0F2537" fontSize="9" fontWeight="800">
+              SECTOR SW · AMI &amp; Ombudsman (07-700)
+            </text>
+            <text x="88" y="336" fill="#64748B" fontSize="7.5" fontWeight="500">
+              Team Rooms A-D · Implementation Area
+            </text>
+          </g>
+
+          {/* Sector SE: Steam Operations & Bulk Power (07-500) */}
+          <g>
+            <rect
+              x="542"
+              y="302"
+              width="240"
+              height="75"
+              rx="4"
+              fill={isTargetSE ? "#E0F2FE" : "#FFFFFF"}
+              stroke={isTargetSE ? "#0284C7" : "#CBD5E1"}
+              strokeWidth={isTargetSE ? "2" : "1"}
+            />
+            <text x="552" y="322" fill="#0F2537" fontSize="9" fontWeight="800">
+              SECTOR SE · Steam Operations (07-500)
+            </text>
+            <text x="552" y="336" fill="#64748B" fontSize="7.5" fontWeight="500">
+              Steam Ops Control Rm · Desks 07-501 to 07-595
+            </text>
+          </g>
+
+          {/* ======================================================== */}
+          {/* ELEVATOR BANKS (RECALLED / OFFLINE DURING FIRE ALARM)    */}
+          {/* ======================================================== */}
+          {/* Bank G (North Wall) */}
+          <g transform="translate(390, 48)">
+            <rect width="80" height="34" rx="4" fill="#F0F9FF" stroke="#38BDF8" strokeWidth="1" />
+            <text x="40" y="16" textAnchor="middle" fill="#0284C7" fontSize="7.5" fontWeight="800">BANK 'G' ELEV</text>
+            <text x="40" y="27" textAnchor="middle" fill="#DC2626" fontSize="6.5" fontWeight="bold">✕ RECALLED</text>
+          </g>
+
+          {/* Bank E (West Lobby) */}
+          <g transform="translate(180, 160)">
+            <rect width="70" height="36" rx="4" fill="#F0F9FF" stroke="#38BDF8" strokeWidth="1" />
+            <text x="35" y="16" textAnchor="middle" fill="#0284C7" fontSize="7.5" fontWeight="800">BANK 'E'</text>
+            <text x="35" y="27" textAnchor="middle" fill="#DC2626" fontSize="6.5" fontWeight="bold">✕ RECALLED</text>
+          </g>
+
+          {/* Bank B & C (Central Core) */}
+          <g transform="translate(180, 225)">
+            <rect width="70" height="36" rx="4" fill="#F0F9FF" stroke="#38BDF8" strokeWidth="1" />
+            <text x="35" y="16" textAnchor="middle" fill="#0284C7" fontSize="7.5" fontWeight="800">BANK 'C &amp; B'</text>
+            <text x="35" y="27" textAnchor="middle" fill="#DC2626" fontSize="6.5" fontWeight="bold">✕ RECALLED</text>
+          </g>
+
+          {/* Bank D (East Lobby) */}
+          <g transform="translate(610, 160)">
+            <rect width="70" height="36" rx="4" fill="#F0F9FF" stroke="#38BDF8" strokeWidth="1" />
+            <text x="35" y="16" textAnchor="middle" fill="#0284C7" fontSize="7.5" fontWeight="800">BANK 'D'</text>
+            <text x="35" y="27" textAnchor="middle" fill="#DC2626" fontSize="6.5" fontWeight="bold">✕ RECALLED</text>
+          </g>
+
+          {/* Bank A (Southeast Core) */}
+          <g transform="translate(610, 225)">
+            <rect width="70" height="36" rx="4" fill="#F0F9FF" stroke="#38BDF8" strokeWidth="1" />
+            <text x="35" y="16" textAnchor="middle" fill="#0284C7" fontSize="7.5" fontWeight="800">BANK 'A'</text>
+            <text x="35" y="27" textAnchor="middle" fill="#DC2626" fontSize="6.5" fontWeight="bold">✕ RECALLED</text>
+          </g>
+
+          {/* Bank T (South / Bsmnt) */}
+          <g transform="translate(390, 338)">
+            <rect width="80" height="34" rx="4" fill="#F0F9FF" stroke="#38BDF8" strokeWidth="1" />
+            <text x="40" y="16" textAnchor="middle" fill="#0284C7" fontSize="7.5" fontWeight="800">BANK 'T'</text>
+            <text x="40" y="27" textAnchor="middle" fill="#DC2626" fontSize="6.5" fontWeight="bold">✕ RECALLED</text>
+          </g>
+
+          {/* ======================================================== */}
+          {/* OFFICIAL FIRE STAIRWELLS (ILLUMINATED NFPA LIFE-SAFETY)  */}
+          {/* ======================================================== */}
+          {/* STAIR B (WEST EXIT - Irving Place Side) */}
+          <g transform="translate(78, 185)">
+            <rect
+              width="50"
+              height="50"
+              rx="5"
+              fill={!isStairA ? "#059669" : "#10B981"}
+              stroke="#047857"
+              strokeWidth="2"
+            />
+            <text x="25" y="20" textAnchor="middle" fill="#FFFFFF" fontSize="8" fontWeight="900">
+              STAIR B
+            </text>
+            <text x="25" y="32" textAnchor="middle" fill="#ECFDF5" fontSize="7" fontWeight="bold">
+              WEST EXIT
+            </text>
+            {/* Standpipe marker */}
+            <circle cx="40" cy="11" r="4" fill="#DC2626" />
+            <text x="40" y="13" textAnchor="middle" fill="#FFFFFF" fontSize="4.5" fontWeight="black">SP</text>
+          </g>
+
+          {/* STAIR A (EAST EXIT - Third Ave / Union Sq East Side) */}
+          <g transform="translate(732, 185)">
+            <rect
+              width="50"
+              height="50"
+              rx="5"
+              fill={isStairA ? "#059669" : "#10B981"}
+              stroke="#047857"
+              strokeWidth="2"
+            />
+            {isStairA && (
+              <rect
+                width="56"
+                height="56"
+                x="-3"
+                y="-3"
+                rx="8"
+                fill="none"
+                stroke="#10B981"
+                strokeWidth="1.5"
+                opacity="0.8"
+                className="animate-ping"
+              />
+            )}
+            <text x="25" y="20" textAnchor="middle" fill="#FFFFFF" fontSize="8" fontWeight="900">
+              STAIR A
+            </text>
+            <text x="25" y="32" textAnchor="middle" fill="#ECFDF5" fontSize="7" fontWeight="bold">
+              EAST EXIT
+            </text>
+            {/* Standpipe marker */}
+            <circle cx="40" cy="11" r="4" fill="#DC2626" />
+            <text x="40" y="13" textAnchor="middle" fill="#FFFFFF" fontSize="4.5" fontWeight="black">SP</text>
+          </g>
+
+          {/* STAIR F & G (Center Core Fire Towers) */}
+          <g transform="translate(350, 95)">
+            <rect width="26" height="22" rx="3" fill="#10B981" />
+            <text x="13" y="14" textAnchor="middle" fill="#FFFFFF" fontSize="7" fontWeight="900">STAIR F</text>
+          </g>
+          <g transform="translate(484, 95)">
+            <rect width="26" height="22" rx="3" fill="#10B981" />
+            <text x="13" y="14" textAnchor="middle" fill="#FFFFFF" fontSize="7" fontWeight="900">STAIR G</text>
+          </g>
+
+          {/* ======================================================== */}
+          {/* CORRIDOR-GUIDED EGRESS ROUTE (SMOOTH HALLWAY NAVIGATION) */}
+          {/* ======================================================== */}
+          {showEgressPath && (
+            <g>
+              {/* Illuminated path glow */}
+              <polyline
+                points={pathWaypoints}
+                fill="none"
+                stroke="#A7F3D0"
+                strokeWidth="7"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                opacity="0.6"
+              />
+              {/* Active path dashed */}
+              <polyline
+                points={pathWaypoints}
+                fill="none"
+                stroke="#059669"
+                strokeWidth="3.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeDasharray="8 6"
+              />
+
+              {/* User Position Beacon */}
+              <g transform={`translate(${userPin.x}, ${userPin.y})`}>
+                <circle r="14" fill="#0284C7" opacity="0.25" className="animate-ping" />
+                <circle r="7" fill="#005DAA" stroke="#FFFFFF" strokeWidth="2.5" />
+                {/* Pin callout card */}
+                <rect x="-65" y="-28" width="130" height="18" rx="4" fill="#0F2537" />
+                <polygon points="-4,-10 4,-10 0,-6" fill="#0F2537" />
+                <text x="0" y="-16" textAnchor="middle" fill="#FFFFFF" fontSize="7.5" fontWeight="bold">
+                  📍 YOUR LOCATION
+                </text>
+              </g>
+            </g>
+          )}
+
+          {/* Architectural North Arrow & Stamp */}
+          <g transform="translate(740, 52)">
+            <circle cx="12" cy="12" r="11" fill="#FFFFFF" stroke="#CBD5E1" strokeWidth="1" />
+            <text x="12" y="16" textAnchor="middle" fill="#003B70" fontSize="9" fontWeight="900">N ▲</text>
+          </g>
+        </svg>
+      </div>
+
+      {/* Bottom Route Guidance Bar */}
+      <div className="mt-2.5 pt-2 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 text-xs">
+        <div className="flex items-center gap-1.5 font-bold text-slate-800">
+          <Navigation className="w-4 h-4 text-emerald-600 shrink-0" />
+          <span>Assigned Egress:</span>
+          <span className="text-emerald-700 font-extrabold">
+            {isStairA ? "STAIRWELL A (East Core)" : "STAIRWELL B (West Core)"}
+          </span>
+          <span className="text-slate-500 font-normal hidden sm:inline">
+            → Follow green illuminated corridor route to ground exit
+          </span>
         </div>
 
-        <div className="text-[11px] font-mono text-[#005DAA] font-bold">
-          DO NOT USE ELEVATORS (BANKS A-G DISABLED DURING ALARM)
+        <div className="text-[11px] font-bold text-rose-700 bg-rose-50 px-2.5 py-1 rounded-md border border-rose-200">
+          DO NOT USE ELEVATORS · RECALLED DURING ALARM
         </div>
       </div>
     </div>
