@@ -40,10 +40,10 @@ export const EmergencyRescueProcedureModal: React.FC<EmergencyRescueProcedureMod
   if (!isOpen || !occupant) return null;
 
   const quadrantLabels: Record<QuadrantId, string> = {
-    NW: "NW · Strategic Planning (07-800)",
-    NE: "NE · Gas Operations & Security (07-200)",
-    SW: "SW · AMI & Ombudsman (07-700)",
-    SE: "SE · Steam Operations (07-500)",
+    NW: "NW · Strategic Planning",
+    NE: "NE · Gas Operations & Security",
+    SW: "SW · AMI & Ombudsman",
+    SE: "SE · Steam Operations",
   };
 
   const sectorTitle = quadrantLabels[occupant.quadrant] || `Sector ${occupant.quadrant}`;

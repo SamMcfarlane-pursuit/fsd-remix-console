@@ -236,7 +236,7 @@ export const ActualBuildingFloorMap: React.FC<ActualBuildingFloorMapProps> = ({
           {/* ======================================================== */}
           {/* FOUR PRIMARY QUADRANT SECTORS (NO OCCUPANT NAMES)        */}
           {/* ======================================================== */}
-          {/* Sector NW: Strategic Planning (07-800) */}
+          {/* Sector NW: Strategic Planning */}
           <g
             onClick={() => onSelectQuadrant?.("NW")}
             className={onSelectQuadrant ? "cursor-pointer transition hover:opacity-85" : ""}
@@ -252,10 +252,10 @@ export const ActualBuildingFloorMap: React.FC<ActualBuildingFloorMapProps> = ({
               strokeWidth={isTargetNW ? "2" : "1"}
             />
             <text x="88" y="60" fill="#0F2537" fontSize="9" fontWeight="800">
-              SECTOR NW · Strategic Planning (07-800)
+              SECTOR NW · Strategic Planning
             </text>
             <text x="88" y="74" fill="#64748B" fontSize="7.5" fontWeight="500">
-              Workstation Pods 07-801 to 07-841 · Conf Rm A
+              Planning &amp; Engineering Workstations · Conf Rm A
             </text>
             {quadrantCounts?.NW !== undefined && (
               <g transform="translate(230, 84)">
@@ -267,7 +267,7 @@ export const ActualBuildingFloorMap: React.FC<ActualBuildingFloorMapProps> = ({
             )}
           </g>
 
-          {/* Sector NE: Gas Operations & Investigations (07-200) */}
+          {/* Sector NE: Gas Operations & Investigations */}
           <g
             onClick={() => onSelectQuadrant?.("NE")}
             className={onSelectQuadrant ? "cursor-pointer transition hover:opacity-85" : ""}
@@ -283,10 +283,10 @@ export const ActualBuildingFloorMap: React.FC<ActualBuildingFloorMapProps> = ({
               strokeWidth={isTargetNE ? "2" : "1"}
             />
             <text x="552" y="60" fill="#0F2537" fontSize="9" fontWeight="800">
-              SECTOR NE · Gas Operations (07-200)
+              SECTOR NE · Gas Operations
             </text>
             <text x="552" y="74" fill="#64748B" fontSize="7.5" fontWeight="500">
-              Control Center · PSC Supply · Conf Rm 07-240
+              Gas Control Center · Operations Monitoring
             </text>
             {quadrantCounts?.NE !== undefined && (
               <g transform="translate(694, 84)">
@@ -298,7 +298,7 @@ export const ActualBuildingFloorMap: React.FC<ActualBuildingFloorMapProps> = ({
             )}
           </g>
 
-          {/* Sector SW: AMI & Ombudsman (07-700) */}
+          {/* Sector SW: AMI & Ombudsman */}
           <g
             onClick={() => onSelectQuadrant?.("SW")}
             className={onSelectQuadrant ? "cursor-pointer transition hover:opacity-85" : ""}
@@ -314,10 +314,10 @@ export const ActualBuildingFloorMap: React.FC<ActualBuildingFloorMapProps> = ({
               strokeWidth={isTargetSW ? "2" : "1"}
             />
             <text x="88" y="322" fill="#0F2537" fontSize="9" fontWeight="800">
-              SECTOR SW · AMI &amp; Ombudsman (07-700)
+              SECTOR SW · AMI &amp; Ombudsman
             </text>
             <text x="88" y="336" fill="#64748B" fontSize="7.5" fontWeight="500">
-              Team Rooms A-D · Implementation Area
+              Smart Meter Operations · Support Bays
             </text>
             {quadrantCounts?.SW !== undefined && (
               <g transform="translate(230, 344)">
@@ -329,7 +329,7 @@ export const ActualBuildingFloorMap: React.FC<ActualBuildingFloorMapProps> = ({
             )}
           </g>
 
-          {/* Sector SE: Steam Operations & Bulk Power (07-500) */}
+          {/* Sector SE: Steam Operations & Bulk Power */}
           <g
             onClick={() => onSelectQuadrant?.("SE")}
             className={onSelectQuadrant ? "cursor-pointer transition hover:opacity-85" : ""}
@@ -345,10 +345,10 @@ export const ActualBuildingFloorMap: React.FC<ActualBuildingFloorMapProps> = ({
               strokeWidth={isTargetSE ? "2" : "1"}
             />
             <text x="552" y="322" fill="#0F2537" fontSize="9" fontWeight="800">
-              SECTOR SE · Steam Operations (07-500)
+              SECTOR SE · Steam Operations
             </text>
             <text x="552" y="336" fill="#64748B" fontSize="7.5" fontWeight="500">
-              Steam Ops Control Rm · Desks 07-501 to 07-595
+              Steam Operations &amp; Bulk Power Workstations
             </text>
             {quadrantCounts?.SE !== undefined && (
               <g transform="translate(694, 344)">

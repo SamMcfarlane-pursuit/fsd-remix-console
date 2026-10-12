@@ -546,11 +546,11 @@ export const Step2SignedIn: React.FC<Step2SignedInProps> = ({
                             <span>{occ.id}</span>
                             <span>·</span>
                             {occ.phone ? (
-                              <span className="text-[#005DAA] font-bold">
-                                📞 {occ.phone}
+                              <span className="text-[#005DAA] font-semibold" title="Phone number protected — click Safety Action to dial directly">
+                                📞 {occ.phone.replace(/(\(\d{3}\)\s*)\d{3}-(\d{2})(\d{2})/, "$1•••-••$3")}
                               </span>
                             ) : (
-                              <span>(212) 555-0199</span>
+                              <span>📞 Enrolled Mobile</span>
                             )}
                           </div>
                         </button>

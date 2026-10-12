@@ -14,10 +14,10 @@ import { requestScreenWakeLock, releaseScreenWakeLock } from "../lib/haptics";
 
 const QUADRANT_IDS: QuadrantId[] = ["NW", "NE", "SW", "SE"];
 const QUADRANT_LABELS: Record<QuadrantId, string> = {
-  NW: "NW · Strategic Planning (07-800)",
-  NE: "NE · Gas Ops & Security (07-200/270)",
-  SW: "SW · AMI & Ombudsman (07-700)",
-  SE: "SE · Steam Operations (07-500/550)",
+  NW: "NW · Strategic Planning",
+  NE: "NE · Gas Operations & Security",
+  SW: "SW · AMI & Ombudsman",
+  SE: "SE · Steam Operations",
 };
 
 const LOADING_TIMEOUT_MS = 10_000;

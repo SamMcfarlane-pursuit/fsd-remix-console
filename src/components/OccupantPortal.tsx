@@ -2552,10 +2552,10 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
                   onChange={(e) => setSignQuad(e.target.value as QuadrantId)}
                   className="w-full min-h-[44px] rounded-xl border border-[#B8D8F8] bg-[#F0F6FC] px-3.5 py-2 text-xs font-bold text-[#0F2537] focus:outline-none focus:border-[#005DAA]"
                 >
-                  <option value="NW">NW · 800 Strategic Planning</option>
-                  <option value="NE">NE · 500 Corp Security / Gas Ops</option>
-                  <option value="SW">SW · 700 AMI / Steam West</option>
-                  <option value="SE">SE · M Operations / Steam Ops (07-550)</option>
+                  <option value="NW">NW · Strategic Planning</option>
+                  <option value="NE">NE · Gas Operations & Security</option>
+                  <option value="SW">SW · AMI & Ombudsman</option>
+                  <option value="SE">SE · Steam Operations</option>
                 </select>
               </div>
 

@@ -730,7 +730,7 @@ export const Step5AllSafe: React.FC<Step5AllSafeProps> = ({
                               title={`Direct dial ${occ.name}`}
                             >
                               <span>📞</span>
-                              <span>{occ.phone}</span>
+                              <span>{occ.phone.replace(/(\(\d{3}\)\s*)\d{3}-(\d{2})(\d{2})/, "$1•••-••$3")}</span>
                             </a>
                           </>
                         )}

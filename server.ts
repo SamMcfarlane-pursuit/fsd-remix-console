@@ -113,51 +113,47 @@ let latestWalkieTalkieBroadcast: {
 let latestEmergencyAlert: EmergencyAlertPayload | null = null;
 
 const NAMES = [
-  "Fahmida Ali", "Eric Malone", "John Catuogno", "Pak Lai", "Robert Oates", "Michael Kohlhaas",
-  "Jhommy Valdez", "Kevin Torres", "Olika Vazquez", "Menaha Gujavarthi", "Jordan Ruggieri", "Abina Wood",
-  "Michael Mangialino", "Marc Leshnower", "Cheikh Webster Lo", "Nicholas Minkiewicz", "Robert Brown",
-  "Kendall Thompson", "Farhan Molla", "George Vazquez", "Vladimir Shapiro", "Steven DePaola", "Michael Santos",
-  "Peter Neddie Limprevil", "Feliciano", "Sarah Murphy", "Ambrogio Sabella", "Michael Bell", "Raphael Knopfler",
-  "Joseph McGowan", "Balanarsimha Meda", "Pablo Mendez", "Charles Viemeister", "Mohsen Shaaker", "Arifa Baksh",
-  "Thao Tran", "Venkata Bala Inuganti", "Naresh Murki", "Ryan Gleeson", "Alexia Reno", "Travis Fonseca",
-  "Philip Distefano", "Steve Ko", "Samuel Burney", "Michael Sclafani", "Shane Son", "Connor Stewart",
-  "Dwayne Grainger", "Dudley Brutus", "Mehak Singh", "Jagan mohan Naredla", "Shadeyka Warren", "Bhone Myint Thu",
-  "Linnea Paton", "Brandon Evans", "Stephanie Lam", "Vincent Romano", "Mark Duggan", "Destiny Rodriguez",
-  "Michelle Richards", "Edward Fernandez Abreu", "Cecily Almonte", "Christopher Ngo", "Franken Mercurius",
-  "Eric Sharrin", "Gerald Nyante", "Sergio Bolanos", "Walter Grosenheider", "John Masiello", "Joanna Yager",
-  "Arturo Claudio", "Nicholas Boshears", "Jon Johnson", "Narender Kumar", "Joseph McLain", "Matthew Begley",
-  "Jamie Kusky", "Cecilia Lee", "Michael Hines", "Jillian Weeks", "Joseph Paskewicz", "Robert Rodriguez",
-  "Olivia Delgado", "Eli Zami", "Edwin Torres", "Kevin Cronin", "Jason Attard", "Vasudeva Koneru",
-  "Efrain Davila", "Daneya Hemans", "Damian Bossio", "Thomas Black", "Jan van Daatselaar", "Brendan Getzler",
-  "Thu Tra Pham", "Jane Shin", "John Rella", "Richard Citrola Jr.", "Thyagarajan Saravanan", "Stephen Somma",
-  "Christine Cummings", "Vincent Tong", "Hanssel Hinojosa", "Mary Young-Sotto", "Nabil Almontaser", "Bryan Torres",
-  "George Toskos", "James Vance", "Madhusudan Reddy", "Hasanuzzaman Rahman", "Christopher Gallo", "Elvimar Rivas",
-  "Chinenye Ihe", "Dennis Arthurs", "Mei Poon", "Casey Eugenio", "Jonathan Judice", "Maura Yates",
-  "Sheldon Gofter", "Adam Polanco", "Barry Goodman", "Sebastian Leon", "Hemant Jaipal", "Diana Ramkissoon",
-  "Pooja Dahiya", "Darren Brindisi", "Huairu Xu", "Michael Boadu", "Suvarna Sherikar", "Miles Weinstein",
-  "Noah Naples", "Joseph Mejia", "Joseph Reda", "Aidan Sabert", "Peter Gallo", "Vladislav Nechayev",
-  "Deborah Cuevas Cherry", "George Nagy", "Vjay Shukla", "Shuchita Prakash", "Laikhram Puran", "Nicholas Mannarino",
-  "Jennifer Urbano", "Jena Hobbs", "Antonio Diaz", "Karen Haywood", "Artem Dilanyan", "Ajifa Aruwa",
-  "Muhammad Habib", "Gerardo Janampa", "Tracy Ann Lombardo", "Iris Rivera", "Abby Heilemann", "Dawn Flynn",
-  "Jeyliz Gonzalez", "Jason Prue", "Abbas Tatari", "Marina Ispolova", "Michael Logan", "Damien Webster",
-  "Eugene Finas", "Jose Rojas", "May Ruan", "Shameeka Williams", "Grisel Garcia", "Antoya Debarros",
-  "Yaw Asante", "David Revie", "Christina Ho", "Amy Haag", "Nelson Yip", "Joe White", "Rodrigo Davila",
-  "Adelson Jules", "Jaimie Rong", "David Distant", "Pamela McClary", "Luis Dominguez", "Gabriel Stout"
+  "Alex Mercer", "Jordan Hayes", "Morgan Vance", "Taylor Reed", "Casey Morgan", "Cameron Bell",
+  "Jamie Ellis", "Samira Khan", "Elena Rostova", "Marcus Thorne", "David Kim", "Priya Patel",
+  "Carlos Rivera", "Lucas Silva", "Aisha Johnson", "Liam O'Connor", "Maya Lin", "Devon Brooks",
+  "Nadia Mansoor", "Julian Bennett", "Chloe Dupont", "Zachary Taylor", "Riley Cooper", "Quinn Harper",
+  "Harper Lee", "Avery Clark", "Kendall Vance", "Logan Rhodes", "Siobhan Kelly", "Roman Price",
+  "Thomas Wright", "Gregory Chase", "Frank Gallagher", "Carl Henderson", "Geralyn Shaw", "Colin Stuart",
+  "Caroline Novak", "Stewart Hughes", "Rachel Foster", "Hugh Miller", "Simon Adler", "Hannah Abbott",
+  "Benjamin Scott", "Victoria Chang", "Aaron Mitchell", "Brooke Sullivan", "Caleb Ross", "Delilah Ward",
+  "Ethan Powell", "Fiona Gallagher", "Gabriel Stone", "Hazel Green", "Isaac Newton", "Jessica Day",
+  "Kieran Culkin", "Laura Palmer", "Miles Morales", "Naomi Nagata", "Oliver Queen", "Penelope Cruz",
+  "Quentin Tarantino", "Rebecca Welton", "Sean MacGuire", "Tessa Thompson", "Umar Khalid", "Valerie Gomez",
+  "Wyatt Russell", "Xavier Woods", "Yasmin Levy", "Zane Malik", "Arthur Dent", "Beatrice Prior",
+  "Calvin Harris", "Danielle Brooks", "Eli Gold", "Fatima Zahra", "Geoffrey Rush", "Hailey Baldwin",
+  "Ian Malcolm", "Jasmine Tookes", "Kevin Bacon", "Leah Clearwater", "Mason Mount", "Nina Dobrev",
+  "Oscar Isaac", "Piper Chapman", "Quincy Jones", "Rosa Diaz", "Seth Rollins", "Talia al Ghul",
+  "Uriah Heep", "Vince Carter", "Wanda Maximoff", "Xander Harris", "Yvonne Strahovski", "Zachary Levi",
+  "Adrian Brody", "Brianna Hildebrand", "Cedric Diggory", "Dana Scully", "Elliot Alderson", "Felicity Smoak",
+  "Gideon Prewett", "Holly Golightly", "Isaiah Bradley", "Jocelyn Fray", "Kofi Kingston", "Leslie Knope",
+  "Milo Ventimiglia", "Nora Valkyrie", "Owen Grady", "Paige Matthews", "Ray Palmer", "Sara Lance",
+  "Tyler Hoechlin", "Uma Thurman", "Victor Stone", "Wendy Darling", "Xena Warrior", "Yara Greyjoy",
+  "Zoe Saldana", "Austin Butler", "Bianca Belair", "Connor Hawke", "Daisy Johnson", "Ezra Miller",
+  "Farah Fawcett", "Gwen Stacy", "Holden Caulfield", "Iris West", "Jason Todd", "Kara Danvers",
+  "Luke Cage", "Mindy Kaling", "Nico Minoru", "Otis Milburn", "Peggy Carter", "Reggie Mantle",
+  "Summer Quinn", "Tobias Whale", "Ursula Buffay", "Vernon Dursley", "Wade Wilson", "Xiomara Villanueva",
+  "Yusuf Khan", "Zelda Spellman", "Adam Driver", "Bella Swan", "Cole Sprouse", "Diana Prince",
+  "Enzo Amore", "Finnick Odair", "Giselle Yashar", "Hank Pym", "Ivy Pepper", "Jonah Hill"
 ];
 
 const QUADRANT_IDS: QuadrantId[] = ["NW", "NE", "SW", "SE"];
 const QUADRANT_LABELS: Record<QuadrantId, string> = {
-  NW: "NW · Strategic Planning (07-800)",
-  NE: "NE · Gas Ops & Security (07-200/270)",
-  SW: "SW · AMI & Ombudsman (07-700)",
-  SE: "SE · Steam Operations (07-500/550)",
+  NW: "NW · Strategic Planning",
+  NE: "NE · Gas Operations & Security",
+  SW: "SW · AMI & Ombudsman",
+  SE: "SE · Steam Operations",
 };
 
 const QUADRANT_DESK_PREFIXES: Record<QuadrantId, string[]> = {
-  NW: ["07-800", "07-800c", "07-801a", "07-810", "07-815", "07-828", "07-830", "07-840", "07-100", "07-105", "07-112", "VP-StratPlan"],
-  NE: ["07-200", "07-220", "07-240", "07-270", "07-280", "07-280b", "07-201", "07-200a", "07-223", "07-231"],
-  SW: ["07-700", "07-710S", "07-702-A", "07-708-B", "07-709-C", "07-740-D", "07-720", "07-730", "07-745", "07-Facilities"],
-  SE: ["07-500", "07-520", "07-550", "07-574", "07-580", "07-SteamCtrl", "VP-SteamOps", "07-560", "07-565", "07-590"],
+  NW: ["NW-Desk", "NW-Bay", "NW-Station", "NW-Pod"],
+  NE: ["NE-Desk", "NE-Bay", "NE-Station", "NE-Pod"],
+  SW: ["SW-Desk", "SW-Bay", "SW-Station", "SW-Pod"],
+  SE: ["SE-Desk", "SE-Bay", "SE-Station", "SE-Pod"],
 };
 
 function generateInitialRoster(targetCount: number = 195): Occupant[] {
@@ -189,7 +185,7 @@ function generateInitialRoster(targetCount: number = 195): Occupant[] {
       if (id === "OCC-102") {
         name = "Samuel McFarlane";
         role = "Employee";
-        desk = "07-700-A1";
+        desk = "NW-Desk-A2";
         phone = "(212) 555-0196";
       } else {
         if (i % 7 === 0) role = "Contractor";
@@ -1449,7 +1445,7 @@ app.post("/api/checkin/:token", async (req, res) => {
         badgedOut: isLeaving,
         offSiteToday: isLeaving,
         unaccountedMinutes: 0,
-        desk: `07-${assignedQuad}-Workstation`,
+        desk: `${assignedQuad}-Workstation`,
         locationCategory: isLeaving ? "offsite" : "inside-building",
         lastLocation: isLeaving ? "Off-Site / Exited Building" : `Floor 07 (${assignedQuad})`,
         lastBadgeTime: checkedInAt,
@@ -2271,7 +2267,7 @@ app.post("/api/occupant/sign-in-register", (req, res) => {
       badgedOut: isLeaving,
       offSiteToday: isLeaving,
       unaccountedMinutes: 0,
-      desk: desk || `07-${assignedQuad}-Workstation`,
+      desk: desk || `${assignedQuad}-Workstation`,
       locationCategory: isLeaving ? "offsite" : "inside-building",
       lastLocation: isLeaving ? "Off-Site / Exited Building" : `Floor 07 (${assignedQuad})`,
       lastBadgeTime: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
