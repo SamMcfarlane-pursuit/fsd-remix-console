@@ -1,5 +1,26 @@
 [
   {
+    "id": "OCC-296",
+    "name": "Sarah Connor",
+    "phone": "(212) 555-9090",
+    "company": "Con Edison",
+    "quadrant": "NW",
+    "status": "safe",
+    "role": "Employee",
+    "badgedOut": false,
+    "offSiteToday": false,
+    "unaccountedMinutes": 0,
+    "desk": "NW-Workstation",
+    "locationCategory": "inside-building",
+    "lastLocation": "NW-Workstation (NW)",
+    "lastBadgeTime": "07:43 PM",
+    "notes": "Registered via QR Code Sign-In (Phone: (212) 555-9090)",
+    "checkInMethod": "qr-code-self-signin",
+    "xCoord": 20,
+    "yCoord": 14,
+    "likelyMia": false
+  },
+  {
     "id": "OCC-101",
     "name": "Gideon Prewett",
     "phone": "(212) 555-0110",

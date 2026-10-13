@@ -41,29 +41,38 @@ export function setLiveTunnelUrl(url: string | null | undefined): void {
 export function getMobileNetworkOrigin(): string {
   if (typeof window !== "undefined") {
     let custom = localStorage.getItem("muster_custom_network_origin");
-    // Purge deprecated localtunnel URLs that caused the "Friendly Reminder / You are about to visit" interstitial
+    // Purge deprecated localtunnel URLs that caused interstitials
     if (custom && custom.includes("loca.lt")) {
       localStorage.removeItem("muster_custom_network_origin");
       custom = null;
     }
     if (custom) return custom;
-
-    const winOrigin = window.location.origin;
-    if (!winOrigin.includes("localhost") && !winOrigin.includes("127.0.0.1") && !winOrigin.includes("loca.lt")) {
-      return winOrigin;
-    }
   }
 
-  if (cachedMobileOrigin && !cachedMobileOrigin.includes("loca.lt")) return cachedMobileOrigin;
+  // 1. Prioritize active, verified tunnel or custom service URL pushed by the backend
+  if (cachedMobileOrigin && !cachedMobileOrigin.includes("loca.lt")) {
+    return cachedMobileOrigin;
+  }
 
+  // 2. If browser is currently on a legitimate production custom domain (not localhost, not stale trycloudflare)
   if (typeof window !== "undefined") {
+    const winOrigin = window.location.origin;
+    if (
+      !winOrigin.includes("localhost") &&
+      !winOrigin.includes("127.0.0.1") &&
+      !winOrigin.includes("loca.lt") &&
+      !winOrigin.includes("trycloudflare.com")
+    ) {
+      return winOrigin;
+    }
+
     let stored = localStorage.getItem("muster_mobile_network_origin");
     if (stored && stored.includes("loca.lt")) {
       localStorage.removeItem("muster_mobile_network_origin");
       stored = null;
     }
     if (stored) return stored;
-    return window.location.origin;
+    return winOrigin;
   }
   return "http://localhost:3000";
 }
@@ -148,7 +157,7 @@ export async function startPublicTunnel(force: boolean = false): Promise<{ ok: b
     });
     const data = await res.json();
     if (data.ok && data.url) {
-      setCustomMobileOrigin(data.url);
+      setLiveTunnelUrl(data.url);
     }
     return data;
   } catch (err: any) {

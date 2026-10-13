@@ -228,26 +228,31 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
       if (typeof window !== "undefined") {
         const params = new URLSearchParams(window.location.search);
 
-        // Force new sign-in flow if explicitly requested via query param
-        const isForceNew =
+        const hasExplicitId = Boolean(
+          params.get("id") || params.get("badge") || params.get("user") || params.get("occupantId")
+        );
+
+        // Force new sign-in sheet if explicitly requested via query param or QR scan
+        const isSignInScan =
+          params.get("mode") === "signin" ||
+          params.get("scan") === "1" ||
+          params.get("scan") === "signin" ||
           params.get("force_new") === "1" ||
           params.get("register") === "1" ||
           params.get("new") === "1";
 
-        if (isForceNew) {
+        // When scanning entrance QR code without a specific occupant's badge ID,
+        // ALWAYS route to the Sign-In Sheet so anyone can sign in immediately
+        if (isSignInScan && !hasExplicitId) {
           return "newcomer-signin";
         }
 
-        const hasExplicitId = Boolean(
-          params.get("id") || params.get("badge") || params.get("user") || params.get("occupantId")
-        );
         const stored =
           localStorage.getItem("muster_registered_occupant_id") ||
           localStorage.getItem("muster_occupant_id");
 
-        // If returning user (either URL specified occupant ID or pass stored in phone's localStorage)
-        // -> Directly route to confirmed pass, emergency evacuation procedure & stairwell map!
-        if (hasExplicitId || stored) {
+        // If returning user with specific badge link or viewing stored pass
+        if (hasExplicitId || (stored && !isSignInScan)) {
           return "confirmed";
         }
 
@@ -2705,18 +2710,40 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
       {/* ========================================================= */}
       {viewState === "newcomer-signin" && (
         <div className="bg-white border-2 border-[#005DAA] rounded-2xl p-5 sm:p-7 shadow-md space-y-5">
-          {/* Quick Switch to Active Pass if Returning User */}
+          {/* Quick Switch to Active Pass or 1-Tap Check-In for Returning User */}
           {savedOccupantId && (
-            <div className="flex items-center justify-between bg-emerald-50 border border-emerald-300 p-2.5 rounded-xl text-xs">
-              <span className="text-emerald-950 font-bold">
-                Already registered on this device?
-              </span>
+            <div className="bg-emerald-50 border-2 border-emerald-400 p-3.5 rounded-xl space-y-2.5 text-xs animate-fadeIn">
+              <div className="flex items-center justify-between gap-2">
+                <div>
+                  <span className="font-mono text-[10px] text-emerald-800 font-bold uppercase tracking-wider block">
+                    ✓ Recognized Device
+                  </span>
+                  <span className="text-sm font-black text-emerald-950">
+                    Welcome back, {localRegisteredOccupant?.name || (occupants.find((o) => o.id === savedOccupantId)?.name) || "Personnel"}!
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setViewState("confirmed")}
+                  className="px-2.5 py-1 bg-white hover:bg-emerald-100 text-emerald-800 border border-emerald-300 font-bold rounded-lg text-xs transition cursor-pointer shadow-xs shrink-0"
+                >
+                  🏷️ View Pass →
+                </button>
+              </div>
               <button
                 type="button"
-                onClick={() => setViewState("confirmed")}
-                className="px-3 py-1 bg-emerald-700 hover:bg-emerald-800 text-white font-black rounded-lg text-xs transition cursor-pointer shrink-0 shadow-xs"
+                onClick={async () => {
+                  const matched = occupants.find((o) => o.id === savedOccupantId) || localRegisteredOccupant;
+                  if (matched) {
+                    await handleDirectSignInExisting(matched);
+                  } else {
+                    setViewState("confirmed");
+                  }
+                }}
+                className="w-full py-2 px-3 bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-lg text-xs uppercase tracking-wider transition cursor-pointer shadow-sm flex items-center justify-center gap-1.5 active:scale-98"
               >
-                🏷️ View My Digital Pass →
+                <span>⚡</span>
+                <span>1-Tap Check In As {localRegisteredOccupant?.name?.split(" ")[0] || "Myself"}</span>
               </button>
             </div>
           )}

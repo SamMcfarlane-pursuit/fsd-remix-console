@@ -14,13 +14,25 @@ import {
   ShieldAlert,
   KeyRound,
   ExternalLink,
+  Edit3,
+  Globe,
+  Wifi,
+  Signal,
+  RotateCcw,
+  Sparkles,
 } from "lucide-react";
 import { AuthUser, QuadrantId } from "../types";
 import { SignInQRPosterModal } from "./SignInQRPosterModal";
 import { authenticateWithBiometrics } from "../lib/biometrics";
 import { createOfflineOccupant, queueOfflineAction } from "../lib/offlineQueue";
 import QRCode from "qrcode";
-import { discoverMobileOrigin, getMobileNetworkOrigin } from "../lib/qr";
+import {
+  discoverMobileOrigin,
+  getMobileNetworkOrigin,
+  setCustomMobileOrigin,
+  startPublicTunnel,
+  stopPublicTunnel,
+} from "../lib/qr";
 
 interface LoginScreenProps {
   onLoginSuccess: (user: AuthUser) => void;
@@ -83,31 +95,127 @@ export default function LoginScreen({
   const [lanIp, setLanIp] = useState<string>("192.168.1.167");
   const [networkMode, setNetworkMode] = useState<"cellular" | "lan">("cellular");
   const [isCopied, setIsCopied] = useState<boolean>(false);
+  const [isRefreshingTunnel, setIsRefreshingTunnel] = useState<boolean>(false);
+  const [isCustomUrlOpen, setIsCustomUrlOpen] = useState<boolean>(false);
+  const [customUrlInput, setCustomUrlInput] = useState<string>("");
+  const [gatewayStatus, setGatewayStatus] = useState<{
+    verified: boolean;
+    latencyMs?: number;
+    checking: boolean;
+    error?: string;
+  }>({ verified: false, checking: true });
+
+  const handleVerifyGateway = async () => {
+    try {
+      setGatewayStatus((prev) => ({ ...prev, checking: true }));
+      const res = await fetch(`/api/system/tunnel/verify?t=${Date.now()}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.ok && data.active) {
+          setGatewayStatus({ verified: true, latencyMs: data.latencyMs, checking: false });
+          if (data.url && !activeNetworkOrigin.includes(data.url) && !activeNetworkOrigin.includes("coned.com")) {
+            setActiveNetworkOrigin(data.url);
+          }
+          return;
+        }
+      }
+      setGatewayStatus({ verified: false, checking: false, error: "Unreachable" });
+    } catch (err: any) {
+      setGatewayStatus({ verified: false, checking: false, error: err.message });
+    }
+  };
+
+  const handleRefreshTunnel = async () => {
+    setIsRefreshingTunnel(true);
+    try {
+      const res = await startPublicTunnel(true);
+      if (res.ok && res.url) {
+        setActiveNetworkOrigin(res.url);
+        setNetworkMode("cellular");
+        await handleVerifyGateway();
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsRefreshingTunnel(false);
+    }
+  };
+
+  const handleSaveCustomOrigin = (rawUrl?: string) => {
+    const raw = rawUrl || customUrlInput;
+    let clean = raw.trim();
+    if (clean) {
+      if (!clean.startsWith("http://") && !clean.startsWith("https://")) {
+        clean = `https://${clean}`;
+      }
+      clean = clean.replace(/\/+$/, "");
+      setCustomMobileOrigin(clean);
+      setActiveNetworkOrigin(clean);
+      setCustomUrlInput(clean);
+    }
+    setIsCustomUrlOpen(false);
+  };
+
+  const handleResetToDynamicTunnel = async () => {
+    setCustomMobileOrigin("");
+    setIsCustomUrlOpen(false);
+    const discovered = await discoverMobileOrigin();
+    setActiveNetworkOrigin(discovered);
+    await handleVerifyGateway();
+  };
 
   useEffect(() => {
+    let sse: EventSource | null = null;
+    try {
+      sse = new EventSource("/api/sse");
+      sse.onmessage = (event) => {
+        try {
+          const snapshot = JSON.parse(event.data);
+          if (snapshot.effectiveOrigin) {
+            setActiveNetworkOrigin(snapshot.effectiveOrigin);
+          } else if (snapshot.publicTunnelUrl) {
+            setActiveNetworkOrigin(snapshot.publicTunnelUrl);
+          }
+          if (snapshot.lanIps && snapshot.lanIps.length > 0) {
+            setLanIp(snapshot.lanIps[0]);
+          }
+        } catch {}
+      };
+    } catch {}
+
     discoverMobileOrigin().then((origin) => {
       setActiveNetworkOrigin(origin);
       if (origin.includes(".trycloudflare.com")) {
         setNetworkMode("cellular");
       }
+      handleVerifyGateway();
     });
 
     fetch("/api/system/network-info")
       .then((res) => res.json())
       .then((data) => {
         if (data.primaryIp) setLanIp(data.primaryIp);
-        if (data.publicTunnelUrl) {
-          setActiveNetworkOrigin(data.publicTunnelUrl);
+        const originToUse = data.customServiceOrigin || data.effectiveOrigin || data.publicTunnelUrl;
+        if (originToUse) {
+          setActiveNetworkOrigin(originToUse);
           setNetworkMode("cellular");
         }
       })
       .catch(() => {});
 
+    // Periodic active gateway probe every 15 seconds
+    const interval = setInterval(() => {
+      handleVerifyGateway();
+    }, 15000);
+
     const handleOriginChange = () => {
       setActiveNetworkOrigin(getMobileNetworkOrigin());
     };
     window.addEventListener("muster-origin-changed", handleOriginChange);
+
     return () => {
+      if (sse) sse.close();
+      clearInterval(interval);
       window.removeEventListener("muster-origin-changed", handleOriginChange);
     };
   }, []);
@@ -642,11 +750,142 @@ export default function LoginScreen({
                   </div>
                 </div>
 
-                {/* Scannable Website URL Link Bar */}
-                <div className="space-y-1">
-                  <div className="text-[10px] font-mono text-slate-400 font-bold uppercase tracking-wider">
-                    Scannable Website URL:
+                {/* Scannable Website URL Link Bar & Gateway Health Controls */}
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between gap-1 text-[10px]">
+                    <div className="flex items-center gap-1.5 font-bold">
+                      <span
+                        className={`w-2 h-2 rounded-full ${
+                          gatewayStatus.checking
+                            ? "bg-amber-400 animate-pulse"
+                            : gatewayStatus.verified
+                            ? "bg-emerald-400 animate-pulse"
+                            : "bg-rose-400"
+                        }`}
+                      />
+                      <span
+                        className={
+                          gatewayStatus.verified
+                            ? "text-emerald-400"
+                            : gatewayStatus.checking
+                            ? "text-amber-400"
+                            : "text-rose-400"
+                        }
+                      >
+                        {gatewayStatus.checking
+                          ? "Probing Gateway..."
+                          : gatewayStatus.verified
+                          ? `5G Live · Verified (${gatewayStatus.latencyMs ?? 20}ms)`
+                          : "Gateway Reconnecting"}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={handleRefreshTunnel}
+                        disabled={isRefreshingTunnel}
+                        className="px-2 py-0.5 bg-[#1E3A60] hover:bg-[#005DAA] text-sky-200 rounded text-[10px] font-bold transition flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                        title="Force rotate to a fresh, active Cloudflare 5G tunnel"
+                      >
+                        <RefreshCw className={`w-2.5 h-2.5 ${isRefreshingTunnel ? "animate-spin" : ""}`} />
+                        <span>Refresh</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setIsCustomUrlOpen(!isCustomUrlOpen)}
+                        className={`px-2 py-0.5 rounded text-[10px] font-bold transition flex items-center gap-1 cursor-pointer ${
+                          isCustomUrlOpen
+                            ? "bg-sky-500 text-white"
+                            : "bg-[#1E3A60] hover:bg-[#005DAA] text-sky-200"
+                        }`}
+                        title="Configure a memorable or custom relatable service URL"
+                      >
+                        <Edit3 className="w-2.5 h-2.5" />
+                        <span>Service Name</span>
+                      </button>
+                    </div>
                   </div>
+
+                  {/* Relatable Service Name / Domain Customizer Modal */}
+                  {isCustomUrlOpen && (
+                    <div className="bg-[#060F1E] border border-sky-500/40 rounded-xl p-3 space-y-2.5 text-xs animate-fadeIn">
+                      <div className="flex items-center justify-between border-b border-[#1E3A60] pb-1.5">
+                        <div className="flex items-center gap-1.5 text-sky-300 font-bold">
+                          <Globe className="w-3.5 h-3.5 text-sky-400" />
+                          <span>Relatable Service Name / URL</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setIsCustomUrlOpen(false)}
+                          className="text-slate-400 hover:text-white text-xs font-bold px-1"
+                        >
+                          ✕
+                        </button>
+                      </div>
+
+                      <p className="text-[11px] text-slate-300 leading-tight">
+                        Choose a branded Con Edison service name for the QR code, or paste a custom domain.
+                      </p>
+
+                      {/* Quick Presets */}
+                      <div className="grid grid-cols-2 gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => handleSaveCustomOrigin("https://fsd-signin.coned.com")}
+                          className="py-1.5 px-2 bg-[#0E1E38] hover:bg-[#1E3A60] border border-[#1E3A60] rounded-lg text-left text-[10px] text-sky-200 font-bold transition flex items-center gap-1"
+                        >
+                          <span>🏢</span>
+                          <span className="truncate">fsd-signin.coned.com</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleSaveCustomOrigin("https://safety.coned.com")}
+                          className="py-1.5 px-2 bg-[#0E1E38] hover:bg-[#1E3A60] border border-[#1E3A60] rounded-lg text-left text-[10px] text-sky-200 font-bold transition flex items-center gap-1"
+                        >
+                          <span>🛡️</span>
+                          <span className="truncate">safety.coned.com</span>
+                        </button>
+                      </div>
+
+                      {/* Custom Input */}
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-mono text-slate-400 font-bold uppercase tracking-wider block">
+                          Custom Service Domain / IP:
+                        </label>
+                        <div className="flex items-center gap-1">
+                          <input
+                            type="text"
+                            value={customUrlInput}
+                            onChange={(e) => setCustomUrlInput(e.target.value)}
+                            placeholder="e.g. fsd.internal.coned.com"
+                            className="flex-1 bg-[#030712] border border-[#1E3A60] rounded-lg px-2.5 py-1 text-xs text-white font-mono placeholder:text-slate-600 focus:outline-hidden focus:border-sky-500"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => handleSaveCustomOrigin()}
+                            className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold transition cursor-pointer"
+                          >
+                            Apply
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Reset to Dynamic Tunnel */}
+                      <div className="pt-1 flex items-center justify-between text-[10px]">
+                        <span className="text-slate-400">Revert to auto-generated:</span>
+                        <button
+                          type="button"
+                          onClick={handleResetToDynamicTunnel}
+                          className="text-amber-400 hover:underline font-bold cursor-pointer flex items-center gap-1"
+                        >
+                          <RotateCcw className="w-2.5 h-2.5" />
+                          <span>Reset to Live Gateway</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
                   <div className="flex items-center gap-1.5 bg-[#070D18] p-2 rounded-xl border border-[#1E3A60]">
                     <span className="text-[10px] font-mono text-sky-400 truncate flex-1 select-all" title={targetSignInUrl}>
                       {targetSignInUrl}

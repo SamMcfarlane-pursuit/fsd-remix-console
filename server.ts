@@ -3,6 +3,7 @@ import path from "path";
 import crypto from "crypto";
 import os from "os";
 import fs from "fs";
+import dns from "dns";
 import { spawn } from "child_process";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI, Type } from "@google/genai";
@@ -294,7 +295,12 @@ function loadPersistedServiceConfig(): void {
     if (fs.existsSync(SERVICE_CONFIG_FILE)) {
       const data = JSON.parse(fs.readFileSync(SERVICE_CONFIG_FILE, "utf-8"));
       if (data && data.customOrigin) {
-        customServiceOrigin = data.customOrigin;
+        if (!data.customOrigin.includes("trycloudflare.com")) {
+          customServiceOrigin = data.customOrigin;
+        } else {
+          // Clean up legacy ephemeral trycloudflare URL from persistent config
+          savePersistedServiceConfig({ customOrigin: "" });
+        }
       }
     }
   } catch (err) {
@@ -849,6 +855,8 @@ function getDerivedSnapshot(): StatusSnapshot {
     quadrants,
     occupants: occupantsRoster,
     publicTunnelUrl: activeTunnelUrl || null,
+    customServiceOrigin: customServiceOrigin || null,
+    effectiveOrigin: customServiceOrigin || (activeTunnelChild && activeTunnelUrl ? activeTunnelUrl : null),
     lanIps: getLanIps(),
     ledgerEntries: ledgerChain.slice(-30),
     latestNarrative,
@@ -2018,16 +2026,41 @@ async function restartTunnelGracefully(): Promise<string> {
   }
 }
 
-// Stable Lifecycle Watchdog: Maintains tunnel continuity without killing active connections
+// Active Self-Healing Watchdog: Probes DNS & HTTP reachability to guarantee scannable live gateway
 setInterval(async () => {
-  // Only restart if the process died or activeTunnelUrl is missing
+  // If no process or invalid URL, restart immediately
   const isProcessAlive = activeTunnelChild && !activeTunnelChild.killed && activeTunnelChild.exitCode === null;
   if (!isProcessAlive || !activeTunnelUrl || !activeTunnelUrl.includes("trycloudflare.com")) {
     console.log("Watchdog detected inactive tunnel process. Re-establishing public pathway...");
     restartTunnelGracefully().catch(() => { });
     return;
   }
-}, 30000);
+
+  // Active DNS & HTTP Probe: Test if Cloudflare edge is actively routing and resolving
+  try {
+    const urlObj = new URL(activeTunnelUrl);
+    await new Promise<void>((resolve, reject) => {
+      dns.lookup(urlObj.hostname, (err, address) => {
+        if (err || !address) reject(err || new Error("DNS lookup failed"));
+        else resolve();
+      });
+    });
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 6000);
+    const probeRes = await fetch(`${activeTunnelUrl}/api/system/tunnel/status`, {
+      signal: controller.signal,
+    }).finally(() => clearTimeout(timeout));
+
+    if (!probeRes.ok) {
+      throw new Error(`Probe returned HTTP ${probeRes.status}`);
+    }
+  } catch (probeErr: any) {
+    console.warn(`⚠️ Cloudflare tunnel unreachable (${activeTunnelUrl}): ${probeErr.message}`);
+    console.log("🔄 Self-healing watchdog: Automatically repairing public pathway with fresh gateway...");
+    restartTunnelGracefully().catch(() => { });
+  }
+}, 20000);
 
 app.get("/api/system/tunnel/status", (req, res) => {
   const isHealthyCloudflare = !!activeTunnelChild && !!activeTunnelUrl && activeTunnelUrl.includes("trycloudflare.com");
@@ -2037,6 +2070,39 @@ app.get("/api/system/tunnel/status", (req, res) => {
     url: isHealthyCloudflare ? activeTunnelUrl : null,
     provider: "cloudflare",
   });
+});
+
+app.get("/api/system/tunnel/verify", async (req, res) => {
+  const isHealthyCloudflare = !!activeTunnelChild && !!activeTunnelUrl && activeTunnelUrl.includes("trycloudflare.com");
+  if (!isHealthyCloudflare) {
+    return res.json({ ok: false, active: false, error: "No active Cloudflare tunnel", url: null });
+  }
+
+  const startMs = Date.now();
+  try {
+    const urlObj = new URL(activeTunnelUrl);
+    await new Promise<void>((resolve, reject) => {
+      dns.lookup(urlObj.hostname, (err, address) => {
+        if (err || !address) reject(err || new Error("DNS resolution failed"));
+        else resolve();
+      });
+    });
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000);
+    const probeRes = await fetch(`${activeTunnelUrl}/api/system/tunnel/status`, {
+      signal: controller.signal,
+    }).finally(() => clearTimeout(timeout));
+
+    const latencyMs = Date.now() - startMs;
+    if (probeRes.ok) {
+      return res.json({ ok: true, active: true, url: activeTunnelUrl, latencyMs });
+    } else {
+      return res.json({ ok: false, active: false, url: activeTunnelUrl, error: `HTTP ${probeRes.status}` });
+    }
+  } catch (err: any) {
+    return res.json({ ok: false, active: false, url: activeTunnelUrl, error: err.message || "Host unreachable" });
+  }
 });
 
 app.post("/api/system/tunnel/start", async (req, res) => {

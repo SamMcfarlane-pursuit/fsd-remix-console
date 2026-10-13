@@ -190,6 +190,8 @@ export interface StatusSnapshot {
   quadrants: QuadrantStat[];
   occupants?: Occupant[];
   publicTunnelUrl?: string | null;
+  customServiceOrigin?: string | null;
+  effectiveOrigin?: string | null;
   lanIps?: string[];
   ledgerEntries?: LedgerEntry[];
   latestNarrative?: DrillNarrativeDraft | null;
