@@ -94,6 +94,8 @@ function appendLedger(type: string, payload: Record<string, any>): LedgerEntry {
 let incidentActive = false;
 let incidentMode: "drill" | "incident" | null = null;
 let hazardType: string | null = null;
+let designatedStairwell: string | null = null;
+let designatedAssemblyPoint: string | null = null;
 let declaredAt: string | null = null;
 let drillAllSafeAt: string | null = null;
 let drillP95ClearedAt: string | null = null;
@@ -565,6 +567,8 @@ function getDerivedSnapshot(): StatusSnapshot {
     incidentActive,
     mode: incidentMode,
     hazardType,
+    stairwell: designatedStairwell,
+    assemblyPoint: designatedAssemblyPoint,
     declaredAt,
     expectedOnFloor: present.length,
     accounted: accountedCount,
@@ -2835,10 +2839,12 @@ app.get("/api/building/status-report", (req, res) => {
 
 // Incident Declare endpoint
 app.post("/api/incident/declare", requireCommanderAuth, (req, res) => {
-  const { mode, type } = req.body;
+  const { mode, type, hazardType: bodyHazard, incidentType, stairwell: bodyStairwell, assemblyPoint: bodyAssembly } = req.body;
   incidentActive = true;
-  incidentMode = mode === "incident" ? "incident" : "drill";
-  hazardType = type || "office-fire";
+  incidentMode = (mode === "incident" || incidentType === "emergency") ? "incident" : "drill";
+  hazardType = bodyHazard || type || "office-fire";
+  designatedStairwell = bodyStairwell || null;
+  designatedAssemblyPoint = bodyAssembly || null;
   declaredAt = new Date().toISOString();
   drillAllSafeAt = null;
   drillP95ClearedAt = null;
@@ -2860,6 +2866,8 @@ app.post("/api/incident/declare", requireCommanderAuth, (req, res) => {
   const entry = appendLedger("incident-declared", {
     mode: incidentMode,
     hazardType,
+    stairwell: designatedStairwell,
+    assemblyPoint: designatedAssemblyPoint,
     declaredAt,
     expectedOnFloor: occupantsRoster.filter((o) => !o.badgedOut && !o.offSiteToday).length,
   });
@@ -2874,6 +2882,8 @@ app.post("/api/incident/clear", requireCommanderAuth, (req, res) => {
   incidentActive = false;
   drillAllSafeAt = null;
   drillP95ClearedAt = null;
+  designatedStairwell = null;
+  designatedAssemblyPoint = null;
   const durationSec = declaredAt ? Math.round((Date.now() - new Date(declaredAt).getTime()) / 1000) : 0;
 
   const entry = appendLedger("incident-cleared", {

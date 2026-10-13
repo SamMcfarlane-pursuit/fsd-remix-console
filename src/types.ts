@@ -104,6 +104,8 @@ export interface StatusSnapshot {
   incidentActive: boolean;
   mode: "drill" | "incident" | null;
   hazardType: string | null;
+  stairwell?: string | null;
+  assemblyPoint?: string | null;
   declaredAt: string | null;
   expectedOnFloor: number;
   accounted: number;

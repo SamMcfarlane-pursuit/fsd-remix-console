@@ -1045,8 +1045,15 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
           }
           currentOccupant={currentUser}
           onCheckIn={onCheckIn}
-          stairwell={currentUser ? (currentUser.quadrant === "NW" || currentUser.quadrant === "NE" ? "Stairwell A (East Core)" : "Stairwell B (West Core)") : "Stairwell A (East Core)"}
-          assemblyPoint={selectedAssembly || "Assembly Point A (Union Sq East / Park Plaza)"}
+          stairwell={
+            snapshot?.stairwell ||
+            (currentUser
+              ? currentUser.quadrant === "NW" || currentUser.quadrant === "NE"
+                ? "Door 7-A · Stairwell A (East Core)"
+                : "Door 7-B · Stairwell B (West Core)"
+              : "Door 7-A · Stairwell A (East Core)")
+          }
+          assemblyPoint={snapshot?.assemblyPoint || selectedAssembly || "Park Plaza (East 14th St)"}
         />
       )}
 
@@ -1181,11 +1188,15 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
             <div className="grid grid-cols-2 gap-2 pt-1 border-t border-white/10 text-[11px] text-amber-100">
               <div className="bg-black/25 p-2 rounded-lg">
                 <span className="text-slate-300 text-[9px] font-bold block uppercase tracking-wider">EGRESS PATH:</span>
-                <span className="font-bold text-white text-xs">Stairwell A (East Core)</span>
+                <span className="font-bold text-white text-xs">
+                  {snapshot.stairwell || (currentUser?.quadrant === "SW" || currentUser?.quadrant === "SE" ? "Door 7-B (West Core)" : "Door 7-A (East Core)")}
+                </span>
               </div>
               <div className="bg-black/25 p-2 rounded-lg">
                 <span className="text-slate-300 text-[9px] font-bold block uppercase tracking-wider">ASSEMBLY STATION:</span>
-                <span className="font-bold text-white text-xs">Union Sq East / Park Plaza</span>
+                <span className="font-bold text-white text-xs">
+                  {snapshot.assemblyPoint || "Park Plaza (East 14th St)"}
+                </span>
               </div>
             </div>
           </div>
