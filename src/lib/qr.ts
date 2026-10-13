@@ -80,11 +80,18 @@ export function setCustomMobileOrigin(origin: string): void {
     }
     cachedMobileOrigin = origin.trim();
     window.dispatchEvent(new CustomEvent("muster-origin-changed", { detail: { origin } }));
+
+    // Sync to backend persistent configuration so all devices share the relatable URL
+    fetch("/api/system/custom-origin", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ origin: origin.trim(), clear: !origin.trim() }),
+    }).catch(() => {});
   }
 }
 
 /**
- * Query backend to discover server's local LAN IPv4 address and active public tunnel
+ * Query backend to discover server's local LAN IPv4 address, custom relatable service domain, and active public tunnel
  */
 export async function discoverMobileOrigin(): Promise<string> {
   try {
@@ -93,7 +100,7 @@ export async function discoverMobileOrigin(): Promise<string> {
     });
     if (res.ok) {
       const data = await res.json();
-      const originToUse = data.publicTunnelUrl || data.mobileOrigin;
+      const originToUse = data.customServiceOrigin || data.effectiveOrigin || data.publicTunnelUrl || data.mobileOrigin;
       if (originToUse && !originToUse.includes("loca.lt")) {
         setLiveTunnelUrl(originToUse);
         return originToUse;

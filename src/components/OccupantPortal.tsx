@@ -291,6 +291,25 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
     }
   }, [occupants?.length]);
 
+  // Auto-heal stale occupant IDs if database was cleaned or mock names were purged
+  useEffect(() => {
+    if (occupants && occupants.length > 0 && savedOccupantId) {
+      const existsInRoster = occupants.some((o) => o.id === savedOccupantId);
+      if (!existsInRoster && !localRegisteredOccupant) {
+        console.warn(`Stored occupant ID ${savedOccupantId} is not in active roster. Resetting to clean newcomer sign-in.`);
+        try {
+          localStorage.removeItem("muster_registered_occupant_id");
+          localStorage.removeItem("muster_occupant_id");
+          localStorage.removeItem("muster_registered_name");
+          localStorage.removeItem("muster_registered_phone");
+          localStorage.removeItem("muster_registered_occupant_json");
+        } catch {}
+        setSavedOccupantId(null);
+        setViewState("newcomer-signin");
+      }
+    }
+  }, [occupants, savedOccupantId, localRegisteredOccupant]);
+
   // Online / Offline listeners & auto-sync
   useEffect(() => {
     const handleOnline = async () => {
@@ -1085,14 +1104,21 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
         />
       )}
 
-      {/* Top Banner */}
+      {/* Official Con Edison Life-Safety Service Header Banner */}
       <div className="bg-[#EBF5FB] border border-[#B8D8F8] p-3.5 rounded-2xl flex items-center justify-between gap-3 text-xs shadow-xs">
         <div className="flex items-center gap-2.5">
-          <span className="text-2xl">📱</span>
+          <span className="text-2xl">⚡</span>
           <div>
-            <span className="font-black text-[#005DAA] text-sm">Floor 07 Digital QR Attendance</span>
+            <div className="flex items-center gap-1.5">
+              <span className="font-black text-[#003B70] text-sm uppercase tracking-wide">
+                Con Edison Life-Safety Service
+              </span>
+              <span className="bg-emerald-100 text-emerald-800 text-[9px] font-mono font-bold px-1.5 py-0.2 rounded border border-emerald-300">
+                ACTIVE
+              </span>
+            </div>
             <p className="text-[11px] text-[#475569] font-medium">
-              Con Edison · 4 Irving Place · QR Presence &amp; Muster
+              4 Irving Place · Floor 07 Emergency Evacuation &amp; Sign-In Gateway
             </p>
           </div>
         </div>

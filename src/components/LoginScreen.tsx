@@ -139,6 +139,30 @@ export default function LoginScreen({
     setIsMobile(isMobileDevice);
   }, []);
 
+  // Guarantee that direct QR scans or deep links transition to OccupantPortal without getting trapped
+  useEffect(() => {
+    try {
+      if (typeof window !== "undefined") {
+        const p = new URLSearchParams(window.location.search);
+        const shouldForward = Boolean(
+          p.get("mode") === "signin" ||
+          p.get("mode") === "occupant" ||
+          p.get("scan") === "1" ||
+          p.get("scan") === "signin" ||
+          p.get("new") === "1" ||
+          p.get("register") === "1" ||
+          p.get("token") ||
+          p.get("station") ||
+          p.get("id") ||
+          p.get("badge")
+        );
+        if (shouldForward) {
+          onEnterOccupantApp();
+        }
+      }
+    } catch {}
+  }, [onEnterOccupantApp]);
+
   // Update default PIN when admin role changes
   useEffect(() => {
     if (adminRole === "fsd_director") setAdminPin("7007");

@@ -285,6 +285,38 @@ function generateInitialRoster(targetCount: number = 195): Occupant[] {
 
 const DATA_DIR = path.join(process.cwd(), "data");
 const ROSTER_FILE = path.join(DATA_DIR, "fsd_roster.json");
+const SERVICE_CONFIG_FILE = path.join(DATA_DIR, "service_config.json");
+
+let customServiceOrigin: string = process.env.SERVICE_URL || process.env.PUBLIC_SERVICE_URL || "";
+
+function loadPersistedServiceConfig(): void {
+  try {
+    if (fs.existsSync(SERVICE_CONFIG_FILE)) {
+      const data = JSON.parse(fs.readFileSync(SERVICE_CONFIG_FILE, "utf-8"));
+      if (data && data.customOrigin) {
+        customServiceOrigin = data.customOrigin;
+      }
+    }
+  } catch (err) {
+    console.warn("Could not load service config:", err);
+  }
+}
+
+function savePersistedServiceConfig(config: { customOrigin?: string }): void {
+  try {
+    if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+    let existing: any = {};
+    if (fs.existsSync(SERVICE_CONFIG_FILE)) {
+      try { existing = JSON.parse(fs.readFileSync(SERVICE_CONFIG_FILE, "utf-8")); } catch {}
+    }
+    const updated = { ...existing, ...config };
+    fs.writeFileSync(SERVICE_CONFIG_FILE, JSON.stringify(updated, null, 2));
+  } catch (err) {
+    console.warn("Could not save service config:", err);
+  }
+}
+
+loadPersistedServiceConfig();
 
 function loadPersistedRoster(): Occupant[] {
   try {
@@ -1571,6 +1603,8 @@ app.get("/api/system/network-info", (req, res) => {
   const hostHeader = req.headers.host || `localhost:${PORT}`;
   const isLocalhost = hostHeader.includes("localhost") || hostHeader.includes("127.0.0.1");
   const mobileOrigin = isLocalhost && lanIps.length > 0 ? `${protocol}://${primaryIp}:${PORT}` : `${protocol}://${hostHeader}`;
+  const isHealthyCloudflare = !!activeTunnelChild && !!activeTunnelUrl && activeTunnelUrl.includes("trycloudflare.com");
+  const effectiveOrigin = customServiceOrigin || (isHealthyCloudflare ? activeTunnelUrl : mobileOrigin);
 
   res.json({
     ok: true,
@@ -1580,7 +1614,47 @@ app.get("/api/system/network-info", (req, res) => {
     currentHost: hostHeader,
     isLocalhost,
     mobileOrigin,
-    publicTunnelUrl: activeTunnelUrl || null,
+    publicTunnelUrl: isHealthyCloudflare ? activeTunnelUrl : null,
+    customServiceOrigin: customServiceOrigin || null,
+    effectiveOrigin,
+  });
+});
+
+// Configure Custom Service Domain / Relatable URL Override
+app.post("/api/system/custom-origin", (req, res) => {
+  const { origin, clear } = req.body || {};
+  if (clear) {
+    customServiceOrigin = "";
+    savePersistedServiceConfig({ customOrigin: "" });
+    notifySseClients();
+    return res.json({
+      ok: true,
+      customOrigin: null,
+      effectiveOrigin: activeTunnelUrl || null,
+      message: "Custom service origin cleared; reverted to dynamic network gateway.",
+    });
+  }
+
+  if (!origin || typeof origin !== "string") {
+    return res.status(400).json({ ok: false, error: "Valid origin URL string required." });
+  }
+
+  let cleanOrigin = origin.trim();
+  if (!cleanOrigin.startsWith("http://") && !cleanOrigin.startsWith("https://")) {
+    cleanOrigin = `https://${cleanOrigin}`;
+  }
+  cleanOrigin = cleanOrigin.replace(/\/+$/, "");
+
+  customServiceOrigin = cleanOrigin;
+  savePersistedServiceConfig({ customOrigin: cleanOrigin });
+  console.log(`🏢 Custom Relatable Service Domain Applied: ${cleanOrigin}`);
+  notifySseClients();
+
+  res.json({
+    ok: true,
+    customOrigin: cleanOrigin,
+    effectiveOrigin: cleanOrigin,
+    message: `Service domain set to ${cleanOrigin}`,
   });
 });
 
@@ -1710,39 +1784,16 @@ async function restartTunnelGracefully(): Promise<string> {
   }
 }
 
-// Periodic Health Check Watchdog (every 45 seconds with 3 consecutive failure threshold)
-let consecutiveTunnelFailures = 0;
+// Stable Lifecycle Watchdog: Maintains tunnel continuity without killing active connections
 setInterval(async () => {
-  if (!activeTunnelUrl || !activeTunnelUrl.includes("trycloudflare.com")) {
+  // Only restart if the process died or activeTunnelUrl is missing
+  const isProcessAlive = activeTunnelChild && !activeTunnelChild.killed && activeTunnelChild.exitCode === null;
+  if (!isProcessAlive || !activeTunnelUrl || !activeTunnelUrl.includes("trycloudflare.com")) {
+    console.log("Watchdog detected inactive tunnel process. Re-establishing public pathway...");
     restartTunnelGracefully().catch(() => { });
     return;
   }
-  try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 7000);
-    const checkRes = await fetch(`${activeTunnelUrl}/api/health`, {
-      signal: controller.signal,
-    });
-    clearTimeout(timeout);
-    if (!checkRes.ok) {
-      consecutiveTunnelFailures++;
-      if (consecutiveTunnelFailures >= 3) {
-        console.warn(`Watchdog detected persistent non-200 tunnel status (${checkRes.status}). Triggering refresh.`);
-        consecutiveTunnelFailures = 0;
-        restartTunnelGracefully().catch(() => { });
-      }
-    } else {
-      consecutiveTunnelFailures = 0;
-    }
-  } catch (err) {
-    consecutiveTunnelFailures++;
-    if (consecutiveTunnelFailures >= 3) {
-      console.warn("Watchdog: Tunnel unreachable from outside across 3 checks. Rotating to fresh tunnel endpoint...");
-      consecutiveTunnelFailures = 0;
-      restartTunnelGracefully().catch(() => { });
-    }
-  }
-}, 45000);
+}, 30000);
 
 app.get("/api/system/tunnel/status", (req, res) => {
   const isHealthyCloudflare = !!activeTunnelChild && !!activeTunnelUrl && activeTunnelUrl.includes("trycloudflare.com");

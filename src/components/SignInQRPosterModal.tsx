@@ -114,14 +114,17 @@ export const SignInQRPosterModal: React.FC<SignInQRPosterModalProps> = ({
     }
   };
 
-  const handleSaveCustomOrigin = () => {
-    let clean = customOriginInput.trim();
+  const handleSaveCustomOrigin = (customUrl?: string) => {
+    const raw = customUrl || customOriginInput;
+    let clean = raw.trim();
     if (clean) {
       if (!clean.startsWith("http://") && !clean.startsWith("https://")) {
-        clean = `http://${clean}`;
+        clean = `https://${clean}`;
       }
+      clean = clean.replace(/\/+$/, "");
       setCustomMobileOrigin(clean);
       setMobileOrigin(clean);
+      setCustomOriginInput(clean);
     }
     setIsEditingOrigin(false);
   };
@@ -350,21 +353,49 @@ export const SignInQRPosterModal: React.FC<SignInQRPosterModalProps> = ({
               {signInUrl}
             </div>
           ) : (
-            <div className="flex gap-1.5">
-              <input
-                type="text"
-                value={customOriginInput}
-                onChange={(e) => setCustomOriginInput(e.target.value)}
-                placeholder="e.g. http://192.168.1.182:3000 or https://xyz.tunnel"
-                className="flex-1 px-2.5 py-1 text-[11px] font-mono border border-sky-400 rounded-lg bg-white outline-none"
-              />
-              <button
-                type="button"
-                onClick={handleSaveCustomOrigin}
-                className="px-3 py-1 bg-[#005DAA] text-white rounded-lg font-bold text-[11px] cursor-pointer"
-              >
-                Apply
-              </button>
+            <div className="space-y-2">
+              <div className="flex gap-1.5">
+                <input
+                  type="text"
+                  value={customOriginInput}
+                  onChange={(e) => setCustomOriginInput(e.target.value)}
+                  placeholder="e.g. https://coned-floor07-muster.service or custom tunnel"
+                  className="flex-1 px-2.5 py-1.5 text-[11px] font-mono border border-sky-400 rounded-lg bg-white outline-none"
+                />
+                <button
+                  type="button"
+                  onClick={() => handleSaveCustomOrigin()}
+                  className="px-3 py-1.5 bg-[#005DAA] text-white rounded-lg font-bold text-[11px] cursor-pointer"
+                >
+                  Apply
+                </button>
+              </div>
+
+              {/* Relatable Service Presets */}
+              <div className="flex flex-wrap items-center gap-1.5 pt-1 text-[10px]">
+                <span className="text-slate-500 font-bold uppercase text-[9px]">Relatable Service Presets:</span>
+                <button
+                  type="button"
+                  onClick={() => handleSaveCustomOrigin("https://coned-floor07-muster.service")}
+                  className="px-2 py-0.5 bg-sky-100 hover:bg-sky-200 text-sky-900 border border-sky-300 rounded font-mono font-bold cursor-pointer"
+                >
+                  coned-floor07-muster.service
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSaveCustomOrigin("https://evac.conedison.com")}
+                  className="px-2 py-0.5 bg-sky-100 hover:bg-sky-200 text-sky-900 border border-sky-300 rounded font-mono font-bold cursor-pointer"
+                >
+                  evac.conedison.com
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSaveCustomOrigin("https://4irving-floor07.net")}
+                  className="px-2 py-0.5 bg-sky-100 hover:bg-sky-200 text-sky-900 border border-sky-300 rounded font-mono font-bold cursor-pointer"
+                >
+                  4irving-floor07.net
+                </button>
+              </div>
             </div>
           )}
 

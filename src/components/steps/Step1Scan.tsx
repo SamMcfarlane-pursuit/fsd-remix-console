@@ -641,25 +641,60 @@ export const Step1Scan: React.FC<Step1ScanProps> = ({
                   </button>
                 </div>
               ) : (
-                <div className="mt-1.5 flex gap-1.5">
-                  <input
-                    type="text"
-                    value={customOriginInput}
-                    onChange={(e) => setCustomOriginInput(e.target.value)}
-                    placeholder="e.g. http://192.168.1.60:3000"
-                    className="flex-1 px-2 py-1 bg-white border border-[#005DAA] rounded text-xs font-mono"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setCustomMobileOrigin(customOriginInput.trim());
-                      setMobileOrigin(getMobileNetworkOrigin());
-                      setIsEditingOrigin(false);
-                    }}
-                    className="px-2.5 py-1 bg-[#005DAA] text-white rounded text-xs font-bold hover:bg-[#004884] cursor-pointer"
-                  >
-                    Save
-                  </button>
+                <div className="mt-1.5 space-y-1.5">
+                  <div className="flex gap-1.5">
+                    <input
+                      type="text"
+                      value={customOriginInput}
+                      onChange={(e) => setCustomOriginInput(e.target.value)}
+                      placeholder="e.g. https://coned-floor07-muster.service"
+                      className="flex-1 px-2 py-1 bg-white border border-[#005DAA] rounded text-xs font-mono"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        let clean = customOriginInput.trim();
+                        if (clean && !clean.startsWith("http://") && !clean.startsWith("https://")) {
+                          clean = `https://${clean}`;
+                        }
+                        clean = clean.replace(/\/+$/, "");
+                        setCustomMobileOrigin(clean);
+                        setMobileOrigin(clean || getMobileNetworkOrigin());
+                        setIsEditingOrigin(false);
+                      }}
+                      className="px-2.5 py-1 bg-[#005DAA] text-white rounded text-xs font-bold hover:bg-[#004884] cursor-pointer"
+                    >
+                      Save
+                    </button>
+                  </div>
+                  {/* Quick Relatable Service Presets */}
+                  <div className="flex flex-wrap items-center gap-1 text-[10px]">
+                    <span className="text-slate-500 font-bold uppercase text-[9px]">Presets:</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const url = "https://coned-floor07-muster.service";
+                        setCustomMobileOrigin(url);
+                        setMobileOrigin(url);
+                        setIsEditingOrigin(false);
+                      }}
+                      className="px-1.5 py-0.5 bg-sky-100 hover:bg-sky-200 text-sky-900 border border-sky-300 rounded font-mono font-bold cursor-pointer"
+                    >
+                      coned-floor07-muster.service
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const url = "https://evac.conedison.com";
+                        setCustomMobileOrigin(url);
+                        setMobileOrigin(url);
+                        setIsEditingOrigin(false);
+                      }}
+                      className="px-1.5 py-0.5 bg-sky-100 hover:bg-sky-200 text-sky-900 border border-sky-300 rounded font-mono font-bold cursor-pointer"
+                    >
+                      evac.conedison.com
+                    </button>
+                  </div>
                 </div>
               )}
             </div>

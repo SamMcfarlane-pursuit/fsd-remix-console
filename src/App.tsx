@@ -731,7 +731,28 @@ export default function App() {
     }
   };
 
-  if (!authUser) {
+  const isOccupantScanUrl = typeof window !== "undefined" && (() => {
+    try {
+      const p = new URLSearchParams(window.location.search);
+      return Boolean(
+        p.get("mode") === "signin" ||
+        p.get("mode") === "occupant" ||
+        p.get("scan") === "1" ||
+        p.get("scan") === "signin" ||
+        p.get("new") === "1" ||
+        p.get("register") === "1" ||
+        p.get("token") ||
+        p.get("qr") === "1" ||
+        p.get("station") ||
+        p.get("id") ||
+        p.get("badge")
+      );
+    } catch {
+      return false;
+    }
+  })();
+
+  if (!authUser && viewMode !== "occupant" && !isOccupantScanUrl) {
     return (
       <LoginScreen
         onLoginSuccess={handleLoginSuccess}
