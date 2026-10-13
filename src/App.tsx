@@ -986,6 +986,7 @@ export default function App() {
                 onDeclareIncident={handleDeclareIncident}
                 onClearIncident={handleClearIncident}
                 onProceedNext={() => setCurrentStep(4)}
+                onBackToStep2={() => setCurrentStep(2)}
                 stairwell={stairwell}
                 assemblyPoint={assemblyPoint}
                 onUpdateEvacRoute={(sw, ap) => {
@@ -1000,6 +1001,7 @@ export default function App() {
               <Step4Broadcast
                 snapshot={snapshot}
                 onSendAlert={handleSendEmergencyAlert}
+                onDeclareIncident={handleDeclareIncident}
                 onProceedNext={() => setCurrentStep(5)}
                 onOpenWalkieTalkie={() => setIsWalkieTalkieOpen(true)}
                 onBackToStep3={() => setCurrentStep(3)}

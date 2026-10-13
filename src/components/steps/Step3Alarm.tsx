@@ -1,112 +1,118 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { StatusSnapshot } from "../../types";
 import { playAlarmSiren, stopAlarmSiren, speakEmergencyBroadcast } from "../../lib/audioBroadcast";
+import {
+  ASSEMBLY_POINT_OPTIONS,
+  HAZARD_OPTIONS,
+  STAIRWELL_OPTIONS,
+  getHazard,
+  normalizeAssemblyPoint,
+  normalizeStairwell,
+  shortStairwell,
+} from "../../lib/evacConstants";
 
 interface Step3AlarmProps {
   snapshot: StatusSnapshot | null;
   onDeclareIncident: (mode: "drill" | "incident", type: string) => Promise<void>;
   onClearIncident: () => Promise<void>;
   onProceedNext: () => void;
+  onBackToStep2?: () => void;
   stairwell?: string;
   assemblyPoint?: string;
   onUpdateEvacRoute?: (stairwell: string, assemblyPoint: string) => void;
   onOpenWalkieTalkie?: () => void;
 }
 
-const HAZARD_OPTIONS = [
-  {
-    id: "office-fire",
-    name: "Office Fire & Smoke Condition",
-    icon: "🔥",
-    desc: "Active smoke or thermal detection in commercial office suites. Immediate evacuation required.",
-    recommendedStairwell: "Stairwell A (East Core)",
-    color: "border-red-400 bg-red-50/70 text-red-950",
-  },
-  {
-    id: "gas-leak",
-    name: "Natural Gas Leak / Odor",
-    icon: "⛽",
-    desc: "Combustible gas detection or pipeline pressure drop. No elevator usage, avoid electrical switches.",
-    recommendedStairwell: "Stairwell B (West Core)",
-    color: "border-amber-400 bg-amber-50/70 text-amber-950",
-  },
-  {
-    id: "power-outage",
-    name: "Electrical Grid / Power Failure",
-    icon: "⚡",
-    desc: "Floor 07 sub-station circuit trip. Emergency exit egress lighting active.",
-    recommendedStairwell: "Stairwell A & B",
-    color: "border-yellow-400 bg-yellow-50/70 text-yellow-950",
-  },
-  {
-    id: "active-threat",
-    name: "Security Alert / Active Threat",
-    icon: "⚠️",
-    desc: "Building security perimeter breach or hostile intruder. Shelter in place or rapid tactical egress.",
-    recommendedStairwell: "Tactical Egress Only",
-    color: "border-purple-400 bg-purple-50/70 text-purple-950",
-  },
-  {
-    id: "severe-weather",
-    name: "Severe Weather / Structural",
-    icon: "🌪️",
-    desc: "High wind structural risk, shattered glass, or severe flooding condition.",
-    recommendedStairwell: "Interior Core (Stairwell A)",
-    color: "border-blue-400 bg-blue-50/70 text-blue-950",
-  },
-];
-
+/**
+ * STEP 03 · ALARM
+ * Job: decide WHAT is happening (drill vs. real, which hazard) and WHERE people go
+ * (stairwell + muster point), then sound the alarm.
+ * Output: incidentActive = true on the server → phones flip into emergency mode,
+ * every in-building occupant resets to "unaccounted", Step 04 is unlocked and
+ * pre-filled with this exact hazard and route.
+ * The written/spoken message itself is composed and sent in Step 04.
+ */
 export const Step3Alarm: React.FC<Step3AlarmProps> = ({
   snapshot,
   onDeclareIncident,
   onClearIncident,
   onProceedNext,
-  stairwell: initialStairwell,
-  assemblyPoint: initialAssemblyPoint,
+  onBackToStep2,
+  stairwell: routeStairwell,
+  assemblyPoint: routeAssembly,
   onUpdateEvacRoute,
   onOpenWalkieTalkie,
 }) => {
   const isIncidentActive = snapshot?.incidentActive || false;
-  const currentMode = snapshot?.mode || "drill";
-  const currentHazard = snapshot?.hazardType || "office-fire";
+  const activeMode = snapshot?.mode || "drill";
+  const activeHazard = getHazard(snapshot?.hazardType);
 
-  const [selectedMode, setSelectedMode] = useState<"drill" | "incident">(currentMode);
-  const [selectedHazard, setSelectedHazard] = useState<string>(currentHazard);
-  const [selectedStairwell, setSelectedStairwell] = useState<string>(
-    initialStairwell || "Stairwell A (East Core - Union Sq East)"
-  );
-  const [assemblyPoint, setAssemblyPoint] = useState<string>(
-    initialAssemblyPoint || "Assembly Point A (Union Sq East / Park Plaza)"
-  );
+  const [selectedMode, setSelectedMode] = useState<"drill" | "incident">(activeMode);
+  const [selectedHazard, setSelectedHazard] = useState<string>(activeHazard.id);
+  const [selectedStairwell, setSelectedStairwell] = useState<string>(normalizeStairwell(routeStairwell));
+  const [assemblyPoint, setAssemblyPoint] = useState<string>(normalizeAssemblyPoint(routeAssembly));
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  const handleDeclare = async (autoProceedToBroadcast = true) => {
+  // Keep the form in sync with what the server says is live (e.g. alarm declared
+  // from another console, or snapshot arriving after first render).
+  useEffect(() => {
+    if (isIncidentActive) {
+      setSelectedMode(activeMode);
+      setSelectedHazard(activeHazard.id);
+    }
+  }, [isIncidentActive, activeMode, activeHazard.id]);
+
+  const presentCount = (snapshot?.occupants || []).filter((o) => !o.badgedOut && !o.offSiteToday).length
+    || snapshot?.expectedOnFloor || 0;
+  const distressCount = (snapshot?.needHelp || 0) + (snapshot?.awaitingEvacChair || 0);
+  const hazard = getHazard(selectedHazard);
+  const routeChanged =
+    isIncidentActive &&
+    (normalizeStairwell(routeStairwell) !== selectedStairwell ||
+      normalizeAssemblyPoint(routeAssembly) !== assemblyPoint ||
+      activeHazard.id !== selectedHazard ||
+      activeMode !== selectedMode);
+
+  const handleDeclare = async () => {
+    if (presentCount === 0) {
+      setErrorMsg("No one is signed in on Floor 07. Sign occupants in (Step 01/02) before declaring.");
+      return;
+    }
+    if (selectedMode === "incident" && !isIncidentActive) {
+      const ok = window.confirm(
+        "⚠️ Declare a REAL EMERGENCY?\n\nThis is not a drill. Every occupant's phone will show a live evacuation order.\n\nPress OK to declare."
+      );
+      if (!ok) return;
+    }
+    setErrorMsg(null);
     setIsProcessing(true);
     try {
-      if (onUpdateEvacRoute) {
-        onUpdateEvacRoute(selectedStairwell, assemblyPoint);
-      }
+      onUpdateEvacRoute?.(selectedStairwell, assemblyPoint);
       await onDeclareIncident(selectedMode, selectedHazard);
-      playAlarmSiren(6);
-      speakEmergencyBroadcast(
-        `Attention Floor 07 occupants: A ${selectedMode === "drill" ? "life-safety evacuation drill" : "live emergency evacuation"} has been declared due to ${selectedHazard.replace("-", " ")}. Please evacuate immediately via ${selectedStairwell} and report to ${assemblyPoint}.`,
-        selectedMode === "drill" ? "HIGH" : "CRITICAL"
-      );
-      if (autoProceedToBroadcast) {
-        onProceedNext();
+      if (!isIncidentActive) {
+        // Step 03 sounds the alarm only. The spoken directive is sent in Step 04.
+        playAlarmSiren(4);
       }
+      onProceedNext();
+    } catch {
+      setErrorMsg("Could not reach the command server. Check connection and try again.");
     } finally {
       setIsProcessing(false);
     }
   };
 
   const handleClear = async () => {
+    const ok = window.confirm(
+      "Stand down and clear the alarm?\n\nPhones will exit emergency mode. Use this only for a false alarm — for a completed drill, finish in Step 05 so the ledger is sealed."
+    );
+    if (!ok) return;
     setIsProcessing(true);
     try {
       await onClearIncident();
       stopAlarmSiren();
       speakEmergencyBroadcast(
-        "Attention Floor 07 occupants: The life-safety incident has been cleared. All safe. You may resume normal operations.",
+        "Attention Floor 07: the alarm has been cleared. You may resume normal operations.",
         "INFO"
       );
     } finally {
@@ -116,170 +122,155 @@ export const Step3Alarm: React.FC<Step3AlarmProps> = ({
 
   return (
     <div id="step-3-alarm-container" className="max-w-6xl mx-auto space-y-6 animate-fadeIn pb-12">
-      {/* Header Banner */}
+      {/* Header */}
       <div className="bg-white rounded-2xl p-6 border border-[#B8D8F8] shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 text-xs font-mono font-bold text-[#005DAA] uppercase tracking-wider mb-1">
             <span className="w-2.5 h-2.5 rounded-full bg-[#005DAA]" />
-            STEP 03 OF 05 · INCIDENT &amp; DRILL ALARM DECLARATION
+            STEP 03 OF 05 · ALARM
           </div>
           <h2 className="text-2xl font-black tracking-tight text-[#0F2537]">
-            Declare Life-Safety Alarm or Drill
+            {isIncidentActive ? "Alarm Is Active" : "Declare a Drill or Emergency"}
           </h2>
           <p className="text-sm text-[#475569] mt-1 max-w-2xl">
-            Staff lead or Fire Safety Director activates the floor-wide alarm. Select whether this is a scheduled training drill or a live emergency, set the specific hazard, and designate the safest evacuation path.
+            Choose drill or real emergency, the hazard, and the evacuation route. Declaring sounds the alarm and
+            switches every signed-in phone into emergency mode. You write and send the message in Step 04.
           </p>
         </div>
 
         <div className="flex items-center gap-3 shrink-0">
-          <div
-            className={`px-4 py-2.5 rounded-xl border text-right font-mono ${
-              isIncidentActive
-                ? selectedMode === "incident"
-                  ? "bg-red-500 text-white border-red-600 animate-pulse"
-                  : "bg-[#005DAA] text-white border-[#003B70]"
-                : "bg-emerald-50 text-emerald-900 border-emerald-300"
-            }`}
-          >
-            <div className="text-[10px] uppercase font-bold tracking-wider">
-              {isIncidentActive ? "Alarm Status" : "Operational Status"}
-            </div>
-            <div className="text-sm font-black uppercase">
-              {isIncidentActive
-                ? `🔴 ACTIVE ${currentMode?.toUpperCase()}`
-                : "🟢 NORMAL READINESS"}
-            </div>
-          </div>
-
+          {onBackToStep2 && (
+            <button
+              type="button"
+              onClick={onBackToStep2}
+              className="px-4 py-3 rounded-xl border border-[#CBDCEE] bg-white hover:bg-[#F0F6FC] text-[#0F2537] font-bold text-xs transition shadow-xs cursor-pointer"
+            >
+              ← Step 02 Roster
+            </button>
+          )}
           <button
             id="step3-proceed-btn"
             onClick={onProceedNext}
-            className="px-5 py-3 rounded-xl bg-[#005DAA] hover:bg-[#004884] text-white font-black text-sm tracking-wide transition shadow-sm flex items-center gap-2 cursor-pointer"
+            disabled={!isIncidentActive}
+            title={isIncidentActive ? "" : "Declare the alarm first"}
+            className="px-5 py-3 rounded-xl bg-[#005DAA] hover:bg-[#004884] text-white font-black text-sm tracking-wide transition shadow-sm flex items-center gap-2 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            <span>Proceed to Step 04</span>
+            <span>{isIncidentActive ? "Go to Step 04 Broadcast" : "🔒 Step 04 locked"}</span>
             <span>→</span>
           </button>
         </div>
       </div>
 
-      {/* Active Alarm Status Display Banner */}
-      {isIncidentActive ? (
-        <div className="rounded-2xl p-6 bg-linear-to-r from-red-600 to-red-700 text-white shadow-lg border border-red-400 flex flex-col md:flex-row items-center justify-between gap-6 animate-pulse">
+      {/* Pre-flight readiness: what Step 02 handed us */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="bg-white rounded-xl p-4 border border-[#B8D8F8] flex items-center justify-between">
+          <div>
+            <div className="text-[10px] font-mono font-bold text-[#64748B] uppercase">On Floor Now (from Step 02)</div>
+            <div className="text-2xl font-black text-[#005DAA] font-mono">{presentCount}</div>
+          </div>
+          <span className="text-2xl">👥</span>
+        </div>
+        <div className={`rounded-xl p-4 border flex items-center justify-between ${distressCount > 0 ? "bg-red-50 border-red-300" : "bg-white border-[#B8D8F8]"}`}>
+          <div>
+            <div className="text-[10px] font-mono font-bold text-[#64748B] uppercase">Active SOS / Evac Chair</div>
+            <div className={`text-2xl font-black font-mono ${distressCount > 0 ? "text-red-700" : "text-slate-400"}`}>{distressCount}</div>
+            {distressCount > 0 && <div className="text-[10px] text-red-800 font-bold">Preserved through declaration</div>}
+          </div>
+          <span className="text-2xl">🆘</span>
+        </div>
+        <div className={`rounded-xl p-4 border flex items-center justify-between ${isIncidentActive ? (activeMode === "incident" ? "bg-red-600 border-red-700 text-white" : "bg-[#005DAA] border-[#003B70] text-white") : "bg-emerald-50 border-emerald-300"}`}>
+          <div>
+            <div className={`text-[10px] font-mono font-bold uppercase ${isIncidentActive ? "text-white/80" : "text-emerald-800"}`}>Floor Status</div>
+            <div className={`text-base font-black uppercase ${isIncidentActive ? "" : "text-emerald-900"}`}>
+              {isIncidentActive ? `🔴 ${activeMode === "incident" ? "Live Emergency" : "Drill"} Active` : "🟢 Normal"}
+            </div>
+          </div>
+          <span className="text-2xl">{isIncidentActive ? "🚨" : "🛡️"}</span>
+        </div>
+      </div>
+
+      {/* Active alarm banner */}
+      {isIncidentActive && (
+        <div className={`rounded-2xl p-5 text-white shadow-lg border flex flex-col md:flex-row items-start md:items-center justify-between gap-4 ${activeMode === "incident" ? "bg-linear-to-r from-red-600 to-red-700 border-red-400" : "bg-linear-to-r from-[#005DAA] to-[#003B70] border-sky-400"}`}>
           <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-2xl bg-white/20 flex items-center justify-center text-3xl shrink-0">
-              🚨
+            <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center text-2xl shrink-0 animate-pulse">
+              {activeHazard.icon}
             </div>
             <div>
-              <div className="flex items-center gap-2 text-xs font-mono font-black uppercase tracking-widest text-red-200">
-                <span>ALARM SOUNDED · FLOOR 07 EVACUATION ACTIVE</span>
+              <div className="text-[10px] font-mono font-black uppercase tracking-widest text-white/80">
+                Alarm sounded{snapshot?.declaredAt ? ` at ${new Date(snapshot.declaredAt).toLocaleTimeString()}` : ""}
               </div>
-              <h3 className="text-xl sm:text-2xl font-black mt-1">
-                {currentMode === "incident" ? "EMERGENCY INCIDENT ACTIVE" : "SCHEDULED LIFE-SAFETY DRILL"}
+              <h3 className="text-xl font-black mt-0.5">
+                {activeMode === "incident" ? "LIVE EMERGENCY" : "LIFE-SAFETY DRILL"} · {activeHazard.name}
               </h3>
-              <p className="text-xs text-red-100 mt-1">
-                Hazard: <strong className="uppercase">{currentHazard}</strong> · Directive: Egress via {selectedStairwell} to {assemblyPoint}.
+              <p className="text-xs text-white/90 mt-1">
+                Route: <strong>{normalizeStairwell(routeStairwell)}</strong> → <strong>{normalizeAssemblyPoint(routeAssembly)}</strong>
               </p>
             </div>
           </div>
-
-          <div className="flex flex-wrap items-center gap-3 shrink-0">
+          <div className="flex flex-wrap items-center gap-2 shrink-0">
             {onOpenWalkieTalkie && (
               <button
                 type="button"
                 onClick={onOpenWalkieTalkie}
-                className="px-4 py-3 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-slate-950 font-black rounded-xl text-xs uppercase tracking-wider transition cursor-pointer shadow-md flex items-center gap-1.5"
-                title="Broadcast voice directive via Warden Walkie-Talkie Radio"
+                className="px-4 py-2.5 bg-amber-400 hover:bg-amber-300 text-slate-950 font-black rounded-xl text-xs uppercase tracking-wider transition cursor-pointer"
               >
-                <span>📻</span>
-                <span>Radio PTT</span>
+                📻 Radio PTT
               </button>
             )}
-
             <button
               id="step3-banner-proceed-btn"
               onClick={onProceedNext}
-              className="px-5 py-3 bg-white hover:bg-slate-100 text-[#005DAA] font-black rounded-xl text-xs uppercase tracking-wider transition cursor-pointer shadow-md flex items-center gap-1.5"
+              className="px-5 py-2.5 bg-white hover:bg-slate-100 text-[#005DAA] font-black rounded-xl text-xs uppercase tracking-wider transition cursor-pointer"
             >
-              <span>Proceed to Step 04 Broadcast</span>
-              <span>→</span>
+              Next: Send Broadcast →
             </button>
-
             <button
               onClick={handleClear}
               disabled={isProcessing}
-              className="px-4 py-3 bg-red-800/80 hover:bg-red-900 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition cursor-pointer border border-red-500/50"
+              className="px-4 py-2.5 bg-black/20 hover:bg-black/30 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition cursor-pointer border border-white/30"
             >
-              Stand Down / Clear
+              False Alarm · Stand Down
             </button>
-          </div>
-        </div>
-      ) : (
-        <div className="rounded-2xl p-5 bg-emerald-50 border border-emerald-300 text-emerald-950 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <span className="text-2xl">🛡️</span>
-            <div>
-              <div className="text-xs font-bold font-mono text-emerald-800 uppercase tracking-wide">
-                System in Normal Standby
-              </div>
-              <p className="text-xs text-emerald-900 mt-0.5">
-                No active alarms on Floor 07. Ready to initiate emergency declaration or life-safety drill below.
-              </p>
-            </div>
           </div>
         </div>
       )}
 
-      {/* Mode & Hazard Configuration Controls */}
+      {/* Configuration */}
       <div className="bg-white rounded-2xl p-6 border border-[#B8D8F8] shadow-xs space-y-6">
+        {/* 1. Mode */}
         <div>
-          <h3 className="text-base font-black text-[#0F2537] mb-3">1. Select Operation Mode</h3>
+          <h3 className="text-base font-black text-[#0F2537] mb-3">1. Drill or real emergency?</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <button
               type="button"
               onClick={() => setSelectedMode("drill")}
-              className={`p-4 rounded-xl border-2 text-left transition cursor-pointer flex items-center gap-4 ${
-                selectedMode === "drill"
-                  ? "bg-[#EBF3FB] border-[#005DAA] ring-2 ring-[#005DAA]/20"
-                  : "bg-white border-slate-200 hover:border-slate-300"
-              }`}
+              className={`p-4 rounded-xl border-2 text-left transition cursor-pointer flex items-center gap-4 ${selectedMode === "drill" ? "bg-[#EBF3FB] border-[#005DAA] ring-2 ring-[#005DAA]/20" : "bg-white border-slate-200 hover:border-slate-300"}`}
             >
-              <div className="w-10 h-10 rounded-xl bg-[#005DAA]/10 text-[#005DAA] flex items-center justify-center text-xl shrink-0 font-bold">
-                🎯
-              </div>
+              <div className="w-10 h-10 rounded-xl bg-[#005DAA]/10 flex items-center justify-center text-xl shrink-0">🎯</div>
               <div>
-                <div className="text-sm font-black text-[#0F2537]">Scheduled Life-Safety Drill</div>
-                <div className="text-xs text-[#64748B] mt-0.5">
-                  Training exercise. Records muster response times and metrics without 911 dispatch.
-                </div>
+                <div className="text-sm font-black text-[#0F2537]">Scheduled Drill</div>
+                <div className="text-xs text-[#64748B] mt-0.5">Training. Times and muster metrics are recorded. No 911 dispatch.</div>
               </div>
             </button>
-
             <button
               type="button"
               onClick={() => setSelectedMode("incident")}
-              className={`p-4 rounded-xl border-2 text-left transition cursor-pointer flex items-center gap-4 ${
-                selectedMode === "incident"
-                  ? "bg-red-50 border-red-600 ring-2 ring-red-500/20"
-                  : "bg-white border-slate-200 hover:border-slate-300"
-              }`}
+              className={`p-4 rounded-xl border-2 text-left transition cursor-pointer flex items-center gap-4 ${selectedMode === "incident" ? "bg-red-50 border-red-600 ring-2 ring-red-500/20" : "bg-white border-slate-200 hover:border-slate-300"}`}
             >
-              <div className="w-10 h-10 rounded-xl bg-red-100 text-red-600 flex items-center justify-center text-xl shrink-0 font-bold">
-                🚨
-              </div>
+              <div className="w-10 h-10 rounded-xl bg-red-100 flex items-center justify-center text-xl shrink-0">🚨</div>
               <div>
-                <div className="text-sm font-black text-red-950">Active Emergency Incident</div>
-                <div className="text-xs text-red-800/80 mt-0.5">
-                  Real life-safety threat. Activates critical high-priority broadcast protocols.
-                </div>
+                <div className="text-sm font-black text-red-950">Real Emergency</div>
+                <div className="text-xs text-red-800/80 mt-0.5">Live threat. Phones show a critical evacuation order.</div>
               </div>
             </button>
           </div>
         </div>
 
-        {/* Hazard Selection */}
+        {/* 2. Hazard */}
         <div>
-          <h3 className="text-base font-black text-[#0F2537] mb-3">2. Select Hazard Scenario</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+          <h3 className="text-base font-black text-[#0F2537] mb-3">2. What is the hazard?</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3">
             {HAZARD_OPTIONS.map((haz) => {
               const isSelected = selectedHazard === haz.id;
               return (
@@ -290,19 +281,15 @@ export const Step3Alarm: React.FC<Step3AlarmProps> = ({
                     setSelectedHazard(haz.id);
                     setSelectedStairwell(haz.recommendedStairwell);
                   }}
-                  className={`p-4 rounded-xl border-2 text-left transition cursor-pointer flex flex-col justify-between ${
-                    isSelected
-                      ? "border-[#005DAA] bg-[#EBF3FB] shadow-xs ring-2 ring-[#005DAA]/20"
-                      : "border-slate-200 bg-white hover:border-slate-300 text-slate-800"
-                  }`}
+                  className={`p-3.5 rounded-xl border-2 text-left transition cursor-pointer flex flex-col justify-between ${isSelected ? "border-[#005DAA] bg-[#EBF3FB] ring-2 ring-[#005DAA]/20" : "border-slate-200 bg-white hover:border-slate-300"}`}
                 >
                   <div>
-                    <div className="text-2xl mb-2">{haz.icon}</div>
+                    <div className="text-2xl mb-1.5">{haz.icon}</div>
                     <div className="text-xs font-black text-[#0F2537]">{haz.name}</div>
                     <p className="text-[11px] text-[#64748B] mt-1 line-clamp-2">{haz.desc}</p>
                   </div>
-                  <div className="mt-3 pt-2 border-t border-slate-200/60 text-[10px] font-mono text-[#005DAA] font-bold">
-                    Egress: {haz.recommendedStairwell}
+                  <div className="mt-2 pt-2 border-t border-slate-200/60 text-[10px] font-mono text-[#005DAA] font-bold">
+                    Suggested: {shortStairwell(haz.recommendedStairwell)}
                   </div>
                 </button>
               );
@@ -310,194 +297,93 @@ export const Step3Alarm: React.FC<Step3AlarmProps> = ({
           </div>
         </div>
 
-        {/* Evacuation Directives & Stairwells */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-slate-100">
-          <div>
-            <label className="block text-xs font-bold text-[#475569] uppercase tracking-wider mb-1.5">
-              Primary Designated Stairwell (Floor 07)
-            </label>
-            <select
-              value={selectedStairwell}
-              onChange={(e) => setSelectedStairwell(e.target.value)}
-              className="w-full p-3 bg-[#F8FAFC] border border-[#CBDCEE] rounded-xl text-xs font-bold text-[#0F2537] outline-hidden focus:ring-2 focus:ring-[#005DAA]"
-            >
-              <option value="Stairwell A (East Core - Union Sq East)">Stairwell A (East Core - Union Sq East)</option>
-              <option value="Stairwell B (West Core - Irving Pl)">Stairwell B (West Core - Irving Pl)</option>
-              <option value="Stairwell C (South Egress)">Stairwell C (South Egress)</option>
-              <option value="All Stairwells Available">All Stairwells Available</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-[#475569] uppercase tracking-wider mb-1.5">
-              External Assembly Point Destination
-            </label>
-            <select
-              value={assemblyPoint}
-              onChange={(e) => setAssemblyPoint(e.target.value)}
-              className="w-full p-3 bg-[#F8FAFC] border border-[#CBDCEE] rounded-xl text-xs font-bold text-[#0F2537] outline-hidden focus:ring-2 focus:ring-[#005DAA]"
-            >
-              <option value="Assembly Point A (Union Sq East / Park Plaza)">
-                Assembly Point A (Union Sq East / Park Plaza)
-              </option>
-              <option value="Assembly Point B (Irving Pl & 14th St)">
-                Assembly Point B (Irving Pl &amp; 14th St)
-              </option>
-              <option value="Assembly Point C (15th St Perimeter)">
-                Assembly Point C (15th St Perimeter)
-              </option>
-            </select>
-          </div>
-        </div>
-
-        {/* ======================================================== */}
-        {/* COMMANDER EMERGENCY DIRECTIVE (WHAT TO SAY & WHAT TO SHOW) */}
-        {/* ======================================================== */}
-        <div className="pt-4 border-t border-slate-200 space-y-4">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-mono font-black uppercase text-[#005DAA] tracking-wider flex items-center gap-2">
-              <span>📢</span>
-              <span>COMMAND DIRECTIVE PROTOCOL · WHAT TO SAY &amp; WHAT TO SHOW</span>
-            </span>
-            <span className="text-[10px] font-mono bg-sky-100 text-[#005DAA] border border-sky-300 px-2 py-0.5 rounded-full font-bold">
-              NYC Fire Code 3 RCNY §401-06
-            </span>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {/* Box 1: WHAT TO SAY (Spoken Announcement Script) */}
-            <div className="bg-[#0C1E36] rounded-2xl p-5 border-2 border-sky-500/50 text-white space-y-3 shadow-md flex flex-col justify-between">
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-mono font-black uppercase tracking-wider text-amber-300 bg-amber-950/70 border border-amber-500/30 px-2 py-0.5 rounded">
-                    🎙️ WHAT TO SAY (PA &amp; RADIO SPOKEN SCRIPT)
-                  </span>
-                  <span className="text-[10px] font-mono text-slate-300">
-                    Read aloud via building PA
-                  </span>
-                </div>
-
-                <div className="bg-black/40 border border-white/10 rounded-xl p-3.5 font-mono text-xs text-amber-100 leading-relaxed select-all">
-                  &ldquo;Attention Floor 07 occupants: A {selectedMode === "drill" ? "life-safety evacuation drill" : "live emergency evacuation"} has been declared due to {selectedHazard.replace("-", " ")}. All personnel must proceed calmly to {selectedStairwell} and assemble outside at {assemblyPoint}. Do not use elevators. Assist anyone requiring the Stairwell A evacuation chair.&rdquo;
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2 pt-2 border-t border-white/10">
-                <button
-                  type="button"
-                  onClick={() =>
-                    speakEmergencyBroadcast(
-                      `Attention Floor 07 occupants: A ${selectedMode === "drill" ? "life-safety evacuation drill" : "live emergency evacuation"} has been declared due to ${selectedHazard.replace("-", " ")}. Please evacuate via ${selectedStairwell} to ${assemblyPoint}. Do not use elevators.`,
-                      selectedMode === "drill" ? "HIGH" : "CRITICAL"
-                    )
-                  }
-                  className="px-3 py-2 bg-[#005DAA] hover:bg-[#004884] text-white text-xs font-bold rounded-xl transition cursor-pointer flex items-center gap-1.5 shadow-sm"
-                >
-                  <span>🔊</span>
-                  <span>Audio Playback Preview</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const text = `Attention Floor 07 occupants: A ${selectedMode === "drill" ? "life-safety evacuation drill" : "live emergency evacuation"} has been declared due to ${selectedHazard.replace("-", " ")}. All personnel must proceed calmly to ${selectedStairwell} and assemble outside at ${assemblyPoint}. Do not use elevators.`;
-                    navigator.clipboard?.writeText(text);
-                  }}
-                  className="px-3 py-2 bg-white/10 hover:bg-white/20 text-white text-xs font-bold rounded-xl transition cursor-pointer flex items-center gap-1.5"
-                >
-                  <span>📋</span>
-                  <span>Copy Script</span>
-                </button>
-              </div>
+        {/* 3. Route */}
+        <div>
+          <h3 className="text-base font-black text-[#0F2537] mb-3">3. Where should people go?</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-bold text-[#475569] uppercase tracking-wider mb-1.5">Evacuation stairwell</label>
+              <select
+                value={selectedStairwell}
+                onChange={(e) => setSelectedStairwell(e.target.value)}
+                className="w-full p-3 bg-[#F8FAFC] border border-[#CBDCEE] rounded-xl text-xs font-bold text-[#0F2537] outline-hidden focus:ring-2 focus:ring-[#005DAA]"
+              >
+                {STAIRWELL_OPTIONS.map((s) => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
+              </select>
             </div>
-
-            {/* Box 2: WHAT TO SHOW (Mobile Occupant Screen & Signage Display) */}
-            <div className="bg-[#0C1E36] rounded-2xl p-5 border-2 border-red-500/50 text-white space-y-3 shadow-md flex flex-col justify-between">
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-mono font-black uppercase tracking-wider text-red-300 bg-red-950/70 border border-red-500/30 px-2 py-0.5 rounded">
-                    📱 WHAT TO SHOW (OCCUPANT PASS &amp; SIGNAGE DISPLAY)
-                  </span>
-                  <span className="text-[10px] font-mono text-emerald-400">
-                    Live Broadcast Preview
-                  </span>
-                </div>
-
-                {/* Mobile Screen Mockup */}
-                <div className="bg-gradient-to-br from-red-950 via-slate-900 to-red-900 rounded-xl p-3.5 border border-red-500/70 space-y-2">
-                  <div className="flex items-center justify-between text-xs font-black text-red-200">
-                    <span className="flex items-center gap-1.5">
-                      <span>🚨</span>
-                      <span>{selectedMode === "incident" ? "ACTIVE EVACUATION ORDER" : "SCHEDULED DRILL ACTIVE"}</span>
-                    </span>
-                    <span className="text-[10px] font-mono bg-red-600 text-white px-2 py-0.5 rounded">
-                      HAZARD: {selectedHazard.toUpperCase()}
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-2 text-[11px] font-mono">
-                    <div className="bg-black/50 p-2 rounded-lg border border-sky-400/30">
-                      <div className="text-slate-400 text-[9px]">PRIMARY STAIRWELL</div>
-                      <div className="text-sky-300 font-bold truncate">{selectedStairwell.split(" (")[0]}</div>
-                    </div>
-                    <div className="bg-black/50 p-2 rounded-lg border border-red-500/30">
-                      <div className="text-slate-400 text-[9px]">ELEVATORS</div>
-                      <div className="text-red-400 font-bold">LOCKED OUT 🚫</div>
-                    </div>
-                  </div>
-
-                  <div className="bg-black/50 p-2 rounded-lg border border-amber-400/30 text-[11px]">
-                    <div className="text-slate-400 text-[9px] font-mono">OUTDOOR MUSTER POINT</div>
-                    <div className="text-amber-300 font-bold truncate">{assemblyPoint}</div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="text-[10px] text-slate-300 font-mono flex items-center justify-between pt-1 border-t border-white/10">
-                <span>✓ Automatically pushed to all phone passes</span>
-                <span className="text-emerald-300 font-bold">1-Tap &quot;Safe Outside&quot; Ready</span>
-              </div>
+            <div>
+              <label className="block text-xs font-bold text-[#475569] uppercase tracking-wider mb-1.5">Outdoor muster point</label>
+              <select
+                value={assemblyPoint}
+                onChange={(e) => setAssemblyPoint(e.target.value)}
+                className="w-full p-3 bg-[#F8FAFC] border border-[#CBDCEE] rounded-xl text-xs font-bold text-[#0F2537] outline-hidden focus:ring-2 focus:ring-[#005DAA]"
+              >
+                {ASSEMBLY_POINT_OPTIONS.map((a) => (
+                  <option key={a} value={a}>{a}</option>
+                ))}
+              </select>
             </div>
           </div>
         </div>
 
-        {/* Declaration Action Button */}
-        <div className="pt-4 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-slate-100">
+        {/* What happens when you press the button */}
+        <div className="rounded-2xl bg-[#F0F6FC] border border-[#CBDCEE] p-4">
+          <div className="text-[11px] font-mono font-black uppercase tracking-wider text-[#005DAA] mb-2">
+            {isIncidentActive ? "Updating the alarm will:" : "When you declare, the system will:"}
+          </div>
+          <ol className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-1.5 text-xs text-[#0F2537]">
+            <li><strong>1.</strong> Sound the floor alarm tone {selectedMode === "incident" ? "(critical)" : "(drill)"}.</li>
+            <li><strong>2.</strong> Switch all {presentCount} signed-in phones to emergency mode with the {shortStairwell(selectedStairwell)} route and map.</li>
+            <li><strong>3.</strong> Reset everyone to <em>unaccounted</em> — only a real check-in counts as safe. Active SOS / evac-chair requests are kept.</li>
+            <li><strong>4.</strong> Unlock Step 04 with a message pre-written for <em>{hazard.shortName}</em> → {shortStairwell(selectedStairwell)} → {assemblyPoint.split(" (")[0]}.</li>
+          </ol>
+        </div>
+
+        {errorMsg && (
+          <div className="p-3 rounded-xl bg-red-50 border border-red-300 text-xs font-bold text-red-900">⚠️ {errorMsg}</div>
+        )}
+
+        {/* Single primary action */}
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2 border-t border-slate-100">
           <div className="text-xs text-[#64748B]">
             {isIncidentActive
-              ? "Alarm is currently active on Floor 07. Update evacuation settings or proceed directly to Step 04 broadcast."
-              : "Activating this alarm sets floor life-safety status, sounds sirens, and seamlessly arms Step 04 broadcast directives."}
+              ? routeChanged
+                ? "You changed the settings. Update the live alarm, then re-send the broadcast in Step 04."
+                : "Alarm is live with these settings. Continue to Step 04 to broadcast the message."
+              : presentCount === 0
+              ? "No occupants signed in yet — the alarm would reach nobody."
+              : `Ready. ${presentCount} people on the floor will be alerted.`}
           </div>
-
-          <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
+          {isIncidentActive && !routeChanged ? (
             <button
               type="button"
-              onClick={() => handleDeclare(false)}
-              disabled={isProcessing}
-              className="w-full sm:w-auto px-5 py-3 rounded-xl border border-slate-300 hover:bg-slate-50 text-slate-700 font-bold text-xs uppercase tracking-wider transition cursor-pointer flex items-center justify-center gap-1.5"
+              onClick={onProceedNext}
+              className="w-full sm:w-auto px-8 py-3.5 rounded-xl font-black text-sm uppercase tracking-wider shadow-md transition cursor-pointer bg-[#005DAA] hover:bg-[#004884] text-white"
             >
-              <span>🔔</span>
-              <span>{isIncidentActive ? "Update Alarm Only" : "Sound Alarm Only"}</span>
+              Continue to Step 04 Broadcast →
             </button>
-
+          ) : (
             <button
               type="button"
               id="step3-declare-and-proceed-btn"
-              onClick={() => handleDeclare(true)}
+              onClick={handleDeclare}
               disabled={isProcessing}
-              className={`w-full sm:w-auto px-8 py-3.5 rounded-xl font-black text-sm uppercase tracking-wider shadow-md transition cursor-pointer flex items-center justify-center gap-2 ${
-                selectedMode === "incident"
-                  ? "bg-red-600 hover:bg-red-700 text-white"
-                  : "bg-[#005DAA] hover:bg-[#004884] text-white"
-              }`}
+              className={`w-full sm:w-auto px-8 py-3.5 rounded-xl font-black text-sm uppercase tracking-wider shadow-md transition cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50 ${selectedMode === "incident" ? "bg-red-600 hover:bg-red-700 text-white" : "bg-[#005DAA] hover:bg-[#004884] text-white"}`}
             >
-              <span>⚡</span>
+              <span>{isIncidentActive ? "🔁" : "🔔"}</span>
               <span>
-                {isIncidentActive
-                  ? "Proceed to Step 04 Broadcast →"
-                  : `Declare & Proceed to Step 04 Broadcast →`}
+                {isProcessing
+                  ? "Declaring..."
+                  : isIncidentActive
+                  ? "Update Alarm & Continue →"
+                  : selectedMode === "incident"
+                  ? "Declare Emergency & Continue →"
+                  : "Start Drill & Continue →"}
               </span>
             </button>
-          </div>
+          )}
         </div>
       </div>
     </div>

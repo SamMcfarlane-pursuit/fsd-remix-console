@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import QRCode from "qrcode";
-import { Occupant, OccupantRole, OccupantStatus, StatusSnapshot, QuadrantId } from "../types";
+import { Occupant, OccupantRole, OccupantStatus, StatusSnapshot, QuadrantId, EmergencyAlertPayload } from "../types";
 import { QRCameraScanner } from "./QRCameraScanner";
 import { DigitalSignaturePad } from "./DigitalSignaturePad";
+import { AccessibleEmergencyAlertBanner } from "./AccessibleEmergencyAlertBanner";
 import { getDeviceGeolocation, validateGeofence, FLOOR_07_CONSTRAINTS } from "../lib/geofence";
 import { parseQRData, generateOccupantBadgePayload } from "../lib/qr";
 import {
@@ -14,7 +15,12 @@ import {
   syncOfflineQueue,
 } from "../lib/offlineQueue";
 import { authenticateWithBiometrics } from "../lib/biometrics";
-import { playRadioIncomingAlert } from "../lib/audioBroadcast";
+import {
+  playRadioIncomingAlert,
+  playRadioPttChirp,
+  playRadioRogerBeep,
+  speakEmergencyBroadcast,
+} from "../lib/audioBroadcast";
 
 interface OccupantPortalProps {
   snapshot: StatusSnapshot | null;
@@ -177,6 +183,36 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
       };
     }
   }, [currentUser?.quadrant]);
+
+  // Confirmed view active section tab ("comm" | "map" | "pass")
+  const [confirmedActiveTab, setConfirmedActiveTab] = useState<"comm" | "map" | "pass">("comm");
+
+  // Local record of sent SitReps / Distress reports for this session
+  const [sentSitReps, setSentSitReps] = useState<Array<{ id: string; text: string; time: string; status: string }>>([
+    {
+      id: "init-status",
+      text: "Turnstile badge verified on Floor 07.",
+      time: "Access Recorded",
+      status: "Committed to Life-Safety Ledger ✓",
+    },
+  ]);
+
+  // Quick 1-tap Situation Report Presets
+  const SITREP_PRESETS = [
+    { icon: "🟢", label: "All Clear", text: "All clear at my workstation. Ready for egress." },
+    { icon: "💨", label: "Smoke Detected", text: "Noticeable smoke odor / haze detected in corridor." },
+    { icon: "🛞", label: "Need Evac Chair", text: "Mobility impaired occupant requires ARA evacuation chair at stairwell." },
+    { icon: "🚪", label: "Stair Door Jammed", text: "Stairwell door is obstructed or difficult to open." },
+    { icon: "👥", label: "Sheltering with Group", text: "Sheltering safely in conference room with coworkers." },
+    { icon: "⚠️", label: "Medic / First Aid", text: "Occupant requires immediate first aid assistance." },
+  ];
+
+  // Auto-switch to Communication tab on active incident
+  useEffect(() => {
+    if (snapshot?.incidentActive) {
+      setConfirmedActiveTab("comm");
+    }
+  }, [snapshot?.incidentActive]);
 
   // Evacuation Guide UI state
   const [isEvacGuideExpanded, setIsEvacGuideExpanded] = useState<boolean>(true);
@@ -872,49 +908,148 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
     }
   };
 
+  const [isMonitoringRadio, setIsMonitoringRadio] = useState<boolean>(false);
+
+  const handleTestRadioChannel = () => {
+    setIsMonitoringRadio(true);
+    try {
+      playRadioIncomingAlert();
+      setTimeout(() => {
+        playRadioPttChirp();
+        speakEmergencyBroadcast(
+          "Floor 07 Life-Safety Command. Attention all occupants and floor wardens: channel monitor test successful. Stairwells Alpha and Bravo remain designated primary egress routes.",
+          "HIGH",
+          {
+            playChime: false,
+            onEnd: () => {
+              playRadioRogerBeep();
+              setIsMonitoringRadio(false);
+            },
+          }
+        );
+      }, 400);
+    } catch {
+      setIsMonitoringRadio(false);
+    }
+  };
+
   const handleRequestEvacChair = () => {
     if (!currentUser) return;
+    try {
+      playRadioPttChirp();
+    } catch {}
+    const reportText = helpNote.trim() || "Evacuation chair required at stairwell landing";
     onCheckIn(
       currentUser.id,
       "awaiting-evac-chair",
       "mobile-occupant-app",
-      helpNote || "Evacuation chair required at stairwell landing",
+      reportText,
       "inside-building"
     );
+    const newReceipt = {
+      id: String(Date.now()),
+      text: reportText,
+      time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }),
+      status: "ARA Evac Chair Request Dispatched to Wardens ✓",
+    };
+    setSentSitReps((prev) => [newReceipt, ...prev.slice(0, 8)]);
     setActionSubmittedMsg(`🛞 Assistance Request Sent! Wardens notified to dispatch ARA Evacuation Chair.`);
+    setHelpNote("");
+    setTimeout(() => {
+      try {
+        playRadioRogerBeep();
+      } catch {}
+    }, 450);
     setTimeout(() => setActionSubmittedMsg(null), 5000);
   };
 
   const handleRequestHelp = () => {
     if (!currentUser) return;
+    try {
+      playRadioPttChirp();
+    } catch {}
+    const reportText = helpNote.trim() || "Immediate emergency assistance / SOS requested";
     onCheckIn(
       currentUser.id,
       "need-help",
       "mobile-occupant-app",
-      helpNote || "Immediate assistance requested",
+      reportText,
       "inside-building"
     );
+    const newReceipt = {
+      id: String(Date.now()),
+      text: `🚨 SOS: ${reportText}`,
+      time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }),
+      status: "CRITICAL DISTRESS ACTIVE · Search & Rescue Alerted 🚨",
+    };
+    setSentSitReps((prev) => [newReceipt, ...prev.slice(0, 8)]);
     setActionSubmittedMsg(`🚨 Emergency Help Flagged! FSD Command Center alerted.`);
+    setHelpNote("");
+    setTimeout(() => {
+      try {
+        playRadioRogerBeep();
+      } catch {}
+    }, 450);
     setTimeout(() => setActionSubmittedMsg(null), 5000);
   };
 
-  const handleSendIntelReport = () => {
-    if (!currentUser || !helpNote.trim()) return;
+  const handleSendIntelReport = (textToSend?: string) => {
+    const messageText = (textToSend || helpNote).trim();
+    if (!currentUser || !messageText) return;
+    try {
+      playRadioPttChirp();
+    } catch {}
     onCheckIn(
       currentUser.id,
       currentUser.status || "safe",
       "mobile-occupant-intel",
-      `Occupant SitRep: ${helpNote.trim()}`,
+      `Occupant SitRep: ${messageText}`,
       currentUser.locationCategory || "inside-building",
       currentUser.assemblyPoint
     );
-    setActionSubmittedMsg(`💬 SitRep Transmitted! FSD Command Center logged your report: "${helpNote.trim()}"`);
+    const newReceipt = {
+      id: String(Date.now()),
+      text: messageText,
+      time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }),
+      status: "Delivered to FSD Command Center ✓",
+    };
+    setSentSitReps((prev) => [newReceipt, ...prev.slice(0, 8)]);
+    setActionSubmittedMsg(`💬 SitRep Transmitted! FSD Command Center logged your report: "${messageText}"`);
     setHelpNote("");
+    setTimeout(() => {
+      try {
+        playRadioRogerBeep();
+      } catch {}
+    }, 450);
     setTimeout(() => setActionSubmittedMsg(null), 6000);
   };
 
   return (
     <div className="max-w-2xl mx-auto p-4 sm:p-6 space-y-5 text-[#0F2537]">
+      {/* Real-Time Accessible Emergency Alert Modal / Banner with Spanish/English Voice Audio & CAD Map */}
+      {(snapshot?.incidentActive || snapshot?.latestEmergencyAlert) && (
+        <AccessibleEmergencyAlertBanner
+          alert={
+            snapshot?.latestEmergencyAlert || {
+              title: snapshot?.mode === "incident" ? "EMERGENCY EVACUATION ORDER" : "LIFE-SAFETY DRILL IN PROGRESS",
+              narrative:
+                snapshot?.latestNarrative?.executiveSummary ||
+                snapshot?.latestNarrative?.timelineNarrative ||
+                "Attention Floor 07 occupants: Immediate evacuation is ordered. Do not use elevators. Proceed to designated stairwells and report to your assigned outdoor muster assembly point.",
+              priority: "HIGH",
+              hazardType: (snapshot?.hazardType || "drill") as any,
+              channels: ["PUSH_NOTIFICATION", "SMS_DIRECT", "MESH_AUDIO_BEACON"],
+              timestamp: snapshot?.declaredAt || new Date().toISOString(),
+              targetSectors: ["NW", "NE", "SW", "SE"],
+            }
+          }
+          currentOccupant={currentUser}
+          onCheckIn={onCheckIn}
+          stairwell={currentUser ? (currentUser.quadrant === "NW" || currentUser.quadrant === "NE" ? "Stairwell A (East Core)" : "Stairwell B (West Core)") : "Stairwell A (East Core)"}
+          assemblyPoint={selectedAssembly || "Assembly Point A (Union Sq East / Park Plaza)"}
+        />
+      )}
+
       {/* Top Banner */}
       <div className="bg-[#EBF5FB] border border-[#B8D8F8] p-3.5 rounded-2xl flex items-center justify-between gap-3 text-xs shadow-xs">
         <div className="flex items-center gap-2.5">
@@ -1238,99 +1373,397 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
               </div>
             </div>
 
-            {/* Scannable Personal QR Code Badge */}
-            <div className={`p-4 rounded-2xl border text-center space-y-3 ${currentUser.role === "Visitor"
-                ? "bg-amber-50/70 border-amber-300"
-                : "bg-[#F8FAFC] border-[#B8D8F8]"
-              }`}>
-              <div className="text-[10px] font-black uppercase text-[#005DAA] tracking-wider">
-                {currentUser.role === "Visitor" ? "🎟️ Official Guest / Visitor Turnstile Pass" : "🏢 Official Employee Turnstile Pass"}
-              </div>
-
-              <div className={`w-44 h-44 mx-auto bg-white border-2 p-2.5 rounded-2xl flex items-center justify-center shadow-inner ${currentUser.role === "Visitor" ? "border-amber-500" : "border-[#005DAA]"
-                }`}>
-                {occupantQrUrl ? (
-                  <img
-                    src={occupantQrUrl}
-                    alt={`QR pass for ${currentUser.name}`}
-                    className="w-full h-full object-contain"
-                  />
-                ) : (
-                  <div className="text-xs text-slate-400 font-mono">Generating QR...</div>
+            {/* 3-Tab Section Switcher for Confirmed Occupants */}
+            <div className="grid grid-cols-3 gap-1 bg-[#F0F6FC] p-1.5 rounded-2xl border border-[#B8D8F8] sticky top-2 z-10 shadow-sm backdrop-blur-md">
+              <button
+                type="button"
+                onClick={() => setConfirmedActiveTab("comm")}
+                className={`py-2 px-1 text-center rounded-xl font-black text-xs transition cursor-pointer flex flex-col items-center justify-center gap-0.5 relative ${
+                  confirmedActiveTab === "comm"
+                    ? "bg-[#005DAA] text-white shadow-xs"
+                    : "text-[#005DAA] hover:bg-white"
+                }`}
+              >
+                <span className="text-sm">💬</span>
+                <span className="truncate w-full text-[11px]">SitRep & Radio</span>
+                {(currentUser.status === "need-help" || currentUser.status === "awaiting-evac-chair") && (
+                  <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-ping absolute top-1 right-2" />
                 )}
-              </div>
+              </button>
 
-              <div className="font-mono text-xs font-black text-[#003B70] bg-white py-1 px-3 rounded-lg border border-[#B8D8F8] inline-block">
-                PASS: {currentUser.id}-{currentUser.quadrant}
-              </div>
+              <button
+                type="button"
+                onClick={() => setConfirmedActiveTab("map")}
+                className={`py-2 px-1 text-center rounded-xl font-black text-xs transition cursor-pointer flex flex-col items-center justify-center gap-0.5 ${
+                  confirmedActiveTab === "map"
+                    ? "bg-[#005DAA] text-white shadow-xs"
+                    : "text-[#005DAA] hover:bg-white"
+                }`}
+              >
+                <span className="text-sm">🗺️</span>
+                <span className="truncate w-full text-[11px]">Evac Map</span>
+              </button>
 
-              {/* Official Cryptographic Ledger Block Seal */}
-              <div className="bg-[#F0F6FC] border border-[#B8D8F8] p-3 rounded-xl text-left space-y-1 font-mono">
-                <div className="flex items-center justify-between text-[10px] font-bold text-[#005DAA]">
-                  <span className="flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                    COMMITTED TO LIFE-SAFETY LEDGER
-                  </span>
-                  <span className="bg-emerald-100 text-emerald-950 border border-emerald-300 px-2 py-0.5 rounded-full text-[9px] font-bold">
-                    SEALED BLOCK ✓
-                  </span>
-                </div>
-                <div className="text-xs font-bold text-[#0F2537] flex items-center justify-between">
-                  <span>{currentUser.name} ({currentUser.id})</span>
-                  <span className="text-[10px] text-slate-500">{currentUser.lastBadgeTime || "Verified"}</span>
-                </div>
-                <div className="text-[10px] text-slate-600 flex items-center justify-between pt-0.5">
-                  <span className="truncate max-w-[200px]" title={snapshot?.ledgerEntries && snapshot.ledgerEntries.length > 0 ? snapshot.ledgerEntries.slice(-1)[0].hash : "SHA-256 Hash"}>
-                    HASH: {snapshot?.ledgerEntries && snapshot.ledgerEntries.length > 0 ? snapshot.ledgerEntries.slice(-1)[0].hash.substring(0, 16) + "..." : "6c79d9cd53c9..."}
-                  </span>
-                  <span className="text-emerald-700 font-bold text-[9px]">NYC FDNY §401-06</span>
-                </div>
-              </div>
-
-              <div className="flex flex-col sm:flex-row gap-2 pt-2 border-t border-[#B8D8F8]">
-                <button
-                  type="button"
-                  onClick={() => setShowScanner(!showScanner)}
-                  className="flex-1 py-2 bg-[#005DAA] hover:bg-[#004A88] text-white rounded-xl text-xs font-black uppercase tracking-wider transition cursor-pointer shadow-xs flex items-center justify-center gap-1.5"
-                >
-                  <span>📷</span>
-                  <span>{showScanner ? "Hide Camera" : "Scan Station Poster"}</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    try {
-                      localStorage.removeItem("muster_registered_occupant_id");
-                      localStorage.removeItem("muster_occupant_id");
-                      localStorage.removeItem("muster_registered_phone");
-                      localStorage.removeItem("muster_registered_name");
-                    } catch { }
-                    setSavedOccupantId(null);
-                    setViewState("newcomer-signin");
-                  }}
-                  className="flex-1 py-2 bg-white border border-[#B8D8F8] text-[#005DAA] hover:bg-[#EBF5FB] rounded-xl text-xs font-bold transition cursor-pointer"
-                >
-                  ✍️ Sign In As Another Employee or Visitor
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={() => setConfirmedActiveTab("pass")}
+                className={`py-2 px-1 text-center rounded-xl font-black text-xs transition cursor-pointer flex flex-col items-center justify-center gap-0.5 ${
+                  confirmedActiveTab === "pass"
+                    ? "bg-[#005DAA] text-white shadow-xs"
+                    : "text-[#005DAA] hover:bg-white"
+                }`}
+              >
+                <span className="text-sm">🎟️</span>
+                <span className="truncate w-full text-[11px]">QR Pass</span>
+              </button>
             </div>
 
-            {/* Camera Scanner if toggled */}
-            {showScanner && (
-              <div className="p-4 bg-[#F8FAFC] border border-[#B8D8F8] rounded-2xl animate-fadeIn">
-                <QRCameraScanner
-                  onScanSuccess={handleStationScanSuccess}
-                  onClose={() => setShowScanner(false)}
-                  stationName="Mobile Scanner"
-                />
+            {/* ======================================================== */}
+            {/* TAB 1: COMMUNICATION & SITREP HUB                       */}
+            {/* ======================================================== */}
+            {confirmedActiveTab === "comm" && (
+              <div className="space-y-4 animate-fadeIn">
+                {/* Live Life-Safety Warden Radio Channel Card */}
+                <div className="p-4 rounded-2xl border-2 border-[#005DAA] bg-gradient-to-br from-[#0B1728] via-[#0E2038] to-[#0A1626] text-white shadow-md space-y-3">
+                  <div className="flex items-center justify-between border-b border-white/10 pb-2.5">
+                    <div className="flex items-center gap-2">
+                      <span className="text-lg">📻</span>
+                      <div>
+                        <div className="text-xs font-black uppercase tracking-wider text-sky-400">
+                          Life-Safety Two-Way Radio Channel
+                        </div>
+                        <div className="text-[10px] font-mono text-slate-300">
+                          FREQ: 462.5625 MHz (Floor 07 Warden Dispatch)
+                        </div>
+                      </div>
+                    </div>
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-mono font-bold bg-emerald-950/80 text-emerald-300 border border-emerald-500/40">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                      RX ACTIVE
+                    </span>
+                  </div>
+
+                  <p className="text-[11px] text-slate-300 leading-relaxed">
+                    Direct digital dispatch link to the Floor 07 Fire Warden Command Post. Audio alerts and SitReps transmit instantaneously to the incident commander console.
+                  </p>
+
+                  <div className="flex items-center gap-2 pt-1">
+                    <button
+                      type="button"
+                      onClick={handleTestRadioChannel}
+                      disabled={isMonitoringRadio}
+                      className="flex-1 py-2 px-3 bg-sky-600 hover:bg-sky-500 disabled:opacity-50 text-white font-black text-xs rounded-xl transition cursor-pointer flex items-center justify-center gap-2 shadow-xs active:scale-95"
+                    >
+                      <span>{isMonitoringRadio ? "🔊" : "📻"}</span>
+                      <span>{isMonitoringRadio ? "Broadcasting Dispatch..." : "Monitor / Test Radio Audio"}</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Distress Status Badge */}
+                <div className="flex items-center justify-between p-3 rounded-xl border bg-white shadow-2xs">
+                  <span className="text-xs font-bold text-slate-700">Your Incident Status:</span>
+                  <span className={`text-[10px] font-mono font-bold px-3 py-1 rounded-full border ${
+                    currentUser.status === "safe"
+                      ? "bg-emerald-100 text-emerald-800 border-emerald-300"
+                      : currentUser.status === "awaiting-evac-chair"
+                      ? "bg-amber-100 text-amber-900 border-amber-300 animate-pulse"
+                      : currentUser.status === "need-help"
+                      ? "bg-red-200 text-red-950 border-red-400 animate-pulse font-black"
+                      : "bg-slate-100 text-slate-700 border-slate-300"
+                  }`}>
+                    {currentUser.status === "safe"
+                      ? "🟢 SAFE & ACCOUNTED"
+                      : currentUser.status === "awaiting-evac-chair"
+                      ? "🛞 EVAC CHAIR REQUESTED"
+                      : currentUser.status === "need-help"
+                      ? "🚨 SOS ACTIVE / SEARCH & RESCUE"
+                      : "⚪ UNACCOUNTED FOR"}
+                  </span>
+                </div>
+
+                {/* 1-Tap Emergency Transmit Actions */}
+                <div className="grid grid-cols-2 gap-2.5">
+                  <button
+                    type="button"
+                    onClick={handleRequestEvacChair}
+                    className="py-3 px-3 bg-amber-600 hover:bg-amber-500 text-white font-black text-xs uppercase tracking-wider rounded-xl transition cursor-pointer shadow-sm flex flex-col items-center justify-center gap-1 active:scale-95 border border-amber-400"
+                  >
+                    <span className="text-lg">🛞</span>
+                    <span>Request Evac Chair</span>
+                    <span className="text-[9px] font-normal text-amber-100 font-mono">ARA Stryker Landing</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleRequestHelp}
+                    className="py-3 px-3 bg-red-700 hover:bg-red-600 text-white font-black text-xs uppercase tracking-wider rounded-xl transition cursor-pointer shadow-sm flex flex-col items-center justify-center gap-1 active:scale-95 border border-red-400 animate-pulse"
+                  >
+                    <span className="text-lg">🆘</span>
+                    <span>Send SOS Distress</span>
+                    <span className="text-[9px] font-normal text-red-100 font-mono">Emergency Alert</span>
+                  </button>
+                </div>
+
+                {/* Safe Reporting Section */}
+                <div className="p-4 bg-[#F0F6FC] rounded-2xl border border-[#B8D8F8] space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-black uppercase tracking-wider text-[#005DAA] flex items-center gap-1.5">
+                      <span>✓</span> Report Safety Status
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleGeoFenceAutoDetect}
+                      disabled={isDetectingGeo}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 bg-sky-600 hover:bg-sky-700 text-white rounded-lg text-[10px] font-black uppercase tracking-wider transition cursor-pointer shadow-xs"
+                    >
+                      <span>🛰️</span>
+                      <span>{isDetectingGeo ? "Scanning..." : "GPS Verify"}</span>
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    {/* Safe Outside */}
+                    <div className="bg-white p-3 rounded-xl border border-[#B8D8F8] space-y-2">
+                      <div className="text-[11px] font-bold text-[#0F2537]">1. Outside at Assembly Point</div>
+                      <select
+                        value={selectedAssembly}
+                        onChange={(e) => setSelectedAssembly(e.target.value)}
+                        className="w-full bg-[#F8FAFC] border border-[#B8D8F8] rounded-lg px-2 py-1.5 text-xs font-semibold text-[#0F2537] focus:outline-none"
+                      >
+                        <option value="Assembly Point A (Park Plaza)">Assembly Point A (Park Plaza - East 14th St)</option>
+                        <option value="Assembly Point B (Courtyard)">Assembly Point B (East Courtyard - Irving Pl)</option>
+                      </select>
+                      <button
+                        type="button"
+                        onClick={handleMarkSafeOutside}
+                        className="w-full py-2 bg-emerald-700 text-white font-bold text-xs rounded-lg hover:bg-emerald-800 transition cursor-pointer shadow-xs"
+                      >
+                        ✓ Safe Outside
+                      </button>
+                    </div>
+
+                    {/* Safe Inside */}
+                    <div className="bg-white p-3 rounded-xl border border-[#B8D8F8] space-y-2">
+                      <div className="text-[11px] font-bold text-[#0F2537]">2. Still Inside Floor 07</div>
+                      <select
+                        value={selectedQuadrant}
+                        onChange={(e) => setSelectedQuadrant(e.target.value)}
+                        className="w-full bg-[#F8FAFC] border border-[#B8D8F8] rounded-lg px-2 py-1.5 text-xs font-semibold text-[#0F2537] focus:outline-none"
+                      >
+                        <option value="NW">NW · Strategic Planning</option>
+                        <option value="NE">NE · Gas Operations & Security</option>
+                        <option value="SW">SW · AMI & Ombudsman</option>
+                        <option value="SE">SE · Steam Operations</option>
+                        <option value="Stairwell A">Stairwell A (East Core)</option>
+                        <option value="Stairwell B">Stairwell B (West Core)</option>
+                      </select>
+                      <button
+                        type="button"
+                        onClick={handleMarkSafeInside}
+                        className="w-full py-2 bg-[#005DAA] text-white font-bold text-xs rounded-lg hover:bg-[#004A88] transition cursor-pointer shadow-xs"
+                      >
+                        ✓ Safe Inside
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Situation Report (SitRep) Transmit Box */}
+                <div className="p-4 bg-white rounded-2xl border-2 border-[#005DAA]/40 space-y-3 shadow-xs">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-black uppercase tracking-wider text-[#005DAA] flex items-center gap-1.5">
+                      <span>💬</span> Transmit SitRep Note to Commander
+                    </span>
+                    <span className="text-[10px] text-slate-500 font-mono">Real-time Feed</span>
+                  </div>
+
+                  {/* 1-Tap Quick SitRep Presets */}
+                  <div className="space-y-1.5">
+                    <span className="text-[10px] font-bold text-slate-500 block uppercase">Quick SitRep Presets:</span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {SITREP_PRESETS.map((preset, idx) => (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={() => {
+                            setHelpNote(preset.text);
+                            handleSendIntelReport(preset.text);
+                          }}
+                          className="px-2.5 py-1 bg-[#F0F6FC] hover:bg-[#E1EFFE] text-[#003B70] border border-[#B8D8F8] rounded-lg text-[10px] font-bold transition cursor-pointer flex items-center gap-1 active:scale-95"
+                        >
+                          <span>{preset.icon}</span>
+                          <span>{preset.label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5 pt-1">
+                    <div className="relative">
+                      <textarea
+                        value={helpNote}
+                        onChange={(e) => setHelpNote(e.target.value)}
+                        rows={2}
+                        placeholder="Type situation note (e.g., Heavy smoke in corridor, 3 occupants sheltering in 7B, power out...)"
+                        className="w-full bg-[#F8FAFC] border border-[#B8D8F8] rounded-xl p-2.5 text-xs text-[#0F2537] placeholder-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#005DAA] resize-none"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleSendIntelReport()}
+                      disabled={!helpNote.trim()}
+                      className="w-full py-2.5 bg-[#005DAA] hover:bg-[#004A88] disabled:opacity-50 text-white text-xs font-black uppercase tracking-wider rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5 shadow-xs"
+                    >
+                      <span>💬</span>
+                      <span>Transmit SitRep to Commander</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Sent Transmissions Feed */}
+                {sentSitReps.length > 0 && (
+                  <div className="bg-[#F8FAFC] border border-[#B8D8F8] rounded-2xl p-3.5 space-y-2">
+                    <div className="text-[10px] font-black uppercase tracking-wider text-[#005DAA] flex items-center gap-1.5">
+                      <span>📋</span> Transmission Receipts &amp; Ledger Log
+                    </div>
+                    <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
+                      {sentSitReps.map((item) => (
+                        <div key={item.id} className="bg-white border border-[#E2E8F0] p-2 rounded-lg text-[11px] space-y-0.5">
+                          <div className="flex items-center justify-between text-[10px] text-slate-500 font-mono">
+                            <span>{item.time}</span>
+                            <span className="text-emerald-700 font-bold">{item.status}</span>
+                          </div>
+                          <div className="text-slate-800 font-medium">{item.text}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Emergency Hotlines */}
+                <div className="grid grid-cols-3 gap-2 pt-1 text-center font-mono">
+                  <a
+                    href="tel:911"
+                    className="p-2 bg-red-50 hover:bg-red-100 border border-red-200 rounded-xl text-red-900 text-[10px] font-bold block"
+                  >
+                    🚒 FDNY: 911
+                  </a>
+                  <a
+                    href="tel:2124601000"
+                    className="p-2 bg-sky-50 hover:bg-sky-100 border border-sky-200 rounded-xl text-sky-900 text-[10px] font-bold block"
+                  >
+                    🚨 Security: x1000
+                  </a>
+                  <a
+                    href="tel:7007"
+                    className="p-2 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-xl text-amber-900 text-[10px] font-bold block"
+                  >
+                    🦺 Warden: x7007
+                  </a>
+                </div>
+              </div>
+            )}
+
+            {/* ======================================================== */}
+            {/* TAB 3: SCANNABLE QR PASS & LEDGER BLOCK SEAL            */}
+            {/* ======================================================== */}
+            {confirmedActiveTab === "pass" && (
+              <div className="space-y-3 animate-fadeIn">
+                <div className={`p-4 rounded-2xl border text-center space-y-3 ${currentUser.role === "Visitor"
+                    ? "bg-amber-50/70 border-amber-300"
+                    : "bg-[#F8FAFC] border-[#B8D8F8]"
+                  }`}>
+                  <div className="text-[10px] font-black uppercase text-[#005DAA] tracking-wider">
+                    {currentUser.role === "Visitor" ? "🎟️ Official Guest / Visitor Turnstile Pass" : "🏢 Official Employee Turnstile Pass"}
+                  </div>
+
+                  <div className={`w-44 h-44 mx-auto bg-white border-2 p-2.5 rounded-2xl flex items-center justify-center shadow-inner ${currentUser.role === "Visitor" ? "border-amber-500" : "border-[#005DAA]"
+                    }`}>
+                    {occupantQrUrl ? (
+                      <img
+                        src={occupantQrUrl}
+                        alt={`QR pass for ${currentUser.name}`}
+                        className="w-full h-full object-contain"
+                      />
+                    ) : (
+                      <div className="text-xs text-slate-400 font-mono">Generating QR...</div>
+                    )}
+                  </div>
+
+                  <div className="font-mono text-xs font-black text-[#003B70] bg-white py-1 px-3 rounded-lg border border-[#B8D8F8] inline-block">
+                    PASS: {currentUser.id}-{currentUser.quadrant}
+                  </div>
+
+                  {/* Official Cryptographic Ledger Block Seal */}
+                  <div className="bg-[#F0F6FC] border border-[#B8D8F8] p-3 rounded-xl text-left space-y-1 font-mono">
+                    <div className="flex items-center justify-between text-[10px] font-bold text-[#005DAA]">
+                      <span className="flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                        COMMITTED TO LIFE-SAFETY LEDGER
+                      </span>
+                      <span className="bg-emerald-100 text-emerald-950 border border-emerald-300 px-2 py-0.5 rounded-full text-[9px] font-bold">
+                        SEALED BLOCK ✓
+                      </span>
+                    </div>
+                    <div className="text-xs font-bold text-[#0F2537] flex items-center justify-between">
+                      <span>{currentUser.name} ({currentUser.id})</span>
+                      <span className="text-[10px] text-slate-500">{currentUser.lastBadgeTime || "Verified"}</span>
+                    </div>
+                    <div className="text-[10px] text-slate-600 flex items-center justify-between pt-0.5">
+                      <span className="truncate max-w-[200px]" title={snapshot?.ledgerEntries && snapshot.ledgerEntries.length > 0 ? snapshot.ledgerEntries.slice(-1)[0].hash : "SHA-256 Hash"}>
+                        HASH: {snapshot?.ledgerEntries && snapshot.ledgerEntries.length > 0 ? snapshot.ledgerEntries.slice(-1)[0].hash.substring(0, 16) + "..." : "6c79d9cd53c9..."}
+                      </span>
+                      <span className="text-emerald-700 font-bold text-[9px]">NYC FDNY §401-06</span>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row gap-2 pt-2 border-t border-[#B8D8F8]">
+                    <button
+                      type="button"
+                      onClick={() => setShowScanner(!showScanner)}
+                      className="flex-1 py-2 bg-[#005DAA] hover:bg-[#004A88] text-white rounded-xl text-xs font-black uppercase tracking-wider transition cursor-pointer shadow-xs flex items-center justify-center gap-1.5"
+                    >
+                      <span>📷</span>
+                      <span>{showScanner ? "Hide Camera" : "Scan Station Poster"}</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        try {
+                          localStorage.removeItem("muster_registered_occupant_id");
+                          localStorage.removeItem("muster_occupant_id");
+                          localStorage.removeItem("muster_registered_phone");
+                          localStorage.removeItem("muster_registered_name");
+                        } catch { }
+                        setSavedOccupantId(null);
+                        setViewState("newcomer-signin");
+                      }}
+                      className="flex-1 py-2 bg-white border border-[#B8D8F8] text-[#005DAA] hover:bg-[#EBF5FB] rounded-xl text-xs font-bold transition cursor-pointer"
+                    >
+                      ✍️ Sign In As Another Employee or Visitor
+                    </button>
+                  </div>
+                </div>
+
+                {/* Camera Scanner if toggled */}
+                {showScanner && (
+                  <div className="p-4 bg-[#F8FAFC] border border-[#B8D8F8] rounded-2xl animate-fadeIn">
+                    <QRCameraScanner
+                      onScanSuccess={handleStationScanSuccess}
+                      onClose={() => setShowScanner(false)}
+                      stationName="Mobile Scanner"
+                    />
+                  </div>
+                )}
               </div>
             )}
 
             {/* ========================================================= */}
-            {/* OFFICIAL LIFE-SAFETY EMERGENCY ESCAPE & EVACUATION GUIDE  */}
-            {/* NYC Fire Code 3 RCNY §401-06 Compliance Protocols        */}
+            {/* TAB 2: OFFICIAL LIFE-SAFETY EMERGENCY ESCAPE & EVACUATION */}
             {/* ========================================================= */}
+            {confirmedActiveTab === "map" && (
             <div className={`rounded-2xl border-2 shadow-lg transition-all overflow-hidden ${snapshot?.incidentActive
                 ? "bg-gradient-to-br from-red-950 via-slate-900 to-red-900 border-red-500 ring-2 ring-red-400 text-white"
                 : "bg-gradient-to-br from-[#0B1728] via-[#0E2038] to-[#0A1626] border-[#005DAA] text-white"
@@ -2112,138 +2545,7 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
                 </div>
               )}
             </div>
-
-            {/* Emergency Muster Reporting Actions */}
-            <div className="space-y-3 pt-2">
-              <div className="flex items-center justify-between">
-                <h4 className="text-xs font-black uppercase tracking-wider text-[#005DAA] flex items-center gap-1.5">
-                  <span>📍</span> Emergency Safety &amp; Evacuation Transmit
-                </h4>
-                <button
-                  type="button"
-                  onClick={handleGeoFenceAutoDetect}
-                  disabled={isDetectingGeo}
-                  className="inline-flex items-center gap-1 px-2.5 py-1 bg-sky-600 hover:bg-sky-700 text-white rounded-lg text-[10px] font-black uppercase tracking-wider transition cursor-pointer shadow-xs"
-                >
-                  <span>🛰️</span>
-                  <span>{isDetectingGeo ? "Scanning..." : "GPS Geo-Fence Check"}</span>
-                </button>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {/* Safe Outside */}
-                <div className="p-3 bg-[#F0F6FC] rounded-xl border border-[#B8D8F8] space-y-2">
-                  <div className="text-xs font-bold text-[#0F2537]">1. Outside at Assembly Point</div>
-                  <select
-                    value={selectedAssembly}
-                    onChange={(e) => setSelectedAssembly(e.target.value)}
-                    className="w-full bg-white border border-[#B8D8F8] rounded-lg px-2.5 py-1.5 text-xs font-semibold text-[#0F2537] focus:outline-none"
-                  >
-                    <option value="Assembly Point A (Park Plaza)">Assembly Point A (Park Plaza - East 14th St)</option>
-                    <option value="Assembly Point B (Courtyard)">Assembly Point B (East Courtyard - Irving Pl)</option>
-                  </select>
-                  <button
-                    onClick={handleMarkSafeOutside}
-                    className="w-full py-2 bg-emerald-700 text-white font-bold text-xs rounded-lg hover:bg-emerald-800 transition cursor-pointer shadow-xs"
-                  >
-                    ✓ Safe Outside
-                  </button>
-                </div>
-
-                {/* Safe Inside */}
-                <div className="p-3 bg-[#F0F6FC] rounded-xl border border-[#B8D8F8] space-y-2">
-                  <div className="text-xs font-bold text-[#0F2537]">2. Still Inside Floor 07</div>
-                  <select
-                    value={selectedQuadrant}
-                    onChange={(e) => setSelectedQuadrant(e.target.value)}
-                    className="w-full bg-white border border-[#B8D8F8] rounded-lg px-2.5 py-1.5 text-xs font-semibold text-[#0F2537] focus:outline-none"
-                  >
-                    <option value="NW">NW · Strategic Planning</option>
-                    <option value="NE">NE · Gas Operations & Security</option>
-                    <option value="SW">SW · AMI & Ombudsman</option>
-                    <option value="SE">SE · Steam Operations</option>
-                    <option value="Stairwell A">Stairwell A (East Core)</option>
-                    <option value="Stairwell B">Stairwell B (West Core)</option>
-                  </select>
-                  <button
-                    onClick={handleMarkSafeInside}
-                    className="w-full py-2 bg-[#005DAA] text-white font-bold text-xs rounded-lg hover:bg-[#004A88] transition cursor-pointer shadow-xs"
-                  >
-                    ✓ Safe Inside
-                  </button>
-                </div>
-              </div>
-
-              {/* Assistance & SitRep Transmission */}
-              <div className="p-4 bg-red-50/80 rounded-2xl border-2 border-red-200 space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="text-xs font-black uppercase text-red-950 flex items-center gap-1.5">
-                    <span>🚨</span>
-                    <span>Emergency Assistance &amp; Situation Report (SitRep)</span>
-                  </div>
-                  <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-full border ${currentUser.status === "safe"
-                      ? "bg-emerald-100 text-emerald-800 border-emerald-300"
-                      : currentUser.status === "awaiting-evac-chair"
-                        ? "bg-amber-100 text-amber-900 border-amber-300 animate-pulse"
-                        : currentUser.status === "need-help"
-                          ? "bg-red-200 text-red-950 border-red-400 animate-pulse"
-                          : "bg-slate-200 text-slate-700 border-slate-300"
-                    }`}>
-                    {currentUser.status === "safe"
-                      ? "🟢 SAFE & ACCOUNTED"
-                      : currentUser.status === "awaiting-evac-chair"
-                        ? "🛞 EVAC CHAIR REQUESTED"
-                        : currentUser.status === "need-help"
-                          ? "🚨 SOS ACTIVE"
-                          : "⚪ UNACCOUNTED"}
-                  </span>
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-[11px] font-bold text-slate-700 block">
-                    Message or Situation Note for FSD Commander:
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="text"
-                      value={helpNote}
-                      onChange={(e) => setHelpNote(e.target.value)}
-                      placeholder="e.g., Heavy smoke near East elevators, 4 staff sheltering in 7B, mobility limited..."
-                      className="w-full bg-white border border-red-200 rounded-xl p-3 pr-24 text-xs text-[#0F2537] placeholder-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-red-400"
-                    />
-                    {helpNote.trim().length > 0 && (
-                      <button
-                        type="button"
-                        onClick={handleSendIntelReport}
-                        className="absolute right-1.5 top-1.5 bottom-1.5 px-3 bg-[#005DAA] hover:bg-[#004A88] text-white text-[10px] font-black uppercase rounded-lg transition cursor-pointer flex items-center gap-1 shadow-xs"
-                      >
-                        <span>💬</span>
-                        <span>Send Note</span>
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-2 pt-1">
-                  <button
-                    type="button"
-                    onClick={handleRequestEvacChair}
-                    className="py-2.5 px-2 bg-amber-600 hover:bg-amber-700 text-white font-black text-xs uppercase tracking-wider rounded-xl transition cursor-pointer shadow-xs flex items-center justify-center gap-1.5 active:scale-95"
-                  >
-                    <span>🛞</span>
-                    <span>Request Evac Chair</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleRequestHelp}
-                    className="py-2.5 px-2 bg-red-700 hover:bg-red-800 text-white font-black text-xs uppercase tracking-wider rounded-xl transition cursor-pointer shadow-xs flex items-center justify-center gap-1.5 active:scale-95"
-                  >
-                    <span>🚨</span>
-                    <span>Send SOS Distress</span>
-                  </button>
-                </div>
-              </div>
-            </div>
+            )}
           </div>
         </div>
       )}

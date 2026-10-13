@@ -2842,14 +2842,16 @@ app.post("/api/incident/declare", requireCommanderAuth, (req, res) => {
   declaredAt = new Date().toISOString();
   drillAllSafeAt = null;
   drillP95ClearedAt = null;
+  // New alarm = new broadcast cycle. A previous drill's alert must never carry over.
+  latestEmergencyAlert = null;
 
   // Reset unaccounted occupants: Absence of a signal is never safety.
   // When an alarm is declared, all in-building occupants default to unaccounted
-  // unless they are marked awaiting-evac-chair. Status changes to 'safe' ONLY
-  // upon positive check-in verification.
+  // unless they have an active distress signal (SOS / evac chair), which must be
+  // preserved. Status changes to 'safe' ONLY upon positive check-in verification.
   occupantsRoster.forEach((o) => {
     if (!o.badgedOut && !o.offSiteToday) {
-      if (o.status !== "awaiting-evac-chair") {
+      if (o.status !== "awaiting-evac-chair" && o.status !== "need-help") {
         o.status = "unaccounted";
       }
     }
@@ -2862,6 +2864,8 @@ app.post("/api/incident/declare", requireCommanderAuth, (req, res) => {
     expectedOnFloor: occupantsRoster.filter((o) => !o.badgedOut && !o.offSiteToday).length,
   });
 
+  // Push alarm state to every connected phone immediately
+  notifySseClients();
   res.json({ ok: true, snapshot: getDerivedSnapshot(), ledgerEntry: entry });
 });
 
@@ -2878,6 +2882,9 @@ app.post("/api/incident/clear", requireCommanderAuth, (req, res) => {
     finalAccounted: occupantsRoster.filter((o) => o.status === "safe").length,
   });
 
+  // Stand-down: remove the alert from occupant phones
+  latestEmergencyAlert = null;
+  notifySseClients();
   res.json({ ok: true, snapshot: getDerivedSnapshot(), ledgerEntry: entry });
 });
 
@@ -2892,9 +2899,11 @@ app.post(["/api/emergency-alert", "/api/drill/broadcast"], requireCommanderAuth,
   const timestamp = new Date().toISOString();
 
   // Filter occupants if specific quadrants are targeted (or all floor occupants)
+  // Only people physically in the building receive the evacuation alert.
+  const presentOccupants = occupantsRoster.filter((o) => !o.badgedOut && !o.offSiteToday);
   const targetedOccupants = (targetQuadrants && !targetQuadrants.includes("ALL"))
-    ? occupantsRoster.filter((o) => targetQuadrants.includes(o.quadrant))
-    : occupantsRoster;
+    ? presentOccupants.filter((o) => targetQuadrants.includes(o.quadrant))
+    : presentOccupants;
 
   const activeChannels = channels || ["PUSH_NOTIFICATION", "SMS_DIRECT", "MESH_AUDIO_BEACON", "KIOSK_POPUP"];
   const hasSms = activeChannels.some((c: string) => /sms/i.test(c));

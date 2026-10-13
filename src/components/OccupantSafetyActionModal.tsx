@@ -141,6 +141,53 @@ export const OccupantSafetyActionModal: React.FC<OccupantSafetyActionModalProps>
 
         {/* Modal Body */}
         <div className="p-6 overflow-y-auto space-y-5 text-xs text-[#0F2537]">
+          {/* Active Distress / Need Help Warning Banner */}
+          {(occupant.status === "need-help" || occupant.status === "awaiting-evac-chair") && (
+            <div className="p-4 bg-red-50 border-2 border-red-500 rounded-2xl flex items-center justify-between gap-3 animate-pulse shadow-sm">
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">🚨</span>
+                <div>
+                  <div className="text-xs font-black text-red-950 uppercase tracking-wide">
+                    {occupant.status === "awaiting-evac-chair" ? "🛞 EVACUATION CHAIR REQUIRED" : "ACTIVE SOS DISTRESS ALERT"}
+                  </div>
+                  <div className="text-[11px] text-red-800 font-medium">
+                    Occupant requested immediate emergency rescue extraction from Sector {occupant.quadrant}.
+                  </div>
+                </div>
+              </div>
+              {onOpenRescueProcedure && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClose();
+                    onOpenRescueProcedure(occupant);
+                  }}
+                  className="px-3.5 py-2 bg-red-600 hover:bg-red-700 text-white font-black text-xs uppercase tracking-wider rounded-xl shadow-md transition cursor-pointer shrink-0"
+                >
+                  Launch Rescue SOP →
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* Occupant SitRep Transmission Note */}
+          {occupant.notes && (
+            <div className="p-3.5 bg-amber-50/90 rounded-2xl border-2 border-amber-300 space-y-1 shadow-2xs">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-mono font-black uppercase text-amber-900 tracking-wider flex items-center gap-1.5">
+                  <span>💬</span>
+                  <span>OCCUPANT SITUATION REPORT (SITREP)</span>
+                </span>
+                <span className="text-[10px] font-mono font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded-full border border-amber-200">
+                  VIA {occupant.checkInMethod?.toUpperCase() || "MOBILE APP"}
+                </span>
+              </div>
+              <p className="text-xs font-bold text-slate-900 leading-relaxed">
+                "{occupant.notes.replace(/^Occupant SitRep:\s*/i, "")}"
+              </p>
+            </div>
+          )}
+
           {/* Building Location Blueprint Card */}
           <div className="bg-[#F0F6FC] rounded-2xl p-4 border border-[#CBDCEE] space-y-3">
             <div className="flex items-center justify-between">

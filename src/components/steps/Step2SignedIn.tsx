@@ -79,6 +79,15 @@ export const Step2SignedIn: React.FC<Step2SignedInProps> = ({
     },
   };
 
+  // Count special status categories
+  const distressedOccupants = useMemo(() => {
+    return occupants.filter((o) => o.status === "need-help" || o.status === "awaiting-evac-chair");
+  }, [occupants]);
+
+  const withNotesOccupants = useMemo(() => {
+    return occupants.filter((o) => !!o.notes);
+  }, [occupants]);
+
   // Filter occupants
   const filteredOccupants = useMemo(() => {
     return occupants.filter((occ) => {
@@ -92,6 +101,8 @@ export const Step2SignedIn: React.FC<Step2SignedInProps> = ({
       if (filterStatus === "in-building" && (occ.badgedOut || occ.offSiteToday)) return false;
       if (filterStatus === "badged-out" && !occ.badgedOut) return false;
       if (filterStatus === "offsite" && !occ.offSiteToday) return false;
+      if (filterStatus === "need-help" && occ.status !== "need-help" && occ.status !== "awaiting-evac-chair") return false;
+      if (filterStatus === "has-notes" && !occ.notes) return false;
 
       // Search query
       if (searchQuery.trim()) {
@@ -100,7 +111,9 @@ export const Step2SignedIn: React.FC<Step2SignedInProps> = ({
         const matchDesk = occ.desk?.toLowerCase().includes(q);
         const matchComp = occ.company?.toLowerCase().includes(q);
         const matchId = occ.id.toLowerCase().includes(q);
-        if (!matchName && !matchDesk && !matchComp && !matchId) return false;
+        const matchNotes = occ.notes?.toLowerCase().includes(q);
+        const matchPhone = occ.phone?.includes(q);
+        if (!matchName && !matchDesk && !matchComp && !matchId && !matchNotes && !matchPhone) return false;
       }
 
       return true;
@@ -242,6 +255,42 @@ export const Step2SignedIn: React.FC<Step2SignedInProps> = ({
           </button>
         </div>
       </div>
+
+      {/* Urgent Distress & Rescue Alert Banner if occupants flagged help */}
+      {distressedOccupants.length > 0 && (
+        <div className="bg-red-50 border-2 border-red-500 rounded-2xl p-4 sm:p-5 shadow-md flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-fadeIn">
+          <div className="flex items-center gap-3">
+            <span className="text-3xl animate-bounce">🚨</span>
+            <div>
+              <div className="text-xs font-black uppercase tracking-wider text-red-950 flex items-center gap-2">
+                <span>CRITICAL LIFE-SAFETY DISTRESS SIGNAL</span>
+                <span className="bg-red-600 text-white font-mono text-[10px] px-2 py-0.5 rounded-full font-black animate-pulse">
+                  {distressedOccupants.length} OCCUPANT{distressedOccupants.length > 1 ? "S" : ""}
+                </span>
+              </div>
+              <p className="text-xs font-bold text-red-900 mt-0.5">
+                {distressedOccupants.map((d) => `${d.name} (${d.quadrant} · ${d.desk || "Core"})`).join(", ")} flagged distress / mobility assistance!
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              const target = distressedOccupants[0];
+              if (onOpenRescueProcedure) {
+                onOpenRescueProcedure(target);
+              } else {
+                setRescueProcedureOccupant(target);
+              }
+            }}
+            className="px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white font-black text-xs uppercase tracking-wider rounded-xl shadow-md transition cursor-pointer shrink-0 animate-pulse flex items-center justify-center gap-1.5 active:scale-95"
+          >
+            <span>🚑</span>
+            <span>Launch Rescue SAR Window →</span>
+          </button>
+        </div>
+      )}
 
       {/* Quadrant Presence Overview Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -408,6 +457,8 @@ export const Step2SignedIn: React.FC<Step2SignedInProps> = ({
             <option value="in-building">In Building ({inBuilding.length})</option>
             <option value="badged-out">Badged Out ({badgedOut.length})</option>
             <option value="offsite">Off-Site Today ({offSite.length})</option>
+            <option value="need-help">🚨 Need Help ({distressedOccupants.length})</option>
+            <option value="has-notes">💬 Has SitRep ({withNotesOccupants.length})</option>
           </select>
         </div>
       </div>
@@ -508,12 +559,20 @@ export const Step2SignedIn: React.FC<Step2SignedInProps> = ({
                 {filteredOccupants.map((occ) => {
                   const isSelected = selectedIds.has(occ.id);
                   const isPresent = !occ.badgedOut && !occ.offSiteToday;
+                  const isDistressed = occ.status === "need-help" || occ.status === "awaiting-evac-chair";
 
                   return (
                     <tr
                       key={occ.id}
-                      className={`hover:bg-[#F8FAFC] transition ${isSelected ? "bg-[#EBF3FB]" : isPresent ? "bg-white" : "bg-slate-50/70 opacity-75"
-                        }`}
+                      className={`hover:bg-[#F8FAFC] transition ${
+                        isDistressed
+                          ? "bg-red-50/90 border-l-4 border-l-red-600"
+                          : isSelected
+                            ? "bg-[#EBF3FB]"
+                            : isPresent
+                              ? "bg-white"
+                              : "bg-slate-50/70 opacity-75"
+                      }`}
                     >
                       <td className="p-3.5">
                         <input
@@ -553,6 +612,13 @@ export const Step2SignedIn: React.FC<Step2SignedInProps> = ({
                               <span>📞 Enrolled Mobile</span>
                             )}
                           </div>
+                          {/* Real-Time SitRep / Situation Report Note Badge */}
+                          {occ.notes && (
+                            <div className="mt-1 text-[11px] font-semibold text-amber-950 bg-amber-50 border border-amber-300/80 px-2 py-0.5 rounded-lg inline-flex items-center gap-1.5 shadow-2xs">
+                              <span className="text-amber-700 font-black">💬 SitRep:</span>
+                              <span className="font-medium italic">"{occ.notes.replace(/^Occupant SitRep:\s*/i, "")}"</span>
+                            </div>
+                          )}
                         </button>
                       </td>
                       <td className="p-3.5">
@@ -564,7 +630,12 @@ export const Step2SignedIn: React.FC<Step2SignedInProps> = ({
                         <div className="text-slate-500 text-[11px]">{occ.company || "Con Edison"}</div>
                       </td>
                       <td className="p-3.5">
-                        {isPresent ? (
+                        {isDistressed ? (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-black text-[11px] bg-red-600 text-white shadow-xs animate-pulse">
+                            <span>🚨</span>
+                            <span>{occ.status === "awaiting-evac-chair" ? "EVAC CHAIR REQUIRED" : "SOS / NEED HELP"}</span>
+                          </span>
+                        ) : isPresent ? (
                           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-bold text-[11px] bg-emerald-100 text-emerald-950 border border-emerald-300">
                             <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse" />
                             In Building (Floor 07)
@@ -581,15 +652,30 @@ export const Step2SignedIn: React.FC<Step2SignedInProps> = ({
                       </td>
                       <td className="p-3.5 text-right">
                         <div className="flex items-center justify-end gap-1.5">
-                          <button
-                            type="button"
-                            onClick={() => setSelectedOccupantForAction(occ)}
-                            className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-[#005DAA] to-[#003B70] hover:from-[#004884] hover:to-[#002D5A] text-white font-black text-xs cursor-pointer shadow-xs flex items-center gap-1.5 active:scale-95 transition"
-                            title="Inspect building location and perform direct life-safety action"
-                          >
-                            <span>🛡️</span>
-                            <span>Safety Action</span>
-                          </button>
+                          {isDistressed ? (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (onOpenRescueProcedure) onOpenRescueProcedure(occ);
+                                else setRescueProcedureOccupant(occ);
+                              }}
+                              className="px-3 py-1.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-black text-xs cursor-pointer shadow-sm flex items-center gap-1.5 active:scale-95 transition animate-pulse"
+                              title="Launch Emergency Rescue Procedure Window"
+                            >
+                              <span>🚑</span>
+                              <span>Rescue Window</span>
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => setSelectedOccupantForAction(occ)}
+                              className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-[#005DAA] to-[#003B70] hover:from-[#004884] hover:to-[#002D5A] text-white font-black text-xs cursor-pointer shadow-xs flex items-center gap-1.5 active:scale-95 transition"
+                              title="Inspect building location and perform direct life-safety action"
+                            >
+                              <span>🛡️</span>
+                              <span>Safety Action</span>
+                            </button>
+                          )}
                           {isPresent ? (
                             <button
                               type="button"

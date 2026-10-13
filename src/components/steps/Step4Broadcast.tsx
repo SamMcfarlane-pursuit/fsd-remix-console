@@ -1,7 +1,14 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { EmergencyAlertPayload, Occupant, QuadrantId, StatusSnapshot } from "../../types";
 import { speakEmergencyBroadcast, testAiVoice } from "../../lib/audioBroadcast";
 import { OccupantSafetyActionModal } from "../OccupantSafetyActionModal";
+import {
+  buildBroadcastDefaults,
+  getHazard,
+  normalizeAssemblyPoint,
+  normalizeStairwell,
+  shortStairwell,
+} from "../../lib/evacConstants";
 
 interface Step4BroadcastProps {
   snapshot: StatusSnapshot | null;
@@ -25,6 +32,7 @@ interface Step4BroadcastProps {
     locationCategory?: any,
     assemblyPoint?: string
   ) => Promise<void>;
+  onDeclareIncident?: (mode: "drill" | "incident", type: string) => Promise<void>;
 }
 
 export const Step4Broadcast: React.FC<Step4BroadcastProps> = ({
@@ -33,30 +41,29 @@ export const Step4Broadcast: React.FC<Step4BroadcastProps> = ({
   onProceedNext,
   onOpenWalkieTalkie,
   onBackToStep3,
-  stairwell,
-  assemblyPoint,
+  stairwell: routeStairwell,
+  assemblyPoint: routeAssembly,
   onCheckIn,
+  onDeclareIncident,
 }) => {
-  const hazard = snapshot?.hazardType || "office-fire";
   const isIncident = snapshot?.mode === "incident";
-  const [isPlayingTestVoice, setIsPlayingTestVoice] = useState(false);
-  const [selectedOccupantForAction, setSelectedOccupantForAction] = useState<Occupant | null>(null);
+  const isAlarmActive = snapshot?.incidentActive || false;
+  const currentHazard = getHazard(snapshot?.hazardType);
+  const resolvedStairwell = normalizeStairwell(routeStairwell);
+  const resolvedAssembly = normalizeAssemblyPoint(routeAssembly);
 
-  const resolvedStairwell = stairwell || "Stairwell A (East Core - Union Sq East)";
-  const resolvedAssembly = assemblyPoint || "Assembly Point A (Union Sq East / Park Plaza)";
+  // Compute live defaults based on Step 3 settings
+  const generatedDefaults = buildBroadcastDefaults({
+    mode: snapshot?.mode,
+    hazardId: snapshot?.hazardType,
+    stairwell: resolvedStairwell,
+    assemblyPoint: resolvedAssembly,
+  });
 
-  const defaultTitle = isIncident
-    ? `🚨 EMERGENCY EVACUATION: ${hazard.toUpperCase().replace("-", " ")} ON FLOOR 07`
-    : `🎯 LIFE-SAFETY DRILL: ${hazard.toUpperCase().replace("-", " ")} EVACUATION EXERCISE`;
-
-  const defaultNarrative = isIncident
-    ? `FSD Directive: Immediate evacuation ordered for all Floor 07 personnel due to ${hazard.replace("-", " ")}. Please proceed immediately via ${resolvedStairwell} to ${resolvedAssembly}. Do not use elevators.`
-    : `FSD Drill Announcement: Scheduled emergency evacuation drill is now in progress for Floor 07 (${hazard.replace("-", " ")}). Please proceed via ${resolvedStairwell} to ${resolvedAssembly}. All occupants please badge out or self-report safe upon arrival.`;
-
-  const [title, setTitle] = useState<string>(defaultTitle);
-  const [narrative, setNarrative] = useState<string>(defaultNarrative);
+  const [title, setTitle] = useState<string>(generatedDefaults.title);
+  const [narrative, setNarrative] = useState<string>(generatedDefaults.narrative);
   const [priority, setPriority] = useState<"CRITICAL" | "HIGH" | "WARNING">(
-    isIncident ? "CRITICAL" : "HIGH"
+    generatedDefaults.priority
   );
   const [targetAll, setTargetAll] = useState<boolean>(true);
   const [selectedQuadrants, setSelectedQuadrants] = useState<QuadrantId[]>(["NW", "NE", "SW", "SE"]);
@@ -66,7 +73,17 @@ export const Step4Broadcast: React.FC<Step4BroadcastProps> = ({
     pa: true,
     signage: true,
   });
-  const [isSending, setIsSending] = useState<boolean>(false);
+
+  const [isPlayingTestVoice, setIsPlayingTestVoice] = useState(false);
+  const [isSending, setIsSending] = useState(false);
+  const [selectedOccupantForAction, setSelectedOccupantForAction] = useState<Occupant | null>(null);
+  const [lastDispatchedInfo, setLastDispatchedInfo] = useState<{
+    id: string;
+    title: string;
+    time: string;
+    recipients: number;
+  } | null>(null);
+
   const [broadcastHistory, setBroadcastHistory] = useState<
     Array<{
       id: string;
@@ -78,10 +95,33 @@ export const Step4Broadcast: React.FC<Step4BroadcastProps> = ({
     }>
   >([]);
 
+  // Automatically keep the form synced when Step 3 changes
+  useEffect(() => {
+    const updated = buildBroadcastDefaults({
+      mode: snapshot?.mode,
+      hazardId: snapshot?.hazardType,
+      stairwell: resolvedStairwell,
+      assemblyPoint: resolvedAssembly,
+    });
+    setTitle(updated.title);
+    setNarrative(updated.narrative);
+    setPriority(updated.priority);
+  }, [snapshot?.hazardType, snapshot?.mode, resolvedStairwell, resolvedAssembly]);
+
+  // Quadrant occupant breakdowns
+  const presentOccupants = (snapshot?.occupants || []).filter(
+    (o) => !o.badgedOut && !o.offSiteToday
+  );
+  const totalRecipients = presentOccupants.length || snapshot?.expectedOnFloor || 0;
+
+  const countByQuadrant = (qid: QuadrantId) =>
+    presentOccupants.filter((o) => o.quadrant === qid).length;
+
   const handleToggleQuadrant = (qid: QuadrantId) => {
     if (selectedQuadrants.includes(qid)) {
-      if (selectedQuadrants.length === 1) return; // Keep at least one
-      setSelectedQuadrants(selectedQuadrants.filter((q) => q !== qid));
+      if (selectedQuadrants.length === 1) return;
+      const next = selectedQuadrants.filter((q) => q !== qid);
+      setSelectedQuadrants(next);
       setTargetAll(false);
     } else {
       const next = [...selectedQuadrants, qid];
@@ -109,17 +149,18 @@ export const Step4Broadcast: React.FC<Step4BroadcastProps> = ({
     setIsSending(true);
 
     const activeChannels = Object.keys(channels).filter((k) => channels[k]);
-    const targetPayload = targetAll ? ["ALL" as const] : selectedQuadrants;
+    const targetPayload = targetAll ? (["ALL"] as const) : selectedQuadrants;
 
     try {
-      const res = await onSendAlert({
+      await onSendAlert({
         title,
         narrative,
         priority,
-        targetQuadrants: targetPayload,
+        targetQuadrants: targetPayload as any,
         channels: activeChannels,
       });
 
+      // Play PA announcement chime and speak narrative
       speakEmergencyBroadcast(narrative, priority, { playChime: true });
 
       const entry = {
@@ -127,11 +168,17 @@ export const Step4Broadcast: React.FC<Step4BroadcastProps> = ({
         title,
         priority,
         sentAt: new Date().toLocaleTimeString(),
-        recipients: snapshot?.occupants?.length ?? snapshot?.expectedOnFloor ?? 0,
+        recipients: totalRecipients,
         channels: activeChannels,
       };
 
       setBroadcastHistory((prev) => [entry, ...prev]);
+      setLastDispatchedInfo({
+        id: entry.id,
+        title,
+        time: entry.sentAt,
+        recipients: totalRecipients,
+      });
     } finally {
       setIsSending(false);
     }
@@ -147,18 +194,19 @@ export const Step4Broadcast: React.FC<Step4BroadcastProps> = ({
             STEP 04 OF 05 · MULTI-CHANNEL EMERGENCY BROADCAST
           </div>
           <h2 className="text-2xl font-black tracking-tight text-[#0F2537]">
-            Push Emergency Alert to Every Device
+            Broadcast Directives to Every Device
           </h2>
           <p className="text-sm text-[#475569] mt-1 max-w-2xl">
-            Commander broadcasts instant life-safety alerts across all occupant mobile devices, SMS emergency gateways, in-building PA speaker channels, and digital safety displays.
+            Transmit instant directives across smartphone web push, SMS emergency gateway, Floor 07 PA
+            speaker system, and digital screens. Occupants receive exact egress routes.
           </p>
         </div>
 
         <div className="flex items-center gap-3 shrink-0">
           <div className="bg-[#F0F6FC] px-4 py-2.5 rounded-xl border border-[#CBDCEE] text-right">
-            <div className="text-[10px] font-mono font-bold text-[#475569] uppercase">Total Recipients</div>
+            <div className="text-[10px] font-mono font-bold text-[#475569] uppercase">In-Building Recipients</div>
             <div className="text-xl font-mono font-black text-[#005DAA]">
-              {snapshot?.occupants?.length ?? snapshot?.expectedOnFloor ?? 0} <span className="text-xs text-[#64748B]">Devices</span>
+              {totalRecipients} <span className="text-xs text-[#64748B]">Personnel</span>
             </div>
           </div>
 
@@ -185,22 +233,49 @@ export const Step4Broadcast: React.FC<Step4BroadcastProps> = ({
         </div>
       </div>
 
-      {/* Step 3 Active Alarm Coupling Banner */}
-      {snapshot?.incidentActive && (
+      {/* Dispatched Confirmation Callout Banner */}
+      {lastDispatchedInfo && (
+        <div className="rounded-2xl p-4 bg-emerald-500 text-white shadow-md border border-emerald-400 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 animate-fadeIn">
+          <div className="flex items-center gap-3">
+            <span className="text-2xl">✅</span>
+            <div>
+              <div className="text-xs font-black uppercase tracking-wider text-emerald-100">
+                DIRECTIVE DISPATCHED AT {lastDispatchedInfo.time} · {lastDispatchedInfo.recipients} DEVICES REACHED
+              </div>
+              <div className="text-sm font-bold mt-0.5">
+                Occupants are now guided to {shortStairwell(resolvedStairwell)} and self-reporting outside.
+              </div>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onProceedNext}
+            className="px-5 py-2.5 bg-white text-emerald-900 hover:bg-emerald-50 font-black rounded-xl text-xs uppercase tracking-wider transition shadow-sm cursor-pointer shrink-0"
+          >
+            Monitor Muster in Step 05 →
+          </button>
+        </div>
+      )}
+
+      {/* Step 3 Coupling & Alarm Status Banner */}
+      {isAlarmActive ? (
         <div className="bg-linear-to-r from-red-50 via-amber-50 to-blue-50 border border-amber-300 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
           <div className="flex items-center gap-3">
-            <span className="text-2xl shrink-0">🚨</span>
+            <span className="text-2xl shrink-0">{currentHazard.icon}</span>
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-[10px] font-mono font-bold uppercase tracking-wider bg-red-600 text-white px-2 py-0.5 rounded">
-                  {isIncident ? "LIVE EMERGENCY" : "ACTIVE DRILL"}
+                <span className={`text-[10px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded text-white ${
+                  isIncident ? "bg-red-600" : "bg-[#005DAA]"
+                }`}>
+                  {isIncident ? "LIVE EMERGENCY ACTIVE" : "DRILL ALARM ACTIVE"}
                 </span>
                 <span className="text-xs font-black text-[#0F2537] uppercase">
-                  {hazard.replace("-", " ")}
+                  {currentHazard.name}
                 </span>
               </div>
               <p className="text-xs text-[#475569] mt-0.5">
-                Designated Egress: <strong>{resolvedStairwell}</strong> · Assembly Point: <strong>{resolvedAssembly}</strong>
+                Directing egress via <strong>{resolvedStairwell}</strong> to assembly at{" "}
+                <strong>{resolvedAssembly}</strong>.
               </p>
             </div>
           </div>
@@ -209,12 +284,19 @@ export const Step4Broadcast: React.FC<Step4BroadcastProps> = ({
             <button
               type="button"
               onClick={() => {
-                setTitle(defaultTitle);
-                setNarrative(defaultNarrative);
+                const refreshed = buildBroadcastDefaults({
+                  mode: snapshot?.mode,
+                  hazardId: snapshot?.hazardType,
+                  stairwell: resolvedStairwell,
+                  assemblyPoint: resolvedAssembly,
+                });
+                setTitle(refreshed.title);
+                setNarrative(refreshed.narrative);
+                setPriority(refreshed.priority);
               }}
               className="px-3 py-1.5 text-xs font-bold text-[#005DAA] hover:bg-blue-100/60 rounded-lg transition border border-blue-200 cursor-pointer"
             >
-              Sync Form with Alarm
+              Sync with Step 03
             </button>
             {onBackToStep3 && (
               <button
@@ -222,7 +304,41 @@ export const Step4Broadcast: React.FC<Step4BroadcastProps> = ({
                 onClick={onBackToStep3}
                 className="px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-200/60 rounded-lg transition border border-slate-300 cursor-pointer"
               >
-                Edit in Step 03
+                Change in Step 03
+              </button>
+            )}
+          </div>
+        </div>
+      ) : (
+        <div className="rounded-2xl p-4 bg-amber-50 border border-amber-300 text-amber-950 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <span className="text-2xl">⚠️</span>
+            <div>
+              <div className="text-xs font-bold font-mono text-amber-800 uppercase tracking-wide">
+                No Alarm Currently Sounded on Floor 07
+              </div>
+              <p className="text-xs text-amber-900 mt-0.5">
+                You are viewing Step 04 Broadcast, but Step 03 has not declared an alarm or drill yet.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            {onBackToStep3 && (
+              <button
+                type="button"
+                onClick={onBackToStep3}
+                className="px-4 py-2 bg-[#005DAA] text-white font-bold rounded-xl text-xs uppercase tracking-wider transition cursor-pointer"
+              >
+                ← Return to Step 03
+              </button>
+            )}
+            {onDeclareIncident && (
+              <button
+                type="button"
+                onClick={() => onDeclareIncident("drill", "office-fire")}
+                className="px-3 py-2 bg-white text-slate-800 border border-amber-300 hover:bg-amber-100 font-bold rounded-xl text-xs transition cursor-pointer"
+              >
+                ⚡ Quick Start Drill
               </button>
             )}
           </div>
@@ -247,7 +363,8 @@ export const Step4Broadcast: React.FC<Step4BroadcastProps> = ({
                 </h3>
               </div>
               <p className="text-xs text-slate-300 mt-1 max-w-lg leading-relaxed">
-                Authorized Floor Wardens and FSD Chief Commanders can transmit live spoken voice dispatches with real-time acoustic radio effects and live speech transcription directly to all floor occupant devices.
+                Floor Wardens and FSD Chief Commanders can transmit live spoken dispatches with acoustic
+                chirps, roger beeps, and real-time speech transcription directly to occupant phones.
               </p>
             </div>
           </div>
@@ -263,20 +380,21 @@ export const Step4Broadcast: React.FC<Step4BroadcastProps> = ({
           </button>
         </div>
 
-        {/* Right Card: AI Voice Clarity Preview (4 cols) */}
+        {/* Right Card: AI Voice Engine Preview (4 cols) */}
         <div className="md:col-span-4 bg-white rounded-2xl p-5 border border-[#B8D8F8] shadow-xs flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between mb-1.5">
               <span className="text-xs font-mono font-bold text-[#005DAA] uppercase tracking-wider flex items-center gap-1">
                 <span>✨</span>
-                <span>Natural Voice Engine</span>
+                <span>Commercial Voice Engine</span>
               </span>
               <span className="text-[10px] font-bold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full">
                 PA Chime Active
               </span>
             </div>
             <p className="text-xs text-[#475569]">
-              Replaced robotic synthesizer with natural human cadence (0.94 rate), warm vocal authority, and commercial PA acoustic chime.
+              Speech synthesis uses articulate cadence (0.94 rate), authentic PA two-tone chime, and
+              multi-lingual translations.
             </p>
           </div>
 
@@ -291,121 +409,6 @@ export const Step4Broadcast: React.FC<Step4BroadcastProps> = ({
         </div>
       </div>
 
-      {/* Step 3 & 4 Emergency Directive Protocol: WHAT TO SAY & WHAT TO SHOW */}
-      <div className="bg-white rounded-2xl p-6 border-2 border-[#005DAA]/40 shadow-xs space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
-          <div>
-            <div className="text-[10px] font-mono font-black uppercase text-[#005DAA] tracking-wider flex items-center gap-1.5">
-              <span>📢</span>
-              <span>STEP 03 &amp; STEP 04 COMMAND PROTOCOL</span>
-            </div>
-            <h3 className="text-base font-black text-[#0F2537] mt-0.5">
-              Emergency Command Directives: What to Say &amp; What to Show
-            </h3>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] font-mono bg-sky-100 text-[#005DAA] border border-sky-300 px-2.5 py-1 rounded-full font-bold">
-              NYC Fire Code 3 RCNY §401-06
-            </span>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {/* Box 1: WHAT TO SAY */}
-          <div className="bg-[#0C1E36] rounded-2xl p-5 border-2 border-sky-500/50 text-white space-y-3 shadow-md flex flex-col justify-between">
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] font-mono font-black uppercase tracking-wider text-amber-300 bg-amber-950/70 border border-amber-500/30 px-2 py-0.5 rounded">
-                  🎙️ WHAT TO SAY (PA &amp; RADIO SPOKEN SCRIPT)
-                </span>
-                <span className="text-[10px] font-mono text-slate-300">
-                  Read aloud via building PA
-                </span>
-              </div>
-
-              <div className="bg-black/40 border border-white/10 rounded-xl p-3.5 font-mono text-xs text-amber-100 leading-relaxed select-all">
-                &ldquo;{narrative || defaultNarrative}&rdquo;
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2 pt-2 border-t border-white/10">
-              <button
-                type="button"
-                onClick={() =>
-                  speakEmergencyBroadcast(narrative || defaultNarrative, priority, { playChime: true })
-                }
-                className="px-3.5 py-2 bg-[#005DAA] hover:bg-[#004884] text-white text-xs font-bold rounded-xl transition cursor-pointer flex items-center gap-1.5 shadow-sm active:scale-95"
-              >
-                <span>🔊</span>
-                <span>Audio Playback Preview</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  navigator.clipboard?.writeText(narrative || defaultNarrative);
-                }}
-                className="px-3.5 py-2 bg-white/10 hover:bg-white/20 text-white text-xs font-bold rounded-xl transition cursor-pointer flex items-center gap-1.5 active:scale-95"
-              >
-                <span>📋</span>
-                <span>Copy Script</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Box 2: WHAT TO SHOW */}
-          <div className="bg-[#0C1E36] rounded-2xl p-5 border-2 border-red-500/50 text-white space-y-3 shadow-md flex flex-col justify-between">
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] font-mono font-black uppercase tracking-wider text-red-300 bg-red-950/70 border border-red-500/30 px-2 py-0.5 rounded">
-                  📱 WHAT TO SHOW (MOBILE PASS &amp; SIGNAGE DISPLAY)
-                </span>
-                <span className="text-[10px] font-mono text-emerald-400">
-                  Live Broadcast Preview
-                </span>
-              </div>
-
-              {/* Mobile Screen Mockup */}
-              <div className="bg-gradient-to-br from-red-950 via-slate-900 to-red-900 rounded-xl p-3.5 border border-red-500/70 space-y-2.5">
-                <div className="flex items-center justify-between text-xs font-black text-red-200">
-                  <span className="flex items-center gap-1.5 truncate max-w-[220px]">
-                    <span>🚨</span>
-                    <span className="truncate">{title || defaultTitle}</span>
-                  </span>
-                  <span className="text-[10px] font-mono bg-red-600 text-white px-2 py-0.5 rounded shrink-0">
-                    {priority}
-                  </span>
-                </div>
-
-                <p className="text-[11px] text-slate-200 line-clamp-2 bg-black/40 p-2 rounded-lg border border-white/5 font-sans">
-                  {narrative || defaultNarrative}
-                </p>
-
-                <div className="grid grid-cols-2 gap-2 text-[11px] font-mono">
-                  <div className="bg-black/50 p-2 rounded-lg border border-sky-400/30">
-                    <div className="text-slate-400 text-[9px]">PRIMARY STAIRWELL</div>
-                    <div className="text-sky-300 font-bold truncate">{resolvedStairwell.split(" (")[0]}</div>
-                  </div>
-                  <div className="bg-black/50 p-2 rounded-lg border border-red-500/30">
-                    <div className="text-slate-400 text-[9px]">ELEVATORS</div>
-                    <div className="text-red-400 font-bold">LOCKED OUT 🚫</div>
-                  </div>
-                </div>
-
-                <div className="bg-black/50 p-2 rounded-lg border border-amber-400/30 text-[11px]">
-                  <div className="text-slate-400 text-[9px] font-mono">OUTDOOR MUSTER POINT</div>
-                  <div className="text-amber-300 font-bold truncate">{resolvedAssembly}</div>
-                </div>
-              </div>
-            </div>
-
-            <div className="text-[10px] font-mono text-slate-400 flex items-center justify-between pt-2 border-t border-white/10">
-              <span>Pushed to {snapshot?.occupants?.length ?? snapshot?.expectedOnFloor ?? 0} active occupant screens</span>
-              <span className="text-emerald-400">● Signage Sync Ready</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
       {/* Broadcast Composer Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Left Column: Broadcast Composer (8 cols) */}
@@ -416,7 +419,7 @@ export const Step4Broadcast: React.FC<Step4BroadcastProps> = ({
               <span>Emergency Dispatch Message Composer</span>
             </h3>
             <span className="text-xs font-mono text-[#005DAA] bg-[#EBF3FB] px-2.5 py-0.5 rounded font-bold">
-              Instant Push Ready
+              NYC Fire Code §401-06 Ready
             </span>
           </div>
 
@@ -435,8 +438,9 @@ export const Step4Broadcast: React.FC<Step4BroadcastProps> = ({
                   key={p.id}
                   type="button"
                   onClick={() => setPriority(p.id as any)}
-                  className={`p-3 rounded-xl border-2 text-xs font-black transition cursor-pointer text-center ${priority === p.id ? `${p.bg} shadow-xs ring-2 ring-slate-900/10` : "border-slate-200 text-slate-600 bg-white"
-                    }`}
+                  className={`p-3 rounded-xl border-2 text-xs font-black transition cursor-pointer text-center ${
+                    priority === p.id ? `${p.bg} shadow-xs ring-2 ring-slate-900/10` : "border-slate-200 text-slate-600 bg-white"
+                  }`}
                 >
                   {p.label}
                 </button>
@@ -460,9 +464,19 @@ export const Step4Broadcast: React.FC<Step4BroadcastProps> = ({
 
           {/* Narrative Body */}
           <div>
-            <label className="block text-xs font-bold text-[#475569] uppercase tracking-wider mb-1.5">
-              Evacuation Instructions &amp; Action Directives *
-            </label>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="block text-xs font-bold text-[#475569] uppercase tracking-wider">
+                Evacuation Instructions &amp; Action Directives *
+              </label>
+              <button
+                type="button"
+                onClick={() => speakEmergencyBroadcast(narrative, priority, { playChime: true })}
+                className="text-[11px] font-bold text-[#005DAA] hover:underline flex items-center gap-1 cursor-pointer"
+              >
+                <span>🔊</span>
+                <span>Listen to PA Script</span>
+              </button>
+            </div>
             <textarea
               rows={4}
               value={narrative}
@@ -472,7 +486,7 @@ export const Step4Broadcast: React.FC<Step4BroadcastProps> = ({
             />
           </div>
 
-          {/* Target Zones */}
+          {/* Target Zones with live counts */}
           <div>
             <label className="block text-xs font-bold text-[#475569] uppercase tracking-wider mb-2">
               Target Broadcast Zones
@@ -481,27 +495,30 @@ export const Step4Broadcast: React.FC<Step4BroadcastProps> = ({
               <button
                 type="button"
                 onClick={() => handleToggleAll(true)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-black transition cursor-pointer ${targetAll
+                className={`px-3 py-1.5 rounded-xl text-xs font-black transition cursor-pointer ${
+                  targetAll
                     ? "bg-[#005DAA] text-white shadow-xs"
                     : "bg-[#F0F6FC] text-[#005DAA] border border-[#CBDCEE]"
-                  }`}
+                }`}
               >
-                ✓ ALL FLOOR 07 ({snapshot?.occupants?.length ?? snapshot?.expectedOnFloor ?? 0} Personnel)
+                ✓ ALL FLOOR 07 ({totalRecipients} Personnel)
               </button>
 
               {(["NW", "NE", "SW", "SE"] as QuadrantId[]).map((qid) => {
                 const isSelected = selectedQuadrants.includes(qid);
+                const qCount = countByQuadrant(qid);
                 return (
                   <button
                     key={qid}
                     type="button"
                     onClick={() => handleToggleQuadrant(qid)}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${isSelected
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+                      isSelected
                         ? "bg-[#005DAA] text-white"
                         : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                      }`}
+                    }`}
                   >
-                    Quadrant {qid}
+                    Quadrant {qid} ({qCount})
                   </button>
                 );
               })}
@@ -511,7 +528,7 @@ export const Step4Broadcast: React.FC<Step4BroadcastProps> = ({
           {/* Dispatch Button */}
           <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
             <div className="text-xs text-[#64748B]">
-              Broadcast dispatches in &lt;100ms via Con Ed mesh gateway.
+              Broadcast dispatches in &lt;100ms across all selected delivery channels.
             </div>
 
             <button
@@ -521,12 +538,12 @@ export const Step4Broadcast: React.FC<Step4BroadcastProps> = ({
               className="px-8 py-3.5 bg-[#FF6B00] hover:bg-[#FF8533] text-slate-950 font-black text-sm uppercase tracking-wider rounded-xl transition shadow-md flex items-center gap-2 cursor-pointer disabled:opacity-50"
             >
               <span className="text-lg">📢</span>
-              <span>{isSending ? "Dispatching Broadcast..." : "Send Emergency Alert Now"}</span>
+              <span>{isSending ? "Dispatching Broadcast..." : `Send Emergency Alert (${totalRecipients} Recipients)`}</span>
             </button>
           </div>
         </div>
 
-        {/* Right Column: Active Channels & Live Delivery Receipts (4 cols) */}
+        {/* Right Column: Channels, Notification Audience, & Receipts (4 cols) */}
         <div className="lg:col-span-4 space-y-6">
           {/* Channels Selector */}
           <div className="bg-white rounded-2xl p-5 border border-[#B8D8F8] shadow-xs space-y-3">
@@ -559,7 +576,7 @@ export const Step4Broadcast: React.FC<Step4BroadcastProps> = ({
             </div>
           </div>
 
-          {/* Target Audience: Registered Personnel */}
+          {/* Drill Notification Audience & Individual Actions */}
           <div className="bg-white rounded-2xl p-5 border border-[#B8D8F8] shadow-xs space-y-3">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-black text-[#0F2537] flex items-center gap-1.5">
@@ -567,20 +584,20 @@ export const Step4Broadcast: React.FC<Step4BroadcastProps> = ({
                 <span>Drill Notification Audience</span>
               </h3>
               <span className="text-[10px] font-mono text-[#005DAA] font-bold bg-[#EBF3FB] px-2 py-0.5 rounded">
-                {snapshot?.occupants?.length || 0} Registered
+                {totalRecipients} In-Building
               </span>
             </div>
 
-            {(!snapshot?.occupants || snapshot.occupants.length === 0) ? (
+            {presentOccupants.length === 0 ? (
               <div className="p-4 bg-amber-50 rounded-xl border border-amber-200 text-xs text-amber-900 space-y-1">
-                <div className="font-bold">⚠️ Roster Currently Empty (Ready for Intake)</div>
+                <div className="font-bold">⚠️ Roster Currently Empty</div>
                 <p className="text-[11px] text-amber-800 leading-relaxed">
-                  No occupants are currently intaken. Personnel who sign in via the Step 01 QR code, Kiosk, or Quick Intake will appear here and receive direct push alerts and emergency SMS broadcasts.
+                  No occupants currently verified on floor. Personnel who sign in via Step 01 QR will appear here.
                 </p>
               </div>
             ) : (
               <div className="space-y-1.5 max-h-48 overflow-y-auto divide-y divide-slate-100">
-                {snapshot.occupants.map((occ) => (
+                {presentOccupants.map((occ) => (
                   <div key={occ.id} className="pt-1.5 first:pt-0 flex items-center justify-between text-xs">
                     <div>
                       <div className="font-bold text-[#0F2537] flex items-center gap-1.5">
@@ -588,7 +605,7 @@ export const Step4Broadcast: React.FC<Step4BroadcastProps> = ({
                           type="button"
                           onClick={() => setSelectedOccupantForAction(occ)}
                           className="hover:text-[#005DAA] flex items-center gap-1.5 cursor-pointer text-left group"
-                          title="Click name to view building location and execute individual life-safety actions"
+                          title="Click to view building location and execute individual actions"
                         >
                           <span className="group-hover:underline">{occ.name}</span>
                           <span className="text-[9px] bg-sky-100 group-hover:bg-[#005DAA] text-[#005DAA] group-hover:text-white border border-sky-300 px-1 py-0.2 rounded font-mono font-bold transition">
@@ -602,13 +619,12 @@ export const Step4Broadcast: React.FC<Step4BroadcastProps> = ({
                           <a
                             href={`tel:${occ.phone.replace(/[^0-9+]/g, "")}`}
                             className="text-[#005DAA] hover:underline font-bold flex items-center gap-0.5 cursor-pointer"
-                            title="Direct Dial Real Phone Number"
                           >
                             <span>📞</span>
                             <span>{occ.phone}</span>
                           </a>
                         ) : (
-                          <span className="text-slate-400">No phone registered</span>
+                          <span className="text-slate-400">No phone</span>
                         )}
                         <span>· Sector {occ.quadrant}</span>
                       </div>

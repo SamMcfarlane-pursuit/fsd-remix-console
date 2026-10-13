@@ -23,8 +23,10 @@ export const UserFlowStepper: React.FC<UserFlowStepperProps> = ({
   onOpenAllSafe,
 }) => {
   const isIncidentActive = snapshot?.incidentActive || false;
-  const unaccountedCount = snapshot?.unaccounted || 0;
-  const isAllSafeActive = isIncidentActive && unaccountedCount === 0;
+  const expected = snapshot?.expectedOnFloor || 0;
+  const accounted = snapshot?.accounted || 0;
+  const unaccountedCount = Math.max(0, expected - accounted);
+  const isAllSafeActive = isIncidentActive && expected > 0 && unaccountedCount === 0;
 
   // Determine active step based on state if not forced
   let activeStep = currentStep;
