@@ -3988,7 +3988,7 @@ async function startServer() {
         middlewareMode: true,
         allowedHosts: true,
         watch: {
-          ignored: ["**/data/**", "**/data/fsd_roster.json", "**/.system_generated/**", "**/*.log"],
+          ignored: ["**/data/**", "**/data/fsd_roster.json", "**/.system_generated/**", "**/*.log", "**/bin/**", "**/bin/cloudflared"],
         },
       },
       appType: "spa",
