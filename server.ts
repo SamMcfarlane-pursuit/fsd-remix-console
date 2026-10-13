@@ -202,6 +202,8 @@ function generateInitialRoster(targetCount: number = 195): Occupant[] {
       let unaccountedMinutes = 0;
       let notes = "";
       let araAssigned = false;
+      let locationCategory: Occupant["locationCategory"] = "inside-building";
+      let assemblyPoint: string | undefined = undefined;
 
       if (id === "OCC-105") {
         status = "awaiting-evac-chair";
@@ -214,16 +216,14 @@ function generateInitialRoster(targetCount: number = 195): Occupant[] {
       } else if (id === "OCC-115") {
         status = "need-help";
         unaccountedMinutes = 4;
-        notes = "Wearable fall sensor trigger in SW corridor";
+        notes = "Tapped 'I Need Help' via mobile SOS · Responder dispatched by name (SW Corridor)";
       } else if (id === "OCC-141") {
-        status = "mia";
-        unaccountedMinutes = 5;
-        notes = "Unaccounted past 5-min MIA threshold";
+        status = "safe";
+        badgedOut = false;
+        offSiteToday = true;
+        locationCategory = "offsite";
+        notes = "Never badged in at turnstile today · Verified Off-Site (Not in building)";
       }
-
-      // Assign locationCategory and assemblyPoint
-      let locationCategory: Occupant["locationCategory"] = "inside-building";
-      let assemblyPoint: string | undefined = undefined;
 
       if (badgedOut || offSiteToday) {
         locationCategory = "offsite";
@@ -2669,6 +2669,119 @@ app.post("/api/drill/generate", requireCommanderAuth, (req, res) => {
     ledgerEntry: entry,
     snapshot: getDerivedSnapshot(),
   });
+});
+
+// Slide 4 Presentation Benchmark: 8-Minute Digital Muster State (191 Safe · 1 SOS · 2 Evac · 1 Off-Site)
+app.post("/api/drill/demo-preset-8min", requireCommanderAuth, (req, res) => {
+  occupantsRoster = generateInitialRoster(195);
+
+  // Configure exact Slide 4 presentation headcount
+  occupantsRoster.forEach((o) => {
+    if (o.id === "OCC-105" || o.id === "OCC-109") {
+      o.status = "awaiting-evac-chair";
+      o.araAssigned = true;
+      o.badgedOut = false;
+      o.offSiteToday = false;
+      o.locationCategory = "inside-building";
+      o.notes = o.id === "OCC-105"
+        ? "Stair A landing, Floor 07 ARA chair required (mobility assistance team active)"
+        : "Stair A landing, Floor 07 knee brace evacuation partner assigned";
+    } else if (o.id === "OCC-115") {
+      o.status = "need-help";
+      o.badgedOut = false;
+      o.offSiteToday = false;
+      o.locationCategory = "inside-building";
+      o.notes = "Tapped 'I Need Help' via mobile SOS · Responder dispatched directly by name (SW Corridor)";
+    } else if (o.id === "OCC-141") {
+      o.status = "safe";
+      o.badgedOut = false;
+      o.offSiteToday = true;
+      o.locationCategory = "offsite";
+      o.notes = "Never badged in today (Off-Site / Remote) · Verified not in building";
+    } else {
+      o.status = "safe";
+      o.badgedOut = false;
+      o.offSiteToday = false;
+      o.locationCategory = "outside-assembly";
+      o.assemblyPoint = "Assembly Point A (Union Sq East / Park Plaza)";
+    }
+  });
+
+  incidentActive = true;
+  incidentMode = "drill";
+  hazardType = "electrical-fire";
+  designatedStairwell = "Stairwell A · Door 7-A East";
+  designatedAssemblyPoint = "Assembly Point A (Union Sq East / Park Plaza)";
+  // Exact 8-minute milestone (480 seconds elapsed from 9:42 to 9:50 AM)
+  declaredAt = new Date(Date.now() - 480 * 1000).toISOString();
+  drillAllSafeAt = null;
+  drillP95ClearedAt = new Date(Date.now() - 60 * 1000).toISOString();
+
+  latestEmergencyAlert = {
+    alertId: `ALT-${Date.now()}`,
+    title: "LIFE-SAFETY DRILL · EVACUATION IN PROGRESS",
+    narrative: "Attention Floor 07 personnel: Evacuate immediately via Stairwell A to Park Plaza. Do NOT use elevators.",
+    priority: "HIGH",
+    targetQuadrants: ["ALL"],
+    channels: ["PUSH_NOTIFICATION", "SMS_DIRECT", "MESH_AUDIO_BEACON"],
+    senderRole: "Fire Safety Director",
+    timestamp: declaredAt,
+    deliveredCount: 194,
+    ackCount: 191,
+  };
+
+  savePersistedRoster(occupantsRoster);
+  syncInitialRosterToEvents();
+
+  const entry = appendLedger("slide4-presentation-benchmark-loaded", {
+    alarmTime: "09:42 AM",
+    currentTime: "09:50 AM",
+    elapsedMinutes: 8,
+    accountedSafe: 191,
+    needHelp: 1,
+    awaitingEvacChair: 2,
+    neverBadgedInOffSite: 1,
+    totalRoster: 195,
+    legacyPaperBaselineMinutes: 24,
+    timeSavedMinutes: 16,
+  });
+
+  notifySseClients();
+  res.json({
+    ok: true,
+    message: "Loaded 9:50 AM Presentation State (191 Safe · 1 SOS · 2 Evac · 1 Off-Site · 8 min elapsed).",
+    snapshot: getDerivedSnapshot(),
+    ledgerEntry: entry,
+  });
+});
+
+// Resolve SOS distress for Slide 4 live walk-through
+app.post("/api/drill/resolve-sos", requireCommanderAuth, (req, res) => {
+  const occ = occupantsRoster.find((o) => o.id === "OCC-115" || o.status === "need-help");
+  if (occ) {
+    occ.status = "safe";
+    occ.locationCategory = "outside-assembly";
+    occ.assemblyPoint = "Assembly Point A (Union Sq East / Park Plaza)";
+    occ.notes = "Responder arrived · Escorted safely to Assembly Point A";
+    savePersistedRoster(occupantsRoster);
+    notifySseClients();
+  }
+  res.json({ ok: true, snapshot: getDerivedSnapshot() });
+});
+
+// Resolve ARA Evac Chairs for Slide 4 live walk-through
+app.post("/api/drill/resolve-evac", requireCommanderAuth, (req, res) => {
+  occupantsRoster.forEach((o) => {
+    if (o.status === "awaiting-evac-chair") {
+      o.status = "safe";
+      o.locationCategory = "outside-assembly";
+      o.assemblyPoint = "Assembly Point A (Union Sq East / Park Plaza)";
+      o.notes = "Evac chair descent completed · Verified safe outside";
+    }
+  });
+  savePersistedRoster(occupantsRoster);
+  notifySseClients();
+  res.json({ ok: true, snapshot: getDerivedSnapshot() });
 });
 
 // Real-Time Egress Simulation Endpoint (Progressively moves personnel to safe exterior assembly)

@@ -62,6 +62,77 @@ export const Step5AllSafe: React.FC<Step5AllSafeProps> = ({
     "ALL_UNACCOUNTED"
   );
   const [selectedOccupantForAction, setSelectedOccupantForAction] = useState<Occupant | null>(null);
+  const [isPresetLoading, setIsPresetLoading] = useState<boolean>(false);
+  const [isResolvingSos, setIsResolvingSos] = useState<boolean>(false);
+  const [isResolvingEvac, setIsResolvingEvac] = useState<boolean>(false);
+  const [benchmarkFeedback, setBenchmarkFeedback] = useState<string | null>(null);
+
+  // Slide 4 Live Benchmark State Loader (9:50 AM · 191 Safe · 1 SOS · 2 Evac · 1 Off-Site)
+  const handleLoadSlide4Preset = async () => {
+    setIsPresetLoading(true);
+    try {
+      const res = await fetch("/api/drill/demo-preset-8min", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-fsd-pin": "7007",
+        },
+      });
+      if (res.ok) {
+        onRefreshState();
+        setBenchmarkFeedback("🎯 Slide 4 Presentation State Loaded: 8 minutes elapsed (9:42 → 9:50 AM). 191 Safe · 1 SOS · 2 Evac · 1 Off-Site.");
+        setTimeout(() => setBenchmarkFeedback(null), 8000);
+      }
+    } catch (err) {
+      console.warn("Failed to load Slide 4 preset:", err);
+    } finally {
+      setIsPresetLoading(false);
+    }
+  };
+
+  const handleResolveSos = async () => {
+    setIsResolvingSos(true);
+    try {
+      const res = await fetch("/api/drill/resolve-sos", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-fsd-pin": "7007",
+        },
+      });
+      if (res.ok) {
+        onRefreshState();
+        setBenchmarkFeedback("🚑 Responder arrived for OCC-115 (Jordan Lee) · Escorted safely to Assembly Point A.");
+        setTimeout(() => setBenchmarkFeedback(null), 6000);
+      }
+    } catch (err) {
+      console.warn("Failed to resolve SOS:", err);
+    } finally {
+      setIsResolvingSos(false);
+    }
+  };
+
+  const handleResolveEvac = async () => {
+    setIsResolvingEvac(true);
+    try {
+      const res = await fetch("/api/drill/resolve-evac", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-fsd-pin": "7007",
+        },
+      });
+      if (res.ok) {
+        onRefreshState();
+        setBenchmarkFeedback("🛞 Stryker Evac Chair teams completed descent at Stairwell A · Both mobility partners safe outside.");
+        setTimeout(() => setBenchmarkFeedback(null), 6000);
+      }
+    } catch (err) {
+      console.warn("Failed to resolve evac chairs:", err);
+    } finally {
+      setIsResolvingEvac(false);
+    }
+  };
 
   // Live Stopwatch Ticker for Evacuation Timing
   React.useEffect(() => {
@@ -363,6 +434,256 @@ export const Step5AllSafe: React.FC<Step5AllSafeProps> = ({
           </div>
         </div>
       )}
+
+      {/* SLIDE 4 EXECUTIVE PRESENTATION BENCHMARK BANNER */}
+      <div className="bg-gradient-to-br from-[#0F2537] via-[#003B70] to-[#0A1A2F] text-white rounded-3xl p-6 sm:p-7 border-2 border-sky-400/50 shadow-2xl space-y-6">
+        {/* Header & Presentation Controls */}
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-white/15 pb-5">
+          <div className="space-y-1">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-sky-500/20 border border-sky-400/40 text-sky-300 font-mono text-[11px] font-black tracking-wider uppercase">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              SLIDE 4 PRESENTATION BENCHMARK · THE 8-MINUTE MILESTONE
+            </div>
+            <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+              8 Minutes to 100% Accounted <span className="text-emerald-400">(vs. 24-Minute Paper Chaos)</span>
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-300 max-w-3xl leading-relaxed">
+              Demonstrating the exact operational transition from 9:42 AM alarm to 9:50 AM full digital muster.
+              <strong className="text-white"> 16 minutes returned to safety operations</strong> and zero blind hazard re-entries.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2 shrink-0">
+            <button
+              onClick={handleLoadSlide4Preset}
+              disabled={isPresetLoading}
+              className="px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-xs uppercase tracking-wider rounded-xl shadow-lg transition transform active:scale-95 cursor-pointer flex items-center gap-2"
+              title="Loads the exact 9:50 AM presentation state: 191 Safe, 1 SOS, 2 Evac Chairs, 1 Off-Site"
+            >
+              <span>{isPresetLoading ? "⏳" : "▶️"}</span>
+              <span>{isPresetLoading ? "Loading State..." : "Load 9:50 AM State (Slide 4)"}</span>
+            </button>
+
+            {needHelp > 0 && (
+              <button
+                onClick={handleResolveSos}
+                disabled={isResolvingSos}
+                className="px-3.5 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs uppercase tracking-wider rounded-xl shadow-md transition cursor-pointer flex items-center gap-1.5 animate-pulse"
+                title="Dispatches responder directly by name to OCC-115 and verifies safe outside"
+              >
+                <span>🚑</span>
+                <span>{isResolvingSos ? "Dispatching..." : "Resolve SOS (OCC-115)"}</span>
+              </button>
+            )}
+
+            {awaitingEvacChair > 0 && (
+              <button
+                onClick={handleResolveEvac}
+                disabled={isResolvingEvac}
+                className="px-3.5 py-2 bg-purple-500 hover:bg-purple-400 text-white font-black text-xs uppercase tracking-wider rounded-xl shadow-md transition cursor-pointer flex items-center gap-1.5"
+                title="Assists 2 mobility partners via Stryker Evac Chairs down Stairwell A"
+              >
+                <span>🛞</span>
+                <span>{isResolvingEvac ? "Assisting..." : "Resolve 2 Evac Chairs"}</span>
+              </button>
+            )}
+
+            <button
+              onClick={handleMarkAllRemainingSafe}
+              disabled={is100PercentAllSafe}
+              className="px-3.5 py-2 bg-white/10 hover:bg-white/20 text-white border border-white/20 font-bold text-xs rounded-xl transition cursor-pointer flex items-center gap-1.5"
+            >
+              <span>⚡</span>
+              <span>Fast-Check All 195 Safe</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Real-Time Benchmark Toast Feedback */}
+        {benchmarkFeedback && (
+          <div className="p-3 bg-emerald-500/20 border border-emerald-400/50 rounded-xl text-emerald-200 text-xs font-bold flex items-center gap-2 animate-fadeIn">
+            <span>ℹ️</span>
+            <span>{benchmarkFeedback}</span>
+          </div>
+        )}
+
+        {/* 4 Interactive State Metric Chips (191 + 1 + 2 + 1 = 195) */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="p-3.5 rounded-2xl bg-emerald-950/60 border border-emerald-400/30 flex flex-col justify-between">
+            <div className="flex items-center justify-between text-[11px] font-mono font-bold text-emerald-300">
+              <span>MOBILE SAFE TAPS</span>
+              <span>97.9%</span>
+            </div>
+            <div className="text-3xl font-mono font-black text-emerald-400 my-1">
+              191 <span className="text-base text-emerald-200/60 font-sans font-normal">/ 195</span>
+            </div>
+            <div className="text-[11px] text-emerald-200/80">
+              Tapped "I'm Safe" on phone at Assembly Point A
+            </div>
+          </div>
+
+          <div className={`p-3.5 rounded-2xl border flex flex-col justify-between ${
+            needHelp > 0 ? "bg-amber-950/70 border-amber-400/50 text-amber-200" : "bg-white/5 border-white/10 text-slate-300"
+          }`}>
+            <div className="flex items-center justify-between text-[11px] font-mono font-bold">
+              <span>SOS DISTRESS FLAG</span>
+              {needHelp > 0 && <span className="text-[10px] bg-amber-400 text-slate-950 px-1.5 py-0.2 rounded font-black">ACTIVE</span>}
+            </div>
+            <div className={`text-3xl font-mono font-black my-1 ${needHelp > 0 ? "text-amber-400" : "text-white"}`}>
+              {needHelp} <span className="text-base text-slate-400 font-sans font-normal">Occupant</span>
+            </div>
+            <div className="text-[11px]">
+              {needHelp > 0
+                ? "Jordan Lee · Responder dispatched directly by name"
+                : "All distress signals resolved and cleared"}
+            </div>
+          </div>
+
+          <div className={`p-3.5 rounded-2xl border flex flex-col justify-between ${
+            awaitingEvacChair > 0 ? "bg-purple-950/70 border-purple-400/50 text-purple-200" : "bg-white/5 border-white/10 text-slate-300"
+          }`}>
+            <div className="flex items-center justify-between text-[11px] font-mono font-bold">
+              <span>MOBILITY EVAC CHAIRS</span>
+              {awaitingEvacChair > 0 && <span className="text-[10px] bg-purple-400 text-slate-950 px-1.5 py-0.2 rounded font-black">ACTIVE</span>}
+            </div>
+            <div className={`text-3xl font-mono font-black my-1 ${awaitingEvacChair > 0 ? "text-purple-300" : "text-white"}`}>
+              {awaitingEvacChair} <span className="text-base text-slate-400 font-sans font-normal">Partners</span>
+            </div>
+            <div className="text-[11px]">
+              {awaitingEvacChair > 0
+                ? "2 Assisted partners descending Stairwell A landing"
+                : "Both mobility partners verified safe outside"}
+            </div>
+          </div>
+
+          <div className="p-3.5 rounded-2xl bg-sky-950/60 border border-sky-400/30 flex flex-col justify-between text-sky-200">
+            <div className="flex items-center justify-between text-[11px] font-mono font-bold text-sky-300">
+              <span>VERIFIED OFF-SITE</span>
+              <span className="text-[10px] bg-sky-400 text-slate-950 px-1.5 py-0.2 rounded font-black">NOT MISSING</span>
+            </div>
+            <div className="text-3xl font-mono font-black text-sky-300 my-1">
+              1 <span className="text-base text-sky-200/60 font-sans font-normal">Person</span>
+            </div>
+            <div className="text-[11px] text-sky-200/80">
+              Never badged in today · Shows Not in Building (0 blind search re-entry)
+            </div>
+          </div>
+        </div>
+
+        {/* Side-by-Side Operational Comparison: 24 Minutes vs. 8 Minutes */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch">
+          {/* Legacy Process Card (5 cols) */}
+          <div className="lg:col-span-5 bg-black/40 border-2 border-red-500/40 rounded-2xl p-5 space-y-3 flex flex-col justify-between">
+            <div className="space-y-1">
+              <div className="flex items-center justify-between text-[11px] font-mono font-bold text-red-400 uppercase">
+                <span>TRADITIONAL PAPER PROCESS</span>
+                <span className="bg-red-500/20 px-2 py-0.5 rounded border border-red-500/40">24 MIN TOTAL</span>
+              </div>
+              <h4 className="text-lg font-black text-white">The Old Drill Reality</h4>
+            </div>
+
+            <div className="space-y-2.5 text-xs">
+              <div className="flex items-start gap-2.5">
+                <span className="text-slate-400 font-mono font-bold shrink-0">09:42</span>
+                <p className="text-slate-300">Alarm sounds. 195 people head for the stairwells.</p>
+              </div>
+              <div className="flex items-start gap-2.5">
+                <span className="text-slate-400 font-mono font-bold shrink-0">09:46</span>
+                <p className="text-slate-300">
+                  <strong className="text-white">Floor clear (4 minutes).</strong> "That part works. People don't walk faster."
+                </p>
+              </div>
+              <div className="bg-red-950/60 p-3 rounded-xl border border-red-500/50 space-y-1 text-red-200">
+                <div className="font-bold flex items-center gap-1.5 text-red-400">
+                  <span>🚨</span>
+                  <span>09:46 – 10:06 (20 MIN OF CONFUSION)</span>
+                </div>
+                <p className="text-[11px] leading-relaxed">
+                  No one can say who is safe, missing, or needing help. Roster printed at 8:00 AM. One radio channel, one quadrant at a time.
+                </p>
+                <p className="text-[11px] text-red-300 font-bold pt-0.5">
+                  ⚠️ Two names nobody can find → A staff lead goes back up into the hazard to check.
+                </p>
+              </div>
+              <div className="flex items-start gap-2.5">
+                <span className="text-slate-400 font-mono font-bold shrink-0">10:06</span>
+                <p className="text-slate-300">
+                  All clear declared <strong className="text-white">24 minutes after alarm</strong>. Record: Handwritten sheet.
+                </p>
+              </div>
+            </div>
+
+            <div className="pt-2 border-t border-white/10 flex items-center justify-between text-[11px] text-slate-400 font-mono">
+              <span>RECORD: Single clipboard</span>
+              <span className="text-red-400 font-bold">24:00 Total</span>
+            </div>
+          </div>
+
+          {/* Center Metric Badge (2 cols) */}
+          <div className="lg:col-span-2 bg-gradient-to-b from-emerald-500/20 via-teal-500/20 to-sky-500/20 border-2 border-emerald-400/40 rounded-2xl p-4 flex flex-col items-center justify-center text-center space-y-2">
+            <div className="text-3xl sm:text-4xl">⚡</div>
+            <div className="text-3xl font-mono font-black text-emerald-400 leading-none">
+              -16 MIN
+            </div>
+            <div className="text-xs font-black uppercase tracking-wider text-white">
+              16 Minutes Back
+            </div>
+            <div className="text-[11px] text-emerald-200 font-medium leading-tight">
+              66.7% Faster Accountability
+            </div>
+            <div className="mt-2 text-[10px] bg-black/40 px-2 py-1 rounded-md text-slate-300 font-mono">
+              Zero Blind Search Re-Entries
+            </div>
+          </div>
+
+          {/* Digital FSD Console Card (5 cols) */}
+          <div className="lg:col-span-5 bg-gradient-to-br from-[#003B70]/80 to-[#0284C7]/30 border-2 border-sky-400/60 rounded-2xl p-5 space-y-3 flex flex-col justify-between">
+            <div className="space-y-1">
+              <div className="flex items-center justify-between text-[11px] font-mono font-bold text-sky-300 uppercase">
+                <span>FSD DIGITAL CONSOLE</span>
+                <span className="bg-emerald-500/20 px-2 py-0.5 rounded border border-emerald-400 text-emerald-300">8 MIN TOTAL</span>
+              </div>
+              <h4 className="text-lg font-black text-white">Same Alarm, Digital Intake</h4>
+            </div>
+
+            <div className="space-y-2.5 text-xs">
+              <div className="flex items-start gap-2.5">
+                <span className="text-sky-300 font-mono font-bold shrink-0">08:00</span>
+                <p className="text-slate-200">
+                  <strong className="text-white">QR turnstile scan (2 sec).</strong> Live digital roster active before any alarm.
+                </p>
+              </div>
+              <div className="flex items-start gap-2.5">
+                <span className="text-sky-300 font-mono font-bold shrink-0">09:42</span>
+                <p className="text-slate-200">
+                  Staff lead declares incident. Every phone switches to evacuation HUD with stairwell &amp; meeting point on screen.
+                </p>
+              </div>
+              <div className="flex items-start gap-2.5">
+                <span className="text-sky-300 font-mono font-bold shrink-0">09:46</span>
+                <p className="text-slate-200">Floor clear (same 4 minutes — people don't walk faster).</p>
+              </div>
+              <div className="bg-emerald-950/60 p-3 rounded-xl border border-emerald-400/50 space-y-1 text-emerald-200">
+                <div className="font-bold flex items-center gap-1.5 text-emerald-300">
+                  <span>🟢</span>
+                  <span>09:50 (8 MIN TO FULL DIGITAL MUSTER)</span>
+                </div>
+                <p className="text-[11px] leading-relaxed">
+                  <strong className="text-white">191 people</strong> tapped "I'm safe." <strong className="text-white">1 person</strong> tapped "I need help" (responder goes directly to them by name). <strong className="text-white">2 more</strong> resolve via Stryker chair.
+                </p>
+                <p className="text-[11px] text-sky-200 font-bold pt-0.5">
+                  ✓ 1 person never badged in → Shows as Not in Building, NOT as missing! (0 search re-entries!)
+                </p>
+              </div>
+            </div>
+
+            <div className="pt-2 border-t border-white/10 flex items-center justify-between text-[11px] text-slate-300 font-mono">
+              <span>AUDIT: SHA-256 FDNY Certificate</span>
+              <span className="text-emerald-400 font-bold">08:00 Total</span>
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* OPERATIONAL LIFE-SAFETY DRILL & EGRESS METRICS DASHBOARD */}
       <div className="bg-white rounded-2xl p-6 border-2 border-[#005DAA]/30 shadow-md space-y-6">
