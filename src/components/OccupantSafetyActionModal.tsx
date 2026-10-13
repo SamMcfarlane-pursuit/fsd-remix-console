@@ -35,8 +35,40 @@ export const OccupantSafetyActionModal: React.FC<OccupantSafetyActionModalProps>
 }) => {
   const [pingSent, setPingSent] = useState(false);
   const [localFeedback, setLocalFeedback] = useState<string | null>(null);
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [nameInput, setNameInput] = useState(occupant?.name || "");
+  const [isSavingName, setIsSavingName] = useState(false);
 
   if (!occupant) return null;
+
+  const handleSaveName = async () => {
+    if (!nameInput.trim()) return;
+    setIsSavingName(true);
+    try {
+      const res = await fetch("/api/occupant/update", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-fsd-pin": "7007",
+        },
+        body: JSON.stringify({
+          id: occupant.id,
+          name: nameInput.trim(),
+        }),
+      });
+      if (res.ok) {
+        occupant.name = nameInput.trim();
+        setIsEditingName(false);
+        setLocalFeedback(`✅ Name saved: ${nameInput.trim()}`);
+        if (onFeedbackMessage) onFeedbackMessage(`✅ Name saved for ${occupant.id}: ${nameInput.trim()}`);
+        setTimeout(() => setLocalFeedback(null), 4000);
+      }
+    } catch (err) {
+      console.error("Save name failed:", err);
+    } finally {
+      setIsSavingName(false);
+    }
+  };
 
   const isPresent = !occupant.badgedOut && !occupant.offSiteToday;
   const sectorLabel = QUADRANT_LABELS[occupant.quadrant] || "Floor 07 Interior Core";
@@ -117,12 +149,55 @@ export const OccupantSafetyActionModal: React.FC<OccupantSafetyActionModalProps>
               {occupant.role === "Visitor" ? "🏷️" : "👤"}
             </div>
             <div>
-              <div className="flex items-center gap-2">
-                <h3 className="text-lg font-black">{occupant.name}</h3>
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-white/20 text-sky-200 font-bold">
-                  {occupant.id}
-                </span>
-              </div>
+              {isEditingName ? (
+                <div className="flex items-center gap-1.5 my-1">
+                  <input
+                    type="text"
+                    value={nameInput}
+                    onChange={(e) => setNameInput(e.target.value)}
+                    className="px-2 py-0.5 bg-white text-slate-900 rounded font-bold text-xs border border-sky-300 outline-none w-44"
+                    placeholder="Enter name"
+                    autoFocus
+                  />
+                  <button
+                    type="button"
+                    onClick={handleSaveName}
+                    disabled={isSavingName}
+                    className="px-2.5 py-1 bg-emerald-500 hover:bg-emerald-600 text-white font-black rounded text-[11px] cursor-pointer shadow-xs"
+                  >
+                    {isSavingName ? "..." : "Save"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsEditingName(false);
+                      setNameInput(occupant.name);
+                    }}
+                    className="px-2 py-1 bg-white/20 hover:bg-white/30 text-white font-bold rounded text-[11px] cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <h3 className="text-lg font-black">{occupant.name}</h3>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setNameInput(occupant.name);
+                      setIsEditingName(true);
+                    }}
+                    className="text-[10px] bg-white/15 hover:bg-white/25 px-2 py-0.5 rounded text-sky-200 hover:text-white transition cursor-pointer flex items-center gap-1"
+                    title="Change and save mock name to real personnel name"
+                  >
+                    <span>✏️</span>
+                    <span>Edit Name</span>
+                  </button>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-white/20 text-sky-200 font-bold">
+                    {occupant.id}
+                  </span>
+                </div>
+              )}
               <p className="text-xs text-sky-200">
                 {occupant.role} · {occupant.company || "Con Edison"}
               </p>

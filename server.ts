@@ -163,11 +163,21 @@ function generateInitialRoster(targetCount: number = 195): Occupant[] {
   let idCounter = 101;
 
   // Standardized Con Edison Floor 07 headcount: NW: 49, NE: 49, SW: 49, SE: 48 (Total: 195)
-  const quadCounts: Record<QuadrantId, number> = {
+  // Or capacity accounting up to 200 (NW: 50, NE: 50, SW: 50, SE: 50)
+  const validTarget = Math.max(1, Math.min(500, targetCount));
+  const baseCount = Math.floor(validTarget / 4);
+  const remainder = validTarget % 4;
+
+  const quadCounts: Record<QuadrantId, number> = validTarget === 195 ? {
     NW: 49,
     NE: 49,
     SW: 49,
     SE: 48,
+  } : {
+    NW: baseCount + (remainder > 0 ? 1 : 0),
+    NE: baseCount + (remainder > 1 ? 1 : 0),
+    SW: baseCount + (remainder > 2 ? 1 : 0),
+    SE: baseCount,
   };
 
   QUADRANT_IDS.forEach((quad) => {
@@ -2626,11 +2636,12 @@ app.post("/api/roster/seed-demo", requireCommanderAuth, (req, res) => {
   });
 });
 
-// Dedicated Drill Generation Endpoint with 195 Floor 07 Personnel
+// Dedicated Drill Generation Endpoint with Floor 07 Personnel (195 Standard or up to 200 Capacity)
 app.post("/api/drill/generate", requireCommanderAuth, (req, res) => {
-  const { hazard = "office-fire", stairwell = "Stairwell A (East Core - Union Sq East)" } = req.body;
-  occupantsRoster = generateInitialRoster(195);
-  // All 195 occupants start in-building and unaccounted for the drill
+  const { hazard = "office-fire", stairwell = "Stairwell A (East Core - Union Sq East)", count } = req.body;
+  const targetCount = typeof count === "number" ? Math.min(200, Math.max(1, count)) : 195;
+  occupantsRoster = generateInitialRoster(targetCount);
+  // All occupants start in-building and unaccounted for the drill
   occupantsRoster.forEach((o) => {
     o.badgedOut = false;
     o.offSiteToday = false;
@@ -2652,20 +2663,109 @@ app.post("/api/drill/generate", requireCommanderAuth, (req, res) => {
   syncInitialRosterToEvents();
 
   const entry = appendLedger("drill-generated-and-declared", {
-    totalOccupants: 195,
+    totalOccupants: occupantsRoster.length,
     mode: "drill",
     hazardType,
     stairwell,
     declaredAt,
-    quadrantBreakdown: { NW: 49, NE: 49, SW: 49, SE: 48 },
+    quadrantBreakdown: {
+      NW: occupantsRoster.filter(o => o.quadrant === "NW").length,
+      NE: occupantsRoster.filter(o => o.quadrant === "NE").length,
+      SW: occupantsRoster.filter(o => o.quadrant === "SW").length,
+      SE: occupantsRoster.filter(o => o.quadrant === "SE").length,
+    },
+    message: `Floor 07 Life-Safety Drill successfully declared with ${occupantsRoster.length} occupants.`,
+    commanderId: req.headers["x-commander-id"] || "FSD-LEAD",
+    timestamp: new Date().toISOString(),
   });
 
   notifySseClients();
 
   res.json({
     ok: true,
-    message: "Floor 07 Life-Safety Drill successfully generated with 195 occupants.",
+    message: `Floor 07 Life-Safety Drill successfully generated with ${occupantsRoster.length} occupants.`,
     totalOccupants: occupantsRoster.length,
+    ledgerEntry: entry,
+    snapshot: getDerivedSnapshot(),
+  });
+});
+
+// 1-Click Endpoint to Account Up to 200 Occupants (Capacity Drill)
+app.post("/api/drill/account-to-200", requireCommanderAuth, (req, res) => {
+  // If current roster < 200, expand to 200
+  if (occupantsRoster.length < 200) {
+    occupantsRoster = generateInitialRoster(200);
+  }
+  // Mark all occupants as Safe & Accounted at Assembly Point A
+  occupantsRoster.forEach((o) => {
+    o.status = "safe";
+    o.badgedOut = false;
+    o.offSiteToday = false;
+    o.unaccountedMinutes = 0;
+    o.locationCategory = "outside-assembly";
+    o.assemblyPoint = "Assembly Point A (Union Sq East / Park Plaza)";
+    o.checkInMethod = "commander-capacity-all-safe";
+  });
+
+  drillAllSafeAt = new Date().toISOString();
+  savePersistedRoster(occupantsRoster);
+  syncInitialRosterToEvents();
+
+  const entry = appendLedger("all-safe-capacity-200", {
+    totalAccounted: occupantsRoster.length,
+    assemblyPoint: "Assembly Point A",
+    status: "ALL_SAFE",
+    timestamp: new Date().toISOString(),
+    message: `All ${occupantsRoster.length} occupants accounted and verified safe outside.`,
+  });
+
+  notifySseClients();
+
+  res.json({
+    ok: true,
+    totalAccounted: occupantsRoster.length,
+    message: `All ${occupantsRoster.length} occupants accounted and safe outside.`,
+    ledgerEntry: entry,
+    snapshot: getDerivedSnapshot(),
+  });
+});
+
+// Update individual occupant name and information
+app.post("/api/occupant/update", requireCommanderAuth, (req, res) => {
+  const { id, name, phone, desk, quadrant, role, company, notes } = req.body;
+  if (!id) {
+    res.status(400).json({ error: "Occupant ID is required" });
+    return;
+  }
+  const occupant = occupantsRoster.find((o) => o.id === id);
+  if (!occupant) {
+    res.status(404).json({ error: "Occupant not found" });
+    return;
+  }
+  const oldName = occupant.name;
+  if (name && typeof name === "string") occupant.name = name.trim();
+  if (phone && typeof phone === "string") occupant.phone = phone.trim();
+  if (desk && typeof desk === "string") occupant.desk = desk.trim();
+  if (quadrant && QUADRANT_IDS.includes(quadrant)) occupant.quadrant = quadrant;
+  if (role) occupant.role = role;
+  if (company) occupant.company = company.trim();
+  if (notes) occupant.notes = notes.trim();
+
+  savePersistedRoster(occupantsRoster);
+  const entry = appendLedger("occupant-record-updated", {
+    occupantId: occupant.id,
+    oldName,
+    newName: occupant.name,
+    quadrant: occupant.quadrant,
+    desk: occupant.desk,
+    timestamp: new Date().toISOString(),
+  });
+  notifySseClients();
+
+  res.json({
+    ok: true,
+    occupant,
+    message: `Occupant ${occupant.id} updated and saved.`,
     ledgerEntry: entry,
     snapshot: getDerivedSnapshot(),
   });

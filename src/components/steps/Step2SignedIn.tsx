@@ -48,6 +48,13 @@ export const Step2SignedIn: React.FC<Step2SignedInProps> = ({
   const [rescueProcedureOccupant, setRescueProcedureOccupant] = useState<Occupant | null>(null);
   const [actionFeedbackMsg, setActionFeedbackMsg] = useState<string | null>(null);
   const [directPingSuccessId, setDirectPingSuccessId] = useState<string | null>(null);
+  const [isActionPending, setIsActionPending] = useState(false);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [newPersonName, setNewPersonName] = useState("");
+  const [newPersonPhone, setNewPersonPhone] = useState("");
+  const [newPersonQuad, setNewPersonQuad] = useState<QuadrantId>("NW");
+  const [newPersonRole, setNewPersonRole] = useState<string>("Employee");
+  const [newPersonDesk, setNewPersonDesk] = useState("");
 
   // Statistics
   const totalOccupants = occupants.length;
@@ -209,6 +216,94 @@ export const Step2SignedIn: React.FC<Step2SignedInProps> = ({
     }, 6000);
   };
 
+  const handleClearMockNames = async () => {
+    if (!window.confirm("🧹 Clear Mock Names?\n\nThis will remove previous mock names and reset the roster to 0 enrolled in clean standby ready for live intake.\n\nProceed?")) return;
+    setIsActionPending(true);
+    try {
+      const res = await fetch("/api/database/clean", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-fsd-pin": "7007" },
+      });
+      if (res.ok) {
+        setActionFeedbackMsg("🧹 Mock names cleared! Database is in clean standby ready for live personnel intake.");
+        onRefreshState();
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsActionPending(false);
+    }
+  };
+
+  const handleRestoreRoster = async (count: number = 195) => {
+    setIsActionPending(true);
+    try {
+      const res = await fetch("/api/roster/seed-demo", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-fsd-pin": "7007" },
+        body: JSON.stringify({ count }),
+      });
+      if (res.ok) {
+        setActionFeedbackMsg(`🔄 Standard roster with ${count} occupants restored!`);
+        onRefreshState();
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsActionPending(false);
+    }
+  };
+
+  const handleAccountTo200 = async () => {
+    setIsActionPending(true);
+    try {
+      const res = await fetch("/api/drill/account-to-200", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-fsd-pin": "7007" },
+      });
+      if (res.ok) {
+        setActionFeedbackMsg("⚡ Capacity Roster: Scaled to 200 occupants and verified 100% Accounted Safe!");
+        onRefreshState();
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsActionPending(false);
+    }
+  };
+
+  const handleSaveNewPersonnel = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newPersonName.trim()) return;
+    setIsActionPending(true);
+    try {
+      const res = await fetch("/api/occupant/sign-in-register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: newPersonName.trim(),
+          phone: newPersonPhone.trim(),
+          quadrant: newPersonQuad,
+          role: newPersonRole,
+          desk: newPersonDesk.trim() || undefined,
+          action: "enter",
+        }),
+      });
+      if (res.ok) {
+        setActionFeedbackMsg(`💾 Personnel saved to live roster: ${newPersonName.trim()}`);
+        setNewPersonName("");
+        setNewPersonPhone("");
+        setNewPersonDesk("");
+        setShowAddModal(false);
+        onRefreshState();
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsActionPending(false);
+    }
+  };
+
   return (
     <div id="step-2-signed-in-container" className="max-w-6xl mx-auto space-y-6 animate-fadeIn pb-12">
       {/* Header Banner */}
@@ -252,6 +347,65 @@ export const Step2SignedIn: React.FC<Step2SignedInProps> = ({
           >
             <span>Proceed to Step 03</span>
             <span>→</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Roster & Mock Name Management Toolbar */}
+      <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-[#B8D8F8] shadow-xs flex flex-wrap items-center justify-between gap-3 text-xs">
+        <div className="flex items-center gap-2">
+          <span className="text-slate-500 font-bold uppercase text-[10px] font-mono">ROSTER CONTROLS:</span>
+          <span className="text-[#005DAA] font-black">
+            {occupants.length} Enrolled
+          </span>
+          <span className="text-slate-300">·</span>
+          <span className="text-emerald-700 font-bold">
+            {inBuilding.length} Active in Building
+          </span>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={handleClearMockNames}
+            disabled={isActionPending}
+            className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300 font-bold rounded-xl transition cursor-pointer flex items-center gap-1.5"
+            title="Removes mock names and resets database to clean standby ready for real personnel intake"
+          >
+            <span>🧹</span>
+            <span>Clear Mock Names</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => handleRestoreRoster(195)}
+            disabled={isActionPending}
+            className="px-3 py-1.5 bg-sky-50 hover:bg-sky-100 text-sky-700 border border-sky-300 font-bold rounded-xl transition cursor-pointer flex items-center gap-1.5"
+            title="Restores standard Con Edison 195 Floor 07 baseline roster"
+          >
+            <span>🔄</span>
+            <span>Standard 195 Roster</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={handleAccountTo200}
+            disabled={isActionPending}
+            className="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 font-bold rounded-xl transition cursor-pointer flex items-center gap-1.5 shadow-xs"
+            title="Expands roster up to 200 occupants and verifies all 200 accounted safe"
+          >
+            <span>⚡</span>
+            <span>Account Up to 200</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setShowAddModal(true)}
+            className="px-3 py-1.5 bg-[#005DAA] hover:bg-[#004884] text-white font-bold rounded-xl transition cursor-pointer flex items-center gap-1.5 shadow-xs"
+            title="Register and save a new personnel name to the live roster"
+          >
+            <span>➕</span>
+            <span>Save New Name</span>
           </button>
         </div>
       </div>
@@ -896,6 +1050,125 @@ export const Step2SignedIn: React.FC<Step2SignedInProps> = ({
           onCheckIn={onCheckIn}
           onOpenWalkieTalkie={onOpenWalkieTalkie}
         />
+      )}
+
+      {/* Quick Save New Personnel Modal */}
+      {showAddModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-xs animate-fadeIn">
+          <div className="bg-white rounded-3xl max-w-md w-full border-2 border-[#005DAA] shadow-2xl overflow-hidden flex flex-col">
+            <div className="bg-[#003B70] text-white p-5 flex items-center justify-between border-b border-sky-600">
+              <div className="flex items-center gap-2.5">
+                <span className="text-xl">➕</span>
+                <div>
+                  <h3 className="text-base font-black">Save Personnel to Live Roster</h3>
+                  <p className="text-xs text-sky-200">Replaces or adds personnel to Floor 07</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowAddModal(false)}
+                className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/25 flex items-center justify-center text-white font-black text-sm cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveNewPersonnel} className="p-6 space-y-4 text-xs">
+              <div>
+                <label className="block font-bold text-slate-700 uppercase text-[10px] mb-1">
+                  Full Name *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={newPersonName}
+                  onChange={(e) => setNewPersonName(e.target.value)}
+                  placeholder="e.g. Maria Gonzalez"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-xl font-bold text-slate-900 outline-none focus:border-[#005DAA]"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-bold text-slate-700 uppercase text-[10px] mb-1">
+                    Quadrant Sector *
+                  </label>
+                  <select
+                    value={newPersonQuad}
+                    onChange={(e) => setNewPersonQuad(e.target.value as QuadrantId)}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl font-bold text-slate-900 outline-none"
+                  >
+                    <option value="NW">Sector NW</option>
+                    <option value="NE">Sector NE</option>
+                    <option value="SW">Sector SW</option>
+                    <option value="SE">Sector SE</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-700 uppercase text-[10px] mb-1">
+                    Role / Type
+                  </label>
+                  <select
+                    value={newPersonRole}
+                    onChange={(e) => setNewPersonRole(e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl font-bold text-slate-900 outline-none"
+                  >
+                    <option value="Employee">Employee</option>
+                    <option value="Contractor">Contractor</option>
+                    <option value="Visitor">Visitor</option>
+                    <option value="VIP">VIP</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-bold text-slate-700 uppercase text-[10px] mb-1">
+                    Workstation / Desk
+                  </label>
+                  <input
+                    type="text"
+                    value={newPersonDesk}
+                    onChange={(e) => setNewPersonDesk(e.target.value)}
+                    placeholder="e.g. NW-Desk-B4"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl text-slate-900 outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-700 uppercase text-[10px] mb-1">
+                    Phone (Optional)
+                  </label>
+                  <input
+                    type="tel"
+                    value={newPersonPhone}
+                    onChange={(e) => setNewPersonPhone(e.target.value)}
+                    placeholder="(212) 555-0100"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl text-slate-900 outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="pt-3 border-t border-slate-200 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowAddModal(false)}
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isActionPending}
+                  className="px-5 py-2 bg-[#005DAA] hover:bg-[#004884] text-white font-black rounded-xl transition cursor-pointer shadow-sm"
+                >
+                  {isActionPending ? "Saving..." : "Save Personnel"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
     </div>
   );

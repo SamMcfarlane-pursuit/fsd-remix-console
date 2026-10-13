@@ -65,6 +65,7 @@ export const Step5AllSafe: React.FC<Step5AllSafeProps> = ({
   const [isPresetLoading, setIsPresetLoading] = useState<boolean>(false);
   const [isResolvingSos, setIsResolvingSos] = useState<boolean>(false);
   const [isResolvingEvac, setIsResolvingEvac] = useState<boolean>(false);
+  const [isAccounting200, setIsAccounting200] = useState<boolean>(false);
   const [benchmarkFeedback, setBenchmarkFeedback] = useState<string | null>(null);
 
   // Slide 4 Live Benchmark State Loader (9:50 AM · 191 Safe · 1 SOS · 2 Evac · 1 Off-Site)
@@ -201,8 +202,8 @@ export const Step5AllSafe: React.FC<Step5AllSafeProps> = ({
     onRefreshState();
   };
 
-  // 1-Click Generate & Start Full Floor 07 Drill (195 Occupants)
-  const handleGenerateFloor07Drill = async () => {
+  // 1-Click Generate & Start Full Floor 07 Drill (195 or 200 Occupants)
+  const handleGenerateFloor07Drill = async (targetCount: number = 195) => {
     setIsGeneratingDrill(true);
     try {
       const res = await fetch("/api/drill/generate", {
@@ -214,6 +215,7 @@ export const Step5AllSafe: React.FC<Step5AllSafeProps> = ({
         body: JSON.stringify({
           hazard: snapshot?.hazardType || "office-fire",
           stairwell: "Stairwell A (East Core - Union Sq East)",
+          count: targetCount,
         }),
       });
       if (res.ok) {
@@ -223,6 +225,29 @@ export const Step5AllSafe: React.FC<Step5AllSafeProps> = ({
       console.warn("Drill generation deferred:", err);
     } finally {
       setIsGeneratingDrill(false);
+    }
+  };
+
+  // Instant Account Up to 200 (Expands Roster if needed & marks all 200 safe at Assembly Point A)
+  const handleAccountTo200 = async () => {
+    setIsAccounting200(true);
+    try {
+      const res = await fetch("/api/drill/account-to-200", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-fsd-pin": "7007",
+        },
+      });
+      if (res.ok) {
+        setBenchmarkFeedback("🛡️ All 200 building occupants verified, mustered, and sealed Safe at Assembly Point A.");
+        setTimeout(() => setBenchmarkFeedback(null), 8000);
+        onRefreshState();
+      }
+    } catch (err) {
+      console.warn("Account to 200 failed:", err);
+    } finally {
+      setIsAccounting200(false);
     }
   };
 
@@ -494,7 +519,17 @@ export const Step5AllSafe: React.FC<Step5AllSafeProps> = ({
               className="px-3.5 py-2 bg-white/10 hover:bg-white/20 text-white border border-white/20 font-bold text-xs rounded-xl transition cursor-pointer flex items-center gap-1.5"
             >
               <span>⚡</span>
-              <span>Fast-Check All 195 Safe</span>
+              <span>Fast-Check All ({occupants.length}) Safe</span>
+            </button>
+
+            <button
+              onClick={handleAccountTo200}
+              disabled={isAccounting200}
+              className="px-3.5 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs rounded-xl shadow-md transition cursor-pointer flex items-center gap-1.5"
+              title="Expand capacity to 200 and verify all 200 occupants safe at Assembly Point A"
+            >
+              <span>🛡️</span>
+              <span>{isAccounting200 ? "Accounting 200..." : "Account Up to 200 Safe"}</span>
             </button>
           </div>
         </div>
@@ -507,15 +542,15 @@ export const Step5AllSafe: React.FC<Step5AllSafeProps> = ({
           </div>
         )}
 
-        {/* 4 Interactive State Metric Chips (191 + 1 + 2 + 1 = 195) */}
+        {/* 4 Interactive State Metric Chips */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <div className="p-3.5 rounded-2xl bg-emerald-950/60 border border-emerald-400/30 flex flex-col justify-between">
             <div className="flex items-center justify-between text-[11px] font-mono font-bold text-emerald-300">
               <span>MOBILE SAFE TAPS</span>
-              <span>97.9%</span>
+              <span>{((191 / (occupants.length || 195)) * 100).toFixed(1)}%</span>
             </div>
             <div className="text-3xl font-mono font-black text-emerald-400 my-1">
-              191 <span className="text-base text-emerald-200/60 font-sans font-normal">/ 195</span>
+              191 <span className="text-base text-emerald-200/60 font-sans font-normal">/ {occupants.length || 195}</span>
             </div>
             <div className="text-[11px] text-emerald-200/80">
               Tapped "I'm Safe" on phone at Assembly Point A
@@ -792,30 +827,50 @@ export const Step5AllSafe: React.FC<Step5AllSafeProps> = ({
 
           <div className="flex flex-wrap items-center gap-2">
             <button
-              onClick={handleGenerateFloor07Drill}
+              onClick={() => handleGenerateFloor07Drill(195)}
               disabled={isGeneratingDrill}
-              className="px-4 py-2 bg-[#005DAA] hover:bg-[#004884] disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-xs transition cursor-pointer flex items-center gap-1.5"
+              className="px-3.5 py-2 bg-[#005DAA] hover:bg-[#004884] disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-xs transition cursor-pointer flex items-center gap-1.5"
             >
               <span>🎯</span>
-              <span>{isGeneratingDrill ? "Generating..." : "Generate Floor 07 Drill (195)"}</span>
+              <span>{isGeneratingDrill ? "Generating..." : "Generate Drill (195)"}</span>
+            </button>
+
+            <button
+              onClick={() => handleGenerateFloor07Drill(200)}
+              disabled={isGeneratingDrill}
+              className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-xs transition cursor-pointer flex items-center gap-1.5"
+              title="Scale building floor capacity to 200 occupants (50 per quadrant)"
+            >
+              <span>🏢</span>
+              <span>Capacity Drill (200)</span>
             </button>
 
             <button
               onClick={handleSimulateLiveEgress}
               disabled={isSimulatingEgress || is100PercentAllSafe}
-              className="px-4 py-2 bg-amber-500 hover:bg-amber-600 disabled:opacity-40 text-white font-bold text-xs rounded-xl shadow-xs transition cursor-pointer flex items-center gap-1.5"
+              className="px-3.5 py-2 bg-amber-500 hover:bg-amber-600 disabled:opacity-40 text-white font-bold text-xs rounded-xl shadow-xs transition cursor-pointer flex items-center gap-1.5"
             >
               <span>{isSimulatingEgress ? "⏳" : "▶️"}</span>
-              <span>{isSimulatingEgress ? "Streaming Egress..." : "Simulate Live Egress Stream"}</span>
+              <span>{isSimulatingEgress ? "Streaming Egress..." : "Simulate Live Egress"}</span>
             </button>
 
             <button
               onClick={handleMarkAllRemainingSafe}
               disabled={is100PercentAllSafe}
-              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 text-white font-bold text-xs rounded-xl shadow-xs transition cursor-pointer flex items-center gap-1.5"
+              className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 text-white font-bold text-xs rounded-xl shadow-xs transition cursor-pointer flex items-center gap-1.5"
             >
               <span>⚡</span>
-              <span>Fast-Check All 195 Safe</span>
+              <span>Fast-Check All ({occupants.length}) Safe</span>
+            </button>
+
+            <button
+              onClick={handleAccountTo200}
+              disabled={isAccounting200}
+              className="px-3.5 py-2 bg-emerald-700 hover:bg-emerald-800 disabled:opacity-40 text-white font-bold text-xs rounded-xl shadow-xs transition cursor-pointer flex items-center gap-1.5"
+              title="Expand capacity to 200 and verify all 200 occupants safe at Assembly Point A"
+            >
+              <span>🛡️</span>
+              <span>{isAccounting200 ? "Accounting 200..." : "Account Up to 200"}</span>
             </button>
           </div>
         </div>
