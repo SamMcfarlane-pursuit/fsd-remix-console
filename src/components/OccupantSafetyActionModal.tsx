@@ -232,6 +232,11 @@ export const OccupantSafetyActionModal: React.FC<OccupantSafetyActionModalProps>
                 targetDesk={occupant.desk}
                 targetStairwell={primaryExit}
                 showEgressPath={true}
+                targetX={occupant.xCoord}
+                targetY={occupant.yCoord}
+                targetStatus={occupant.status}
+                targetName={occupant.name}
+                accuracyRadiusMeters={2.5}
                 className="border-0 shadow-none p-1 sm:p-2"
               />
             </div>

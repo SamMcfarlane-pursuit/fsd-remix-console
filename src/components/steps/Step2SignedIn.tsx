@@ -774,6 +774,10 @@ export const Step2SignedIn: React.FC<Step2SignedInProps> = ({
                 SE: quadrantStats.SE.inBuilding,
               }}
               showEgressPath={true}
+              distressedOccupants={occupants.filter(
+                (o) => o.status === "need-help" || o.status === "awaiting-evac-chair"
+              )}
+              onSelectOccupant={(occ) => setSelectedOccupantForAction(occ)}
             />
           </div>
         )}

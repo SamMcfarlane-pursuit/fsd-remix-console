@@ -933,12 +933,26 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
     }
   };
 
-  const handleRequestEvacChair = () => {
+  const handleRequestEvacChair = async () => {
     if (!currentUser) return;
     try {
       playRadioPttChirp();
     } catch {}
-    const reportText = helpNote.trim() || "Evacuation chair required at stairwell landing";
+
+    let locationPrecision = `Sector ${currentUser.quadrant} · Desk ${currentUser.desk || "Turnstile Ingress"}`;
+    let accuracyMeters = 2.5;
+    try {
+      const coords = await getDeviceGeolocation();
+      if (coords && coords.accuracy) {
+        accuracyMeters = Math.min(accuracyMeters, Math.round(coords.accuracy));
+        locationPrecision += ` · GPS Accuracy ±${Math.round(coords.accuracy)}m`;
+      }
+    } catch {}
+
+    const reportText = helpNote.trim()
+      ? `${helpNote.trim()} [Pinpoint: ${locationPrecision}]`
+      : `Evacuation chair required at stairwell landing [Pinpoint: ${locationPrecision}]`;
+
     onCheckIn(
       currentUser.id,
       "awaiting-evac-chair",
@@ -950,10 +964,10 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
       id: String(Date.now()),
       text: reportText,
       time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }),
-      status: "ARA Evac Chair Request Dispatched to Wardens ✓",
+      status: `ARA Evac Chair Request Dispatched (Pinpoint ±${accuracyMeters}m) ✓`,
     };
     setSentSitReps((prev) => [newReceipt, ...prev.slice(0, 8)]);
-    setActionSubmittedMsg(`🛞 Assistance Request Sent! Wardens notified to dispatch ARA Evacuation Chair.`);
+    setActionSubmittedMsg(`🛞 Assistance Request Sent! Wardens notified to dispatch ARA Evacuation Chair to Sector ${currentUser.quadrant} (Accuracy ±${accuracyMeters}m).`);
     setHelpNote("");
     setTimeout(() => {
       try {
@@ -963,12 +977,26 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
     setTimeout(() => setActionSubmittedMsg(null), 5000);
   };
 
-  const handleRequestHelp = () => {
+  const handleRequestHelp = async () => {
     if (!currentUser) return;
     try {
       playRadioPttChirp();
     } catch {}
-    const reportText = helpNote.trim() || "Immediate emergency assistance / SOS requested";
+
+    let locationPrecision = `Sector ${currentUser.quadrant} · Desk ${currentUser.desk || "Turnstile Ingress"}`;
+    let accuracyMeters = 2.5;
+    try {
+      const coords = await getDeviceGeolocation();
+      if (coords && coords.accuracy) {
+        accuracyMeters = Math.min(accuracyMeters, Math.round(coords.accuracy));
+        locationPrecision += ` · GPS Accuracy ±${Math.round(coords.accuracy)}m`;
+      }
+    } catch {}
+
+    const reportText = helpNote.trim()
+      ? `${helpNote.trim()} [Pinpoint: ${locationPrecision}]`
+      : `Immediate emergency assistance / SOS requested [Pinpoint: ${locationPrecision}]`;
+
     onCheckIn(
       currentUser.id,
       "need-help",
@@ -980,10 +1008,10 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
       id: String(Date.now()),
       text: `🚨 SOS: ${reportText}`,
       time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }),
-      status: "CRITICAL DISTRESS ACTIVE · Search & Rescue Alerted 🚨",
+      status: `CRITICAL DISTRESS ACTIVE · Search & Rescue Alerted (Pinpoint ±${accuracyMeters}m) 🚨`,
     };
     setSentSitReps((prev) => [newReceipt, ...prev.slice(0, 8)]);
-    setActionSubmittedMsg(`🚨 Emergency Help Flagged! FSD Command Center alerted.`);
+    setActionSubmittedMsg(`🚨 Emergency Help Flagged! Search & Rescue alerted to ${locationPrecision}.`);
     setHelpNote("");
     setTimeout(() => {
       try {

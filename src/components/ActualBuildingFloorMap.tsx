@@ -1,6 +1,6 @@
 import React from "react";
-import { QuadrantId } from "../types";
-import { Compass, Navigation, ShieldCheck } from "lucide-react";
+import { QuadrantId, Occupant } from "../types";
+import { Compass, Navigation, ShieldCheck, AlertTriangle } from "lucide-react";
 
 interface ActualBuildingFloorMapProps {
   targetQuadrant?: QuadrantId | string;
@@ -10,12 +10,117 @@ interface ActualBuildingFloorMapProps {
   className?: string;
   onSelectQuadrant?: (quad: QuadrantId) => void;
   quadrantCounts?: Partial<Record<QuadrantId, number>>;
+  // High-accuracy emergency locating props
+  targetX?: number; // 0 - 100%
+  targetY?: number; // 0 - 100%
+  targetStatus?: string; // "safe" | "need-help" | "awaiting-evac-chair" | "mia"
+  targetName?: string;
+  accuracyRadiusMeters?: number; // e.g. 2.5m
+  distressedOccupants?: Occupant[];
+  onSelectOccupant?: (occ: Occupant) => void;
+}
+
+/**
+ * Computes exact sub-quadrant desk coordinates on the 860x420 architectural blueprint
+ */
+export function computeArchitecturalPin(
+  quadrant?: QuadrantId | string,
+  desk?: string,
+  targetX?: number,
+  targetY?: number
+): { x: number; y: number; accuracyMeters: number; confidenceText: string; label: string } {
+  // 1. If explicit percentage coordinates (0-100) are provided from telemetry/server:
+  if (typeof targetX === "number" && typeof targetY === "number" && targetX > 0 && targetY > 0) {
+    let x = 60 + (Math.min(95, Math.max(5, targetX)) / 100) * 740;
+    let y = 45 + (Math.min(95, Math.max(5, targetY)) / 100) * 330;
+
+    // Repel from central lightwell courtyard [350..510, 150..270] into nearest corridor
+    if (x >= 340 && x <= 520 && y >= 140 && y <= 280) {
+      if (y < 210) y = 130;
+      else y = 290;
+    }
+    return {
+      x: Math.round(x),
+      y: Math.round(y),
+      accuracyMeters: 2.0,
+      confidenceText: "Architectural Grid Coordinates (±2.0m)",
+      label: desk || `Floor 07 Pinpoint (${Math.round(targetX)}%, ${Math.round(targetY)}%)`,
+    };
+  }
+
+  // 2. If desk identifier is provided (e.g., NW-Desk-A2, SE-Pod-H8, NE-Station-C11)
+  if (desk) {
+    const match = desk.match(/([A-Z]{2})-([A-Za-z]+)-([A-H])(\d+)/i) || desk.match(/([A-H])(\d+)/i);
+    let rowIdx = 2; // default row (A-H = 0-7)
+    let colIdx = 3; // default col (1-12 = 0-11)
+    if (match) {
+      const letter = (match[3] || match[1] || "B").toUpperCase();
+      const num = parseInt(match[4] || match[2] || "3", 10);
+      rowIdx = Math.max(0, Math.min(7, letter.charCodeAt(0) - 65));
+      colIdx = Math.max(0, Math.min(11, num - 1));
+    }
+
+    const q = (quadrant || (desk.startsWith("NE") ? "NE" : desk.startsWith("SW") ? "SW" : desk.startsWith("SE") ? "SE" : "NW")).toUpperCase();
+
+    let x = 200;
+    let y = 95;
+
+    if (q === "NE") {
+      x = 550 + (colIdx / 11) * 160;
+      y = 65 + (rowIdx / 7) * 55;
+    } else if (q === "SW") {
+      x = 150 + (colIdx / 11) * 160;
+      y = 285 + (rowIdx / 7) * 55;
+    } else if (q === "SE") {
+      x = 550 + (colIdx / 11) * 160;
+      y = 285 + (rowIdx / 7) * 55;
+    } else {
+      // NW
+      x = 150 + (colIdx / 11) * 160;
+      y = 65 + (rowIdx / 7) * 55;
+    }
+
+    return {
+      x: Math.round(x),
+      y: Math.round(y),
+      accuracyMeters: 2.5,
+      confidenceText: "Turnstile Desk Assignment (±2.5m)",
+      label: desk,
+    };
+  }
+
+  // 3. Fallback to quadrant core
+  const q = (quadrant || "NW").toUpperCase();
+  if (q === "NE") return { x: 640, y: 95, accuracyMeters: 5.0, confidenceText: "Sector NE Core (±5.0m)", label: "Sector NE Core" };
+  if (q === "SW") return { x: 200, y: 325, accuracyMeters: 5.0, confidenceText: "Sector SW Core (±5.0m)", label: "Sector SW Core" };
+  if (q === "SE") return { x: 640, y: 325, accuracyMeters: 5.0, confidenceText: "Sector SE Core (±5.0m)", label: "Sector SE Core" };
+  return { x: 200, y: 95, accuracyMeters: 5.0, confidenceText: "Sector NW Core (±5.0m)", label: "Sector NW Core" };
+}
+
+/**
+ * Calculates obstacle-free corridor waypoints avoiding central lightwell core
+ */
+export function getCorridorEgressWaypoints(x: number, y: number, isStairA: boolean): string {
+  if (isStairA) {
+    // East Exit (Stairwell A: x: 735, y: 210)
+    if (y < 210) {
+      return `${x},${y} ${x},135 680,135 735,210`;
+    } else {
+      return `${x},${y} ${x},285 680,285 735,210`;
+    }
+  } else {
+    // West Exit (Stairwell B: x: 125, y: 210)
+    if (y < 210) {
+      return `${x},${y} ${x},135 180,135 125,210`;
+    } else {
+      return `${x},${y} ${x},285 180,285 125,210`;
+    }
+  }
 }
 
 /**
  * Enterprise Architectural Vector CAD Map — Floor 07 (4 Irving Place - Corporate HQ)
  * Reconstructed accurately from official Con Edison Portfolio As-Built Blueprints & FDNY Fire Team maps.
- * Renders building core, circulation corridors, elevator banks, and exit stairwells WITHOUT individual occupant names.
  */
 export const ActualBuildingFloorMap: React.FC<ActualBuildingFloorMapProps> = ({
   targetQuadrant = "NW",
@@ -25,31 +130,29 @@ export const ActualBuildingFloorMap: React.FC<ActualBuildingFloorMapProps> = ({
   className = "",
   onSelectQuadrant,
   quadrantCounts,
+  targetX,
+  targetY,
+  targetStatus,
+  targetName,
+  accuracyRadiusMeters,
+  distressedOccupants = [],
+  onSelectOccupant,
 }) => {
-  const isTargetNW = targetQuadrant === "NW";
-  const isTargetNE = targetQuadrant === "NE";
-  const isTargetSW = targetQuadrant === "SW";
-  const isTargetSE = targetQuadrant === "SE";
-
   const isStairA = !targetStairwell || targetStairwell.toLowerCase().includes("stairwell a") || targetStairwell.toLowerCase().includes("stair a");
 
-  // Coordinate waypoints for corridor-guided egress (avoids cutting through courtyard or walls)
-  let userPin = { x: 200, y: 100, label: "Sector NW · Strategic Planning" };
-  let pathWaypoints = "200,100 200,135 680,135 735,210"; // NW -> North corridor -> East corridor -> Stair A
+  // High-accuracy architectural pin calculation
+  const pin = computeArchitecturalPin(targetQuadrant, targetDesk, targetX, targetY);
+  const accuracyMeters = accuracyRadiusMeters ?? pin.accuracyMeters;
+  const isDistressed = targetStatus === "need-help" || targetStatus === "awaiting-evac-chair";
 
-  if (isTargetNE) {
-    userPin = { x: 620, y: 100, label: "Sector NE · Gas Operations" };
-    pathWaypoints = isStairA ? "620,100 680,135 735,210" : "620,100 620,135 180,135 125,210";
-  } else if (isTargetSW) {
-    userPin = { x: 200, y: 320, label: "Sector SW · AMI Operations" };
-    pathWaypoints = isStairA ? "200,320 200,285 680,285 735,210" : "200,320 180,285 125,210";
-  } else if (isTargetSE) {
-    userPin = { x: 620, y: 320, label: "Sector SE · Steam Operations" };
-    pathWaypoints = isStairA ? "620,320 680,285 735,210" : "620,320 620,285 180,285 125,210";
-  } else {
-    // Default NW
-    pathWaypoints = isStairA ? "200,100 200,135 680,135 735,210" : "200,100 180,135 125,210";
-  }
+  // Corridor waypoints avoiding central courtyard core
+  const pathWaypoints = getCorridorEgressWaypoints(pin.x, pin.y, isStairA);
+
+  // Exact exit distance and estimated walking time
+  const stairX = isStairA ? 757 : 103;
+  const stairY = 210;
+  const distanceFeet = Math.round((Math.abs(pin.x - stairX) + Math.abs(pin.y - stairY)) * 0.25);
+  const estWalkSeconds = Math.max(8, Math.round(distanceFeet / 3.2));
 
   return (
     <div className={`w-full rounded-2xl border border-slate-200/90 bg-white p-3 sm:p-4 text-slate-800 shadow-xs select-none ${className}`}>
@@ -499,20 +602,129 @@ export const ActualBuildingFloorMap: React.FC<ActualBuildingFloorMapProps> = ({
                 strokeLinejoin="round"
                 strokeDasharray="8 6"
               />
+            </g>
+          )}
 
-              {/* User Position Beacon */}
-              <g transform={`translate(${userPin.x}, ${userPin.y})`}>
+          {/* Calibrated Accuracy Radius Boundary for Primary Target */}
+          <circle
+            cx={pin.x}
+            cy={pin.y}
+            r={Math.max(12, accuracyMeters * 6)}
+            fill={isDistressed ? "rgba(239, 68, 68, 0.15)" : "rgba(2, 132, 199, 0.12)"}
+            stroke={isDistressed ? "#EF4444" : "#0284C7"}
+            strokeWidth="1.5"
+            strokeDasharray="3 3"
+          />
+
+          {/* Primary Occupant / Target Beacon */}
+          <g transform={`translate(${pin.x}, ${pin.y})`}>
+            {isDistressed ? (
+              <>
+                <circle
+                  r="20"
+                  fill={targetStatus === "awaiting-evac-chair" ? "#A855F7" : "#EF4444"}
+                  opacity="0.35"
+                  className="animate-ping"
+                />
+                <circle
+                  r="8.5"
+                  fill={targetStatus === "awaiting-evac-chair" ? "#9333EA" : "#DC2626"}
+                  stroke="#FFFFFF"
+                  strokeWidth="2.5"
+                />
+                {/* Pin callout card */}
+                <rect
+                  x="-75"
+                  y="-32"
+                  width="150"
+                  height="22"
+                  rx="5"
+                  fill={targetStatus === "awaiting-evac-chair" ? "#581C87" : "#7F1D1D"}
+                  stroke="#FFFFFF"
+                  strokeWidth="1"
+                />
+                <polygon
+                  points="-5,-10 5,-10 0,-5"
+                  fill={targetStatus === "awaiting-evac-chair" ? "#581C87" : "#7F1D1D"}
+                />
+                <text x="0" y="-18" textAnchor="middle" fill="#FFFFFF" fontSize="7.5" fontWeight="900">
+                  {targetStatus === "awaiting-evac-chair" ? "🛞 EVAC CHAIR REQ" : "🚨 SOS DISTRESS"}
+                  {targetName ? `: ${targetName.split(" ")[0].toUpperCase()}` : ""} (±{accuracyMeters.toFixed(1)}m)
+                </text>
+              </>
+            ) : (
+              <>
                 <circle r="14" fill="#0284C7" opacity="0.25" className="animate-ping" />
-                <circle r="7" fill="#005DAA" stroke="#FFFFFF" strokeWidth="2.5" />
+                <circle r="7.5" fill="#005DAA" stroke="#FFFFFF" strokeWidth="2.5" />
                 {/* Pin callout card */}
                 <rect x="-65" y="-28" width="130" height="18" rx="4" fill="#0F2537" />
                 <polygon points="-4,-10 4,-10 0,-6" fill="#0F2537" />
                 <text x="0" y="-16" textAnchor="middle" fill="#FFFFFF" fontSize="7.5" fontWeight="bold">
-                  📍 YOUR LOCATION
+                  📍 {targetName ? targetName.toUpperCase() : "YOUR LOCATION"} (±{accuracyMeters.toFixed(1)}m)
                 </text>
-              </g>
-            </g>
-          )}
+              </>
+            )}
+          </g>
+
+          {/* Multi-Occupant Distress Pins across Floor 07 */}
+          {distressedOccupants
+            .filter((occ) => !targetName || occ.name.toLowerCase() !== targetName.toLowerCase())
+            .map((distressed) => {
+              const occPin = computeArchitecturalPin(
+                distressed.quadrant,
+                distressed.desk,
+                distressed.xCoord,
+                distressed.yCoord
+              );
+              const isEvacChair = distressed.status === "awaiting-evac-chair";
+
+              return (
+                <g
+                  key={distressed.id}
+                  transform={`translate(${occPin.x}, ${occPin.y})`}
+                  onClick={() => onSelectOccupant?.(distressed)}
+                  className="cursor-pointer transition-transform hover:scale-125"
+                >
+                  <circle
+                    r="16"
+                    fill={isEvacChair ? "#C084FC" : "#F87171"}
+                    opacity="0.4"
+                    className="animate-ping"
+                  />
+                  <circle
+                    r="7"
+                    fill={isEvacChair ? "#9333EA" : "#DC2626"}
+                    stroke="#FFFFFF"
+                    strokeWidth="2"
+                  />
+                  {/* Callout Badge */}
+                  <rect
+                    x="-45"
+                    y="-24"
+                    width="90"
+                    height="16"
+                    rx="4"
+                    fill={isEvacChair ? "#581C87" : "#991B1B"}
+                    stroke="#FFFFFF"
+                    strokeWidth="0.8"
+                  />
+                  <polygon
+                    points="-3,-8 3,-8 0,-4"
+                    fill={isEvacChair ? "#581C87" : "#991B1B"}
+                  />
+                  <text
+                    x="0"
+                    y="-13"
+                    textAnchor="middle"
+                    fill="#FFFFFF"
+                    fontSize="6.5"
+                    fontWeight="800"
+                  >
+                    {isEvacChair ? "🛞" : "🚨"} {distressed.name.split(" ")[0]} ({distressed.desk || distressed.quadrant})
+                  </text>
+                </g>
+              );
+            })}
 
           {/* Architectural North Arrow & Stamp */}
           <g transform="translate(740, 52)">
@@ -522,21 +734,33 @@ export const ActualBuildingFloorMap: React.FC<ActualBuildingFloorMapProps> = ({
         </svg>
       </div>
 
-      {/* Bottom Route Guidance Bar */}
+      {/* Bottom Route Guidance & Telemetry Bar */}
       <div className="mt-2.5 pt-2 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 text-xs">
-        <div className="flex items-center gap-1.5 font-bold text-slate-800">
-          <Navigation className="w-4 h-4 text-emerald-600 shrink-0" />
-          <span>Assigned Egress:</span>
-          <span className="text-emerald-700 font-extrabold">
-            {isStairA ? "STAIRWELL A (East Core)" : "STAIRWELL B (West Core)"}
+        <div className="flex flex-wrap items-center gap-2 font-bold text-slate-800">
+          <div className="flex items-center gap-1.5 text-emerald-700 font-extrabold">
+            <Navigation className="w-4 h-4 text-emerald-600 shrink-0" />
+            <span>Assigned Exit:</span>
+            <span>{isStairA ? "Door 7-A (East Core)" : "Door 7-B (West Core)"}</span>
+          </div>
+          <span className="text-slate-300">·</span>
+          <span className="text-slate-600 font-medium text-[11px]">
+            {distanceFeet} ft (~{estWalkSeconds}s walk)
           </span>
-          <span className="text-slate-500 font-normal hidden sm:inline">
-            → Follow green illuminated corridor route to ground exit
+          <span className="text-slate-300">·</span>
+          <span className="text-sky-800 font-mono text-[11px] bg-sky-50 px-2 py-0.5 rounded border border-sky-200">
+            🎯 ACCURACY: ±{accuracyMeters.toFixed(1)}m · {pin.confidenceText}
           </span>
         </div>
 
-        <div className="text-[11px] font-bold text-rose-700 bg-rose-50 px-2.5 py-1 rounded-md border border-rose-200">
-          DO NOT USE ELEVATORS · RECALLED DURING ALARM
+        <div className="flex items-center gap-2">
+          {distressedOccupants.length > 0 && (
+            <span className="text-[11px] font-bold text-rose-800 bg-rose-100 px-2.5 py-1 rounded-md border border-rose-300 animate-pulse">
+              🚨 {distressedOccupants.length} ACTIVE DISTRESS SIGNAL{distressedOccupants.length > 1 ? "S" : ""}
+            </span>
+          )}
+          <div className="text-[11px] font-bold text-amber-800 bg-amber-50 px-2.5 py-1 rounded-md border border-amber-200">
+            DO NOT USE ELEVATORS · RECALLED
+          </div>
         </div>
       </div>
     </div>

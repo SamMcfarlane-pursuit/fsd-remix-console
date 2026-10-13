@@ -50,13 +50,48 @@ export const EmergencyRescueProcedureModal: React.FC<EmergencyRescueProcedureMod
   const nearestStair = occupant.quadrant === "NW" || occupant.quadrant === "SW" ? "Stairwell B (West Core)" : "Stairwell A (East Core)";
   const distanceFeet = occupant.quadrant === "NW" ? 38 : occupant.quadrant === "SW" ? 44 : occupant.quadrant === "NE" ? 52 : 36;
 
-  // CAD Map coordinate calculations
-  const pinX = occupant.xCoord ? Math.max(10, Math.min(390, occupant.xCoord * 4)) : occupant.quadrant === "NW" ? 75 : occupant.quadrant === "NE" ? 315 : occupant.quadrant === "SW" ? 75 : 315;
-  const pinY = occupant.yCoord ? Math.max(10, Math.min(230, occupant.yCoord * 2.4)) : occupant.quadrant === "NW" ? 50 : occupant.quadrant === "NE" ? 50 : occupant.quadrant === "SW" ? 180 : 180;
+  // CAD Map coordinate calculations with architectural desk bay and courtyard collision prevention
+  const computeModalPin = () => {
+    if (occupant.xCoord && occupant.yCoord) {
+      let px = Math.max(20, Math.min(380, occupant.xCoord * 4));
+      let py = Math.max(20, Math.min(220, occupant.yCoord * 2.4));
+      if (px >= 150 && px <= 250 && py >= 75 && py <= 165) {
+        py = py < 120 ? 68 : 172;
+      }
+      return { x: Math.round(px), y: Math.round(py) };
+    }
+    if (occupant.desk) {
+      const match = occupant.desk.match(/([A-Z]{2})-([A-Za-z]+)-([A-H])(\d+)/i) || occupant.desk.match(/([A-H])(\d+)/i);
+      if (match) {
+        const letter = (match[3] || match[1] || "B").toUpperCase();
+        const num = parseInt(match[4] || match[2] || "3", 10);
+        const rowIdx = Math.max(0, Math.min(7, letter.charCodeAt(0) - 65));
+        const colIdx = Math.max(0, Math.min(11, num - 1));
+        const q = occupant.quadrant || "NW";
+        if (q === "NE") return { x: Math.round(260 + (colIdx / 11) * 110), y: Math.round(25 + (rowIdx / 7) * 45) };
+        if (q === "SW") return { x: Math.round(25 + (colIdx / 11) * 110), y: Math.round(170 + (rowIdx / 7) * 45) };
+        if (q === "SE") return { x: Math.round(260 + (colIdx / 11) * 110), y: Math.round(170 + (rowIdx / 7) * 45) };
+        return { x: Math.round(25 + (colIdx / 11) * 110), y: Math.round(25 + (rowIdx / 7) * 45) };
+      }
+    }
+    return {
+      x: occupant.quadrant === "NW" ? 80 : occupant.quadrant === "NE" ? 310 : occupant.quadrant === "SW" ? 80 : 310,
+      y: occupant.quadrant === "NW" || occupant.quadrant === "NE" ? 48 : 192,
+    };
+  };
+
+  const modalPin = computeModalPin();
+  const pinX = modalPin.x;
+  const pinY = modalPin.y;
   
   // Stairwell coordinates
   const stairX = nearestStair.includes("Stairwell B") ? 25 : 375;
   const stairY = 110;
+
+  // Obstacle-free corridor waypoints avoiding courtyard
+  const corridorWaypoints = nearestStair.includes("Stairwell B")
+    ? (pinY < 120 ? `${pinX},${pinY} ${pinX},70 70,70 25,110` : `${pinX},${pinY} ${pinX},170 70,170 25,110`)
+    : (pinY < 120 ? `${pinX},${pinY} ${pinX},70 330,70 375,110` : `${pinX},${pinY} ${pinX},170 330,170 375,110`);
 
   const triggerNotice = (msg: string) => {
     setActionNotice(msg);
@@ -362,15 +397,24 @@ COMMANDER ACTION:
                 <rect x="250" y="165" width="130" height="55" fill={occupant.quadrant === "SE" ? "#7F1D1D44" : "transparent"} stroke={occupant.quadrant === "SE" ? "#EF4444" : "#1E3A5F"} strokeWidth={occupant.quadrant === "SE" ? "2" : "0.5"} rx="2" />
                 <text x="260" y="180" fill={occupant.quadrant === "SE" ? "#FCA5A5" : "#64748B"} fontSize="8" fontWeight="bold">SECTOR SE (Steam Ops)</text>
 
-                {/* Egress corridor path line from victim to stairwell */}
-                <line
-                  x1={pinX}
-                  y1={pinY}
-                  x2={stairX}
-                  y2={stairY}
+                {/* Egress corridor path polyline avoiding central courtyard core */}
+                <polyline
+                  points={corridorWaypoints}
+                  fill="none"
                   stroke="#10B981"
                   strokeWidth="2.5"
                   strokeDasharray="4 3"
+                />
+
+                {/* Sub-Meter Accuracy Radius Ring */}
+                <circle
+                  cx={pinX}
+                  cy={pinY}
+                  r="20"
+                  fill="rgba(239, 68, 68, 0.15)"
+                  stroke="#EF4444"
+                  strokeWidth="1"
+                  strokeDasharray="3 2"
                 />
 
                 {/* Target Pinpoint for Victim */}
