@@ -256,6 +256,76 @@ export const Step2SignedIn: React.FC<Step2SignedInProps> = ({
         </div>
       </div>
 
+      {/* OPERATIONS PIPELINE BANNER: TRI-PURPOSE SINGLE INTAKE (SLIDE 5) */}
+      <div className="bg-gradient-to-r from-[#003B70] via-[#005DAA] to-[#0A2540] text-white rounded-2xl p-4 sm:p-5 border-2 border-sky-400/40 shadow-md space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/15 pb-3">
+          <div className="space-y-0.5">
+            <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full bg-sky-400/20 border border-sky-300/30 text-sky-200 font-mono text-[10px] font-black uppercase tracking-wider">
+              <span>⚡</span>
+              <span>OPERATIONS PIPELINE · UNIFIED TRI-PURPOSE INTAKE</span>
+            </div>
+            <h3 className="text-base sm:text-lg font-black text-white tracking-tight">
+              "One sign-in covers attendance, visitors, and drills — so the data stays current between drills."
+            </h3>
+            <p className="text-xs text-sky-100 max-w-3xl leading-relaxed">
+              The 8:00 AM turnstile/QR scan eliminates separate rosters. Daily attendance, front-desk visitor logs, and emergency drill readiness share a single live data pipeline with zero stale names.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab("ledger")}
+            className="px-3.5 py-2 bg-white/10 hover:bg-white/20 text-sky-200 border border-sky-300/40 font-mono text-xs rounded-xl transition cursor-pointer flex items-center gap-1.5 shrink-0 self-start sm:self-center"
+            title="Inspect the real-time self-writing audit ledger"
+          >
+            <span>📜</span>
+            <span>Self-Writing Ledger: {snapshot?.ledgerEntries?.length || 25} Blocks</span>
+          </button>
+        </div>
+
+        {/* 3 Unified Pipeline Metrics */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+          <div className="bg-black/25 border border-white/10 rounded-xl p-3 space-y-1">
+            <div className="text-[10px] font-mono text-sky-300 uppercase font-bold flex items-center justify-between">
+              <span>1. REGULAR ATTENDANCE</span>
+              <span>STAFF</span>
+            </div>
+            <div className="text-xl font-mono font-black text-white">
+              {inBuilding.filter(o => o.role !== "Visitor").length} <span className="text-xs font-sans font-normal text-slate-300">/ {totalOccupants - visitors.length} Employees</span>
+            </div>
+            <div className="text-[11px] text-slate-300">
+              Covers daily facility presence &amp; payroll badge swipes.
+            </div>
+          </div>
+
+          <div className="bg-black/25 border border-white/10 rounded-xl p-3 space-y-1">
+            <div className="text-[10px] font-mono text-emerald-300 uppercase font-bold flex items-center justify-between">
+              <span>2. VISITOR &amp; CONTRACTOR INTAKE</span>
+              <span>BADGED</span>
+            </div>
+            <div className="text-xl font-mono font-black text-emerald-300">
+              {visitors.length} <span className="text-xs font-sans font-normal text-slate-300">Active Badges</span>
+            </div>
+            <div className="text-[11px] text-slate-300">
+              Direct digital ingress · No separate front-desk paper binder.
+            </div>
+          </div>
+
+          <div className="bg-black/25 border border-white/10 rounded-xl p-3 space-y-1">
+            <div className="text-[10px] font-mono text-amber-300 uppercase font-bold flex items-center justify-between">
+              <span>3. DRILL READINESS</span>
+              <span>100% CURRENT</span>
+            </div>
+            <div className="text-xl font-mono font-black text-amber-300">
+              {inBuilding.length} <span className="text-xs font-sans font-normal text-slate-300">Live Denominator</span>
+            </div>
+            <div className="text-[11px] text-slate-300">
+              Zero stale roster lag · Verified headcount locked before alarm.
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Urgent Distress & Rescue Alert Banner if occupants flagged help */}
       {distressedOccupants.length > 0 && (
         <div className="bg-red-50 border-2 border-red-500 rounded-2xl p-4 sm:p-5 shadow-md flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-fadeIn">
@@ -709,8 +779,26 @@ export const Step2SignedIn: React.FC<Step2SignedInProps> = ({
 
         {/* Tab 2: Cryptographic Audit Ledger View */}
         {activeTab === "ledger" && (
-          <div className="overflow-x-auto max-h-[460px] overflow-y-auto">
-            <table className="w-full text-left text-xs font-mono">
+          <div className="p-4 bg-slate-50 border-t border-[#CBDCEE] space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-[#0A1A2F] text-white p-3.5 rounded-xl border border-sky-400/30 text-xs">
+              <div className="flex items-center gap-2.5">
+                <span className="text-emerald-400 font-mono font-black text-base">🔒</span>
+                <div>
+                  <div className="font-mono font-black text-sky-300 uppercase text-[10px] tracking-wider">
+                    COMPLIANCE EVIDENCE PIPELINE · NYC FIRE CODE 3 RCNY §401-06
+                  </div>
+                  <div className="font-bold text-white text-xs sm:text-sm">
+                    "The drill record writes itself as it happens. Compliance evidence is generated, not reconstructed."
+                  </div>
+                </div>
+              </div>
+              <div className="text-slate-300 font-mono text-[11px] shrink-0 bg-white/10 px-2.5 py-1 rounded-md border border-white/15">
+                SHA-256 Ledger Height: {snapshot?.ledgerEntries?.length || 25} Blocks Verified
+              </div>
+            </div>
+
+            <div className="overflow-x-auto max-h-[460px] overflow-y-auto bg-white rounded-xl border border-slate-200">
+              <table className="w-full text-left text-xs font-mono">
               <thead className="sticky top-0 bg-[#F0F6FC] text-[#475569] font-bold uppercase tracking-wider border-b border-[#CBDCEE] z-10">
                 <tr>
                   <th className="p-3.5 w-24">Block #</th>
@@ -759,7 +847,8 @@ export const Step2SignedIn: React.FC<Step2SignedInProps> = ({
               </tbody>
             </table>
           </div>
-        )}
+        </div>
+      )}
 
         {/* Tab 3: Floor 07 Architectural CAD Map View */}
         {activeTab === "map" && (

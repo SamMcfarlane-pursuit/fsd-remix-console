@@ -683,6 +683,95 @@ export const Step5AllSafe: React.FC<Step5AllSafeProps> = ({
             </div>
           </div>
         </div>
+
+        {/* SLIDE 5 OPERATIONS BENCHMARK · THE THREE OPERATIONAL PILLARS */}
+        <div className="pt-5 border-t border-white/15 space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 font-mono text-[10px] font-black tracking-wider uppercase">
+                <span>⚡</span>
+                <span>SLIDE 5 OPERATIONS BENCHMARK · CORE OPERATIONAL ARCHITECTURE</span>
+              </div>
+              <h3 className="text-lg sm:text-xl font-black text-white mt-1">
+                "On operations: the drill record writes itself as it happens. Compliance evidence is generated, not reconstructed."
+              </h3>
+              <p className="text-xs text-slate-300 max-w-3xl leading-relaxed">
+                "One sign-in covers attendance, visitors, and drills, so the data stays current between drills."
+              </p>
+            </div>
+
+            <button
+              onClick={() => setIsCertModalOpen(true)}
+              className="px-4 py-2.5 bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-white font-black text-xs uppercase tracking-wider rounded-xl shadow-lg transition cursor-pointer flex items-center gap-2 shrink-0 self-start sm:self-center"
+              title="Generate the official FDNY 3 RCNY §401-06 Certificate and immutable evidence binder immediately"
+            >
+              <span>📜</span>
+              <span>Generate Compliance Evidence Binder</span>
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+            {/* Pillar 1 */}
+            <div className="bg-black/30 border border-white/10 rounded-2xl p-4 space-y-1.5 flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between text-[10px] font-mono font-bold text-sky-300 uppercase">
+                  <span>PILLAR 1 · REAL-TIME LEDGER</span>
+                  <span className="text-emerald-400 font-mono">0 MIN LAG</span>
+                </div>
+                <h5 className="text-sm font-black text-white mt-0.5">
+                  The Drill Record Writes Itself
+                </h5>
+                <p className="text-[11px] text-slate-300 leading-relaxed">
+                  Every muster tap, SOS distress, and mobility chair dispatch logs into an immutable cryptographic ledger as it happens. Zero paper tallies, zero radio channel bottlenecks.
+                </p>
+              </div>
+              <div className="pt-2 border-t border-white/10 text-[10px] font-mono text-emerald-300 flex items-center justify-between">
+                <span>Automated Log Height</span>
+                <span>{snapshot?.ledgerEntries?.length || 25} Blocks Sealed</span>
+              </div>
+            </div>
+
+            {/* Pillar 2 */}
+            <div className="bg-black/30 border border-white/10 rounded-2xl p-4 space-y-1.5 flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between text-[10px] font-mono font-bold text-emerald-300 uppercase">
+                  <span>PILLAR 2 · COMPLIANCE AUDIT</span>
+                  <span className="text-emerald-400 font-mono">INSTANTANEOUS</span>
+                </div>
+                <h5 className="text-sm font-black text-white mt-0.5">
+                  Generated, Not Reconstructed
+                </h5>
+                <p className="text-[11px] text-slate-300 leading-relaxed">
+                  NYC Fire Code 3 RCNY §401-06 certificates and SHA-256 evidence packets generate on-demand. Wardens never spend 20 minutes reconstructing post-drill records from handwritten notes.
+                </p>
+              </div>
+              <div className="pt-2 border-t border-white/10 text-[10px] font-mono text-emerald-300 flex items-center justify-between">
+                <span>Reconstruction Lag</span>
+                <span>0 min (vs. 20 min paper chaos)</span>
+              </div>
+            </div>
+
+            {/* Pillar 3 */}
+            <div className="bg-black/30 border border-white/10 rounded-2xl p-4 space-y-1.5 flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between text-[10px] font-mono font-bold text-amber-300 uppercase">
+                  <span>PILLAR 3 · DATA FRESHNESS</span>
+                  <span className="text-amber-400 font-mono">100% CURRENT</span>
+                </div>
+                <h5 className="text-sm font-black text-white mt-0.5">
+                  One Sign-In Covers Everything
+                </h5>
+                <p className="text-[11px] text-slate-300 leading-relaxed">
+                  The morning 8:00 AM scan simultaneously covers daily attendance, visitor management, and emergency drills. Roster data stays continuously current between drills with zero stale names.
+                </p>
+              </div>
+              <div className="pt-2 border-t border-white/10 text-[10px] font-mono text-amber-300 flex items-center justify-between">
+                <span>Roster Discrepancies</span>
+                <span>0 Stale Names · 0 Blind Re-entries</span>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* OPERATIONAL LIFE-SAFETY DRILL & EGRESS METRICS DASHBOARD */}
