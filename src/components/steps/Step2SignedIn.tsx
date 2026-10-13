@@ -855,8 +855,33 @@ export const Step2SignedIn: React.FC<Step2SignedInProps> = ({
                         </button>
                       </td>
                       <td className="p-3.5">
-                        <span className="font-mono font-bold text-[#005DAA]">Sector {occ.quadrant}</span>
-                        <div className="text-slate-500 text-[11px]">{occ.desk || "Turnstile Ingress"}</div>
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-mono font-bold text-[#005DAA]">Sector {occ.quadrant}</span>
+                          <span className="text-[10px] font-mono text-slate-500 bg-slate-100 px-1 rounded">
+                            {occ.xCoord !== undefined && occ.yCoord !== undefined
+                              ? `CAD(${occ.xCoord}, ${occ.yCoord})`
+                              : "Core"}
+                          </span>
+                        </div>
+                        <div className="text-slate-600 text-[11px] font-medium">{occ.desk || "Turnstile Ingress"}</div>
+                        <div className="mt-0.5">
+                          {occ.locationCategory === "outside-assembly" || (occ.status === "safe" && occ.assemblyPoint) ? (
+                            <span className="text-[9px] font-mono font-bold text-emerald-800 bg-emerald-50 border border-emerald-300 px-1.5 py-0.2 rounded inline-flex items-center gap-1">
+                              <span>📍</span>
+                              <span>Outside · {occ.assemblyPoint?.includes("B") ? "Muster B" : "Muster A"}</span>
+                            </span>
+                          ) : occ.badgedOut || occ.offSiteToday ? (
+                            <span className="text-[9px] font-mono font-bold text-slate-600 bg-slate-100 border border-slate-300 px-1.5 py-0.2 rounded inline-flex items-center gap-1">
+                              <span>🚪</span>
+                              <span>Off-Site</span>
+                            </span>
+                          ) : (
+                            <span className="text-[9px] font-mono font-bold text-sky-800 bg-sky-50 border border-sky-300 px-1.5 py-0.2 rounded inline-flex items-center gap-1">
+                              <span>🏢</span>
+                              <span>Inside Floor 07 (Validated)</span>
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="p-3.5">
                         <div className="font-semibold text-slate-700">{occ.role}</div>

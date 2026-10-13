@@ -102,6 +102,79 @@ export interface DrillPerformanceMetrics {
   }>;
 }
 
+export interface ElevatorSystemStatus {
+  phase1RecallActive: boolean;
+  groundFloor: string;
+  shaftVentsOpen: boolean;
+  powerInterlock: "SECURE" | "TRIPPED" | "STANDBY";
+  banks: {
+    bankA: { name: string; cars: string; status: "GROUNDED_LOCKED" | "NORMAL"; floor: string };
+    bankB: { name: string; cars: string; status: "GROUNDED_LOCKED" | "NORMAL"; floor: string };
+    service: { name: string; cars: string; status: "GROUNDED_LOCKED" | "PHASE_II_READY" | "NORMAL"; floor: string };
+  };
+  overrideKeyholder?: string;
+  lastUpdated?: string;
+}
+
+export interface OutdoorMusterPointStatus {
+  id: string;
+  name: string;
+  address: string;
+  assignedQuadrants: QuadrantId[];
+  capacity: number;
+  headcountVerified: number;
+  wardenLead: string;
+  transitStatus: "OPEN_CLEAR" | "CONGESTED" | "DIVERTED";
+  safeDistanceMeters: number;
+  lastAuditTime?: string;
+}
+
+export interface EmergencyProtocolConfig {
+  emergencyTitle: string;
+  broadcastDirectiveText: string;
+  elevatorPhase1Directive: string;
+  musterPointInstructions: string;
+  sarDeploymentProcedure: string;
+  customEmergencyBannerText?: string;
+  lastEditedBy?: string;
+  lastEditedAt?: string;
+}
+
+export interface EmergencyResponseTimes {
+  timeToIdentifySec: number | null; // TTI: Time to detect/identify distress from alarm sound
+  timeToLocateSec: number | null;   // TTL: Time to pinpoint physical location & CAD coordinates
+  timeToConfirmSec: number | null;  // TTC: Time to confirm safe resolution / SAR extraction
+  elapsedIncidentSeconds: number;
+  egressRatePerMinute: number;
+  totalDistressedIdentified: number;
+  totalPinpointLocated: number;
+  totalConfirmedSafe: number;
+  activeEmergenciesList: Array<{
+    occupantId: string;
+    name: string;
+    sector: QuadrantId;
+    desk?: string;
+    pinpointLocation: string;
+    status: OccupantStatus;
+    reportedAt: string;
+    ttiSec: number;
+    ttlSec: number;
+    ttcSec: number | null;
+    isInsideBuilding: boolean;
+  }>;
+}
+
+export interface ActionableEmergencyItem {
+  id: string;
+  title: string;
+  description: string;
+  category: "ALARM_ELEVATOR" | "SAR_PINPOINT" | "MUSTER_VERIFY" | "BROADCAST_DIRECTIVE" | "COMPLIANCE_SEAL";
+  status: "COMPLETED" | "IN_PROGRESS" | "PENDING";
+  priority: "CRITICAL" | "HIGH" | "MEDIUM";
+  actionKey: string;
+  completedAt?: string;
+}
+
 export interface StatusSnapshot {
   incidentActive: boolean;
   mode: "drill" | "incident" | null;
@@ -123,6 +196,11 @@ export interface StatusSnapshot {
   latestWalkieTalkie?: WalkieTalkieBroadcast | null;
   latestEmergencyAlert?: EmergencyAlertPayload | null;
   drillMetrics?: DrillPerformanceMetrics | null;
+  elevatorStatus?: ElevatorSystemStatus;
+  outdoorMusterPoints?: OutdoorMusterPointStatus[];
+  emergencyProtocol?: EmergencyProtocolConfig;
+  responseTimes?: EmergencyResponseTimes;
+  actionableSteps?: ActionableEmergencyItem[];
 }
 
 export interface LedgerEntry {

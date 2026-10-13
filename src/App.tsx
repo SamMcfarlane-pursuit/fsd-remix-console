@@ -15,6 +15,8 @@ import EmergencyAlertModal from "./components/EmergencyAlertModal";
 import { NavigationGuideModal } from "./components/NavigationGuideModal";
 import { PinModal } from "./components/PinModal";
 import { WalkieTalkieModal } from "./components/WalkieTalkieModal";
+import { RedAlertBanner } from "./components/RedAlertBanner";
+import { EmergencyProtocolModal } from "./components/EmergencyProtocolModal";
 import { setAudioMuted, getAudioMuted } from "./lib/audioBroadcast";
 import { UserRole, setStoredRole, getStoredRole } from "./lib/authGuard";
 import { AuthUser, EmergencyAlertPayload, LocationCategory, OccupantStatus, StatusSnapshot, QuadrantId } from "./types";
@@ -129,6 +131,7 @@ export default function App() {
   const [isSignInPosterOpen, setIsSignInPosterOpen] = useState(false);
   const [isSelfSignInOpen, setIsSelfSignInOpen] = useState(false);
   const [isGuideModalOpen, setIsGuideModalOpen] = useState(false);
+  const [isProtocolModalOpen, setIsProtocolModalOpen] = useState(false);
   const [isMuted, setIsMuted] = useState<boolean>(() => getAudioMuted());
   const [isPinModalOpen, setIsPinModalOpen] = useState<boolean>(false);
   const [targetPinRole, setTargetPinRole] = useState<UserRole>("commander");
@@ -962,6 +965,16 @@ export default function App() {
         </div>
       ) : (
         <div className="flex-1 flex flex-col">
+          {/* HIGH-VISIBILITY REAL-TIME RED ALERT BANNER & STATUS */}
+          <RedAlertBanner
+            snapshot={snapshot}
+            onOpenProtocolEditor={() => setIsProtocolModalOpen(true)}
+            onOpenBroadcastStep={() => setCurrentStep(4)}
+            onOpenAllSafeStep={() => setCurrentStep(5)}
+            onOpenAlarmStep={() => setCurrentStep(3)}
+            onOpenRosterStep={() => setCurrentStep(2)}
+          />
+
           {/* THE 5-STEP PROCESS BAR (Matches image exactly) */}
           <UserFlowStepper
             snapshot={snapshot}
@@ -1150,6 +1163,13 @@ export default function App() {
         onBroadcastSent={() => {
           refreshState();
         }}
+      />
+
+      <EmergencyProtocolModal
+        isOpen={isProtocolModalOpen}
+        onClose={() => setIsProtocolModalOpen(false)}
+        currentProtocol={snapshot?.emergencyProtocol}
+        onProtocolSaved={() => refreshState()}
       />
 
       <PinModal

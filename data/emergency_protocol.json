@@ -1,0 +1,10 @@
+{
+  "emergencyTitle": "CRITICAL FIRE ALERT: 4 IRVING PL FLOOR 07 EVACUATION",
+  "broadcastDirectiveText": "Custom Directive: Evacuate immediately via Stairwell A and report to Assembly Point A. Do not use elevators.",
+  "elevatorPhase1Directive": "NYC Fire Code Phase I Emergency Recall: All elevator banks are locked out and grounded to Lobby 1 with doors parked open. Hoistway vents are pressurized open.",
+  "musterPointInstructions": "Report to Assembly Point A (Park Plaza · East 14th) for Sectors NW/NE, or Assembly Point B (Courtyard · East 15th) for Sectors SW/SE. Maintain minimum 150m building clearance.",
+  "sarDeploymentProcedure": "Search & Rescue Squad dispatched to pinpoint coordinates. Wardens sweep assigned quadrants. Stryker Evacuation Chair deploy to Stairwell A landing.",
+  "customEmergencyBannerText": "🚨 RED ALERT: IMMEDIATE FLOOR 07 EGRESS MANDATED · STAIR A & B OPEN",
+  "lastEditedBy": "FSD Commander",
+  "lastEditedAt": "01:10 PM"
+}
