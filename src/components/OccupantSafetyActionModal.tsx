@@ -38,8 +38,43 @@ export const OccupantSafetyActionModal: React.FC<OccupantSafetyActionModalProps>
   const [isEditingName, setIsEditingName] = useState(false);
   const [nameInput, setNameInput] = useState(occupant?.name || "");
   const [isSavingName, setIsSavingName] = useState(false);
+  const [dispatchMessage, setDispatchMessage] = useState("");
+  const [isSendingDispatch, setIsSendingDispatch] = useState(false);
+  const [dispatchSuccess, setDispatchSuccess] = useState<string | null>(null);
 
   if (!occupant) return null;
+
+  const handleSendDispatch = async (presetText?: string) => {
+    const text = (presetText || dispatchMessage).trim();
+    if (!text) return;
+    setIsSendingDispatch(true);
+    try {
+      const res = await fetch("/api/occupant/send-message", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-fsd-pin": "7007",
+        },
+        body: JSON.stringify({
+          occupantId: occupant.id,
+          message: text,
+          senderName: "Fire Command Center",
+        }),
+      });
+      if (res.ok) {
+        occupant.commanderReply = text;
+        occupant.commanderReplyAt = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+        setDispatchMessage("");
+        setDispatchSuccess(`📡 Dispatch transmitted: "${text}"`);
+        triggerFeedback(`📡 Dispatch sent to ${occupant.name}: "${text}"`);
+        setTimeout(() => setDispatchSuccess(null), 5000);
+      }
+    } catch (err) {
+      console.error("Dispatch message failed:", err);
+    } finally {
+      setIsSendingDispatch(false);
+    }
+  };
 
   const handleSaveName = async () => {
     if (!nameInput.trim()) return;
@@ -245,23 +280,155 @@ export const OccupantSafetyActionModal: React.FC<OccupantSafetyActionModalProps>
             </div>
           )}
 
-          {/* Occupant SitRep Transmission Note */}
-          {occupant.notes && (
-            <div className="p-3.5 bg-amber-50/90 rounded-2xl border-2 border-amber-300 space-y-1 shadow-2xs">
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] font-mono font-black uppercase text-amber-900 tracking-wider flex items-center gap-1.5">
-                  <span>💬</span>
-                  <span>OCCUPANT SITUATION REPORT (SITREP)</span>
-                </span>
-                <span className="text-[10px] font-mono font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded-full border border-amber-200">
-                  VIA {occupant.checkInMethod?.toUpperCase() || "MOBILE APP"}
-                </span>
-              </div>
-              <p className="text-xs font-bold text-slate-900 leading-relaxed">
-                "{occupant.notes.replace(/^Occupant SitRep:\s*/i, "")}"
-              </p>
+          {/* Two-Way Emergency Intercom & Responder Dispatch Hub */}
+          <div className="bg-[#F8FAFC] rounded-2xl p-4 border-2 border-sky-300 space-y-3.5 shadow-xs">
+            <div className="flex items-center justify-between border-b border-sky-200 pb-2">
+              <span className="text-[10px] font-mono font-black uppercase text-[#005DAA] tracking-wider flex items-center gap-1.5">
+                <span>📡</span>
+                <span>TWO-WAY EMERGENCY DISPATCH & INTERCOM</span>
+              </span>
+              <span className="text-[10px] font-mono font-bold text-sky-800 bg-sky-100 px-2 py-0.5 rounded-full border border-sky-200">
+                DIRECT MOBILE LINK · ENCRYPTED
+              </span>
             </div>
-          )}
+
+            {/* Occupant SitRep Transmission Note */}
+            {occupant.notes ? (
+              <div className="p-3 bg-amber-50/90 rounded-xl border-2 border-amber-300 space-y-1 shadow-2xs">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-mono font-black uppercase text-amber-900 tracking-wider flex items-center gap-1.5">
+                    <span>💬</span>
+                    <span>OCCUPANT MESSAGE / SITREP</span>
+                  </span>
+                  <span className="text-[9px] font-mono font-bold text-amber-800 bg-amber-100 px-1.5 py-0.5 rounded border border-amber-200">
+                    VIA {occupant.checkInMethod?.toUpperCase() || "MOBILE APP"}
+                  </span>
+                </div>
+                <p className="text-xs font-bold text-slate-900 leading-relaxed">
+                  "{occupant.notes.replace(/^Occupant SitRep:\s*/i, "")}"
+                </p>
+              </div>
+            ) : (
+              <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-200 text-[11px] text-slate-500 italic flex items-center gap-2">
+                <span>💬</span>
+                <span>No active help message from occupant. You can transmit proactive emergency instructions below.</span>
+              </div>
+            )}
+
+            {/* Current Active Commander Dispatch Reply (if already sent) */}
+            {occupant.commanderReply && (
+              <div className="p-3 bg-sky-900 text-white rounded-xl border border-sky-400 space-y-1 shadow-xs animate-fadeIn">
+                <div className="flex items-center justify-between text-[10px] text-sky-200 font-mono">
+                  <span className="font-bold flex items-center gap-1">
+                    <span>📢</span> TRANSMITTED DISPATCH ORDER
+                  </span>
+                  <span>{occupant.commanderReplyAt || "Active"}</span>
+                </div>
+                <div className="text-xs font-bold text-sky-50">
+                  "{occupant.commanderReply}"
+                </div>
+              </div>
+            )}
+
+            {/* Tactical 1-Click Dispatch Order Presets */}
+            <div className="space-y-1.5">
+              <div className="text-[10px] font-mono font-bold uppercase text-slate-500">
+                1-Click Tactical Orders to Transmit to Occupant's Phone:
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                <button
+                  type="button"
+                  disabled={isSendingDispatch}
+                  onClick={() =>
+                    handleSendDispatch(
+                      `Search & Rescue Squad dispatched to Sector ${occupant.quadrant} (Desk ${occupant.desk || "Floor 07"}). Stand by for extraction.`
+                    )
+                  }
+                  className="p-2 text-left bg-white hover:bg-sky-50 border border-sky-200 hover:border-sky-400 rounded-xl transition cursor-pointer text-[11px] font-bold text-slate-800 shadow-2xs active:scale-98 flex items-center gap-2"
+                >
+                  <span className="text-base shrink-0">🚑</span>
+                  <span className="truncate">Dispatch SAR Squad to Sector</span>
+                </button>
+
+                <button
+                  type="button"
+                  disabled={isSendingDispatch}
+                  onClick={() =>
+                    handleSendDispatch(
+                      `Proceed immediately to ${primaryExit}. Egress corridor is clear and pressurized.`
+                    )
+                  }
+                  className="p-2 text-left bg-white hover:bg-sky-50 border border-sky-200 hover:border-sky-400 rounded-xl transition cursor-pointer text-[11px] font-bold text-slate-800 shadow-2xs active:scale-98 flex items-center gap-2"
+                >
+                  <span className="text-base shrink-0">🚪</span>
+                  <span className="truncate">Direct to {primaryExit.split("·")[0]}</span>
+                </button>
+
+                <button
+                  type="button"
+                  disabled={isSendingDispatch}
+                  onClick={() =>
+                    handleSendDispatch(
+                      `Stryker Evacuation Chair team deployed to Stairwell A landing. Assistance team will arrive in ~2 min.`
+                    )
+                  }
+                  className="p-2 text-left bg-white hover:bg-sky-50 border border-sky-200 hover:border-sky-400 rounded-xl transition cursor-pointer text-[11px] font-bold text-slate-800 shadow-2xs active:scale-98 flex items-center gap-2"
+                >
+                  <span className="text-base shrink-0">🛞</span>
+                  <span className="truncate">Evac Chair Deployed</span>
+                </button>
+
+                <button
+                  type="button"
+                  disabled={isSendingDispatch}
+                  onClick={() =>
+                    handleSendDispatch(
+                      `Floor Warden is en route to assist you. Stay low and shelter in place until contact.`
+                    )
+                  }
+                  className="p-2 text-left bg-white hover:bg-sky-50 border border-sky-200 hover:border-sky-400 rounded-xl transition cursor-pointer text-[11px] font-bold text-slate-800 shadow-2xs active:scale-98 flex items-center gap-2"
+                >
+                  <span className="text-base shrink-0">🦺</span>
+                  <span className="truncate">Warden En Route · Shelter</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Custom Message Dispatch Input */}
+            <div className="space-y-1.5 pt-1">
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={dispatchMessage}
+                  onChange={(e) => setDispatchMessage(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSendDispatch();
+                    }
+                  }}
+                  placeholder="Type direct response or tactical instructions to occupant..."
+                  className="flex-1 px-3 py-2 bg-white border border-sky-300 rounded-xl text-xs text-slate-900 outline-none focus:border-[#005DAA] focus:ring-1 focus:ring-[#005DAA]"
+                />
+                <button
+                  type="button"
+                  onClick={() => handleSendDispatch()}
+                  disabled={isSendingDispatch || !dispatchMessage.trim()}
+                  className="px-4 py-2 bg-[#005DAA] hover:bg-[#004884] disabled:opacity-50 text-white font-black text-xs rounded-xl transition cursor-pointer shadow-sm shrink-0 flex items-center gap-1.5"
+                >
+                  <span>📡</span>
+                  <span>{isSendingDispatch ? "Sending..." : "Transmit"}</span>
+                </button>
+              </div>
+
+              {dispatchSuccess && (
+                <div className="p-2 bg-emerald-50 border border-emerald-300 text-emerald-900 rounded-xl text-[11px] font-bold animate-fadeIn flex items-center gap-1.5">
+                  <span>✅</span>
+                  <span>{dispatchSuccess}</span>
+                </div>
+              )}
+            </div>
+          </div>
 
           {/* Building Location Blueprint Card */}
           <div className="bg-[#F0F6FC] rounded-2xl p-4 border border-[#CBDCEE] space-y-3">

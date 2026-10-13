@@ -2822,6 +2822,45 @@ app.post("/api/occupant/update", requireCommanderAuth, (req, res) => {
   });
 });
 
+// Two-way emergency communication: Commander transmits direct dispatch reply to occupant
+app.post("/api/occupant/send-message", requireCommanderAuth, (req, res) => {
+  const { occupantId, message, senderName } = req.body;
+  if (!occupantId || !message || typeof message !== "string") {
+    res.status(400).json({ error: "occupantId and message are required" });
+    return;
+  }
+  const occupant = occupantsRoster.find(
+    (o) => o.id.toUpperCase() === String(occupantId).trim().toUpperCase()
+  );
+  if (!occupant) {
+    res.status(404).json({ error: "Occupant not found" });
+    return;
+  }
+  const timestamp = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+  occupant.commanderReply = message.trim();
+  occupant.commanderReplyAt = timestamp;
+
+  savePersistedRoster(occupantsRoster);
+  const entry = appendLedger("commander-direct-dispatch-message", {
+    occupantId: occupant.id,
+    occupantName: occupant.name,
+    message: occupant.commanderReply,
+    sender: senderName || "FSD Commander",
+    timestamp,
+    sector: occupant.quadrant,
+    desk: occupant.desk,
+  });
+  notifySseClients();
+
+  res.json({
+    ok: true,
+    occupant,
+    message: `Emergency dispatch transmitted to ${occupant.name} (${occupant.id}).`,
+    ledgerEntry: entry,
+    snapshot: getDerivedSnapshot(),
+  });
+});
+
 // Slide 4 Presentation Benchmark: 8-Minute Digital Muster State (191 Safe · 1 SOS · 2 Evac · 1 Off-Site)
 app.post("/api/drill/demo-preset-8min", requireCommanderAuth, (req, res) => {
   occupantsRoster = generateInitialRoster(195);

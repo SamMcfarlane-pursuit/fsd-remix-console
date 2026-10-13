@@ -843,6 +843,15 @@ export const Step2SignedIn: React.FC<Step2SignedInProps> = ({
                               <span className="font-medium italic">"{occ.notes.replace(/^Occupant SitRep:\s*/i, "")}"</span>
                             </div>
                           )}
+                          {occ.commanderReply && (
+                            <div className="mt-1 text-[11px] font-semibold text-sky-950 bg-sky-50 border border-sky-300/80 px-2 py-0.5 rounded-lg inline-flex items-center gap-1.5 shadow-2xs ml-1.5">
+                              <span className="text-sky-700 font-black">📡 Dispatch Sent:</span>
+                              <span className="font-medium italic">"{occ.commanderReply}"</span>
+                              {occ.commanderReplyAt && (
+                                <span className="text-[10px] text-sky-600 font-mono">({occ.commanderReplyAt})</span>
+                              )}
+                            </div>
+                          )}
                         </button>
                       </td>
                       <td className="p-3.5">
@@ -877,18 +886,29 @@ export const Step2SignedIn: React.FC<Step2SignedInProps> = ({
                       <td className="p-3.5 text-right">
                         <div className="flex items-center justify-end gap-1.5">
                           {isDistressed ? (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                if (onOpenRescueProcedure) onOpenRescueProcedure(occ);
-                                else setRescueProcedureOccupant(occ);
-                              }}
-                              className="px-3 py-1.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-black text-xs cursor-pointer shadow-sm flex items-center gap-1.5 active:scale-95 transition animate-pulse"
-                              title="Launch Emergency Rescue Procedure Window"
-                            >
-                              <span>🚑</span>
-                              <span>Rescue Window</span>
-                            </button>
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => setSelectedOccupantForAction(occ)}
+                                className="px-2.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-black text-xs cursor-pointer shadow-xs flex items-center gap-1 active:scale-95 transition"
+                                title="Open Two-Way Dispatch & Safety Action modal"
+                              >
+                                <span>📡</span>
+                                <span>Dispatch &amp; Safety</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (onOpenRescueProcedure) onOpenRescueProcedure(occ);
+                                  else setRescueProcedureOccupant(occ);
+                                }}
+                                className="px-2.5 py-1.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-black text-xs cursor-pointer shadow-sm flex items-center gap-1 active:scale-95 transition animate-pulse"
+                                title="Launch Emergency Rescue Procedure Window"
+                              >
+                                <span>🚑</span>
+                                <span>Rescue SOP</span>
+                              </button>
+                            </>
                           ) : (
                             <button
                               type="button"
@@ -1027,7 +1047,11 @@ export const Step2SignedIn: React.FC<Step2SignedInProps> = ({
       </div>
             {/* Unified Occupant Safety Action & Building Location Modal */}
       <OccupantSafetyActionModal
-        occupant={selectedOccupantForAction}
+        occupant={
+          selectedOccupantForAction
+            ? occupants.find((o) => o.id === selectedOccupantForAction.id) || selectedOccupantForAction
+            : null
+        }
         onClose={() => setSelectedOccupantForAction(null)}
         onCheckIn={onCheckIn}
         onSendDirectPing={handleSendDirectPing}

@@ -366,6 +366,20 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
     }
   }, [snapshot?.latestWalkieTalkie]);
 
+  // Track incoming Commander Direct Dispatch responses
+  const lastCommanderReplyRef = useRef<string | undefined>(currentUser?.commanderReply);
+  useEffect(() => {
+    if (
+      currentUser?.commanderReply &&
+      currentUser.commanderReply !== lastCommanderReplyRef.current
+    ) {
+      lastCommanderReplyRef.current = currentUser.commanderReply;
+      try {
+        playRadioIncomingAlert();
+      } catch {}
+    }
+  }, [currentUser?.commanderReply]);
+
   // Check if current name/phone matches someone already in database
   const matchingExistingUser = (signName.trim().length >= 2 || signPhone.trim().length >= 4)
     ? occupants.find(
@@ -1356,6 +1370,62 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
             </button>
           </div>
 
+          {/* Real-Time Commander Dispatch Transmission Banner */}
+          {currentUser.commanderReply && (
+            <div className="bg-gradient-to-r from-sky-950 via-[#003B70] to-sky-950 border-2 border-sky-400 p-5 rounded-2xl shadow-xl text-white space-y-3 animate-fadeIn">
+              <div className="flex items-center justify-between border-b border-sky-600/60 pb-2.5">
+                <div className="flex items-center gap-2">
+                  <span className="text-xl animate-pulse">📡</span>
+                  <div>
+                    <div className="text-xs font-black uppercase tracking-wider text-sky-300">
+                      FSD COMMAND DISPATCH TRANSMISSION
+                    </div>
+                    <div className="text-[10px] text-sky-200">
+                      Official Tactical Response from Fire Command Center
+                    </div>
+                  </div>
+                </div>
+                <div className="text-[10px] font-mono font-bold bg-sky-900/80 border border-sky-400 px-2.5 py-1 rounded-full text-sky-200">
+                  {currentUser.commanderReplyAt || "Active Order"}
+                </div>
+              </div>
+
+              <div className="bg-sky-900/50 p-3.5 rounded-xl border border-sky-500/50">
+                <div className="text-sm font-black text-white leading-relaxed">
+                  "{currentUser.commanderReply}"
+                </div>
+              </div>
+
+              {/* Occupant Quick Acknowledgment Buttons */}
+              <div className="flex flex-wrap items-center gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() =>
+                    handleSendIntelReport(
+                      `Acknowledge Commander Dispatch: Understood orders. Standing by at Sector ${currentUser.quadrant}.`
+                    )
+                  }
+                  className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-xs font-black uppercase tracking-wider transition cursor-pointer shadow-xs flex items-center gap-1.5 active:scale-95"
+                >
+                  <span>✅</span>
+                  <span>Acknowledge · Standing By</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    handleSendIntelReport(
+                      `Acknowledge Commander Dispatch: Understood orders. Evacuating via assigned exit now.`
+                    )
+                  }
+                  className="px-3 py-1.5 bg-sky-500 hover:bg-sky-600 text-white rounded-xl text-xs font-black uppercase tracking-wider transition cursor-pointer shadow-xs flex items-center gap-1.5 active:scale-95"
+                >
+                  <span>🚪</span>
+                  <span>Acknowledge · Evacuating</span>
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Prominent Welcome Back & Sign-In Confirmation Card */}
           <div className={`bg-white border-2 rounded-2xl p-5 sm:p-6 shadow-sm space-y-4 ${currentUser.role === "Visitor" ? "border-amber-500" : "border-[#005DAA]"
             }`}>
@@ -1685,6 +1755,21 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
                     </button>
                   </div>
                 </div>
+
+                {/* Active Commander Dispatch Reply In Intel Feed */}
+                {currentUser.commanderReply && (
+                  <div className="bg-sky-950 text-white border-2 border-sky-400 p-3.5 rounded-xl space-y-1.5 shadow-sm animate-fadeIn">
+                    <div className="flex items-center justify-between text-[10px] text-sky-300 font-mono">
+                      <span className="font-bold flex items-center gap-1">
+                        <span>📢</span> DISPATCH REPLY FROM COMMAND CENTER
+                      </span>
+                      <span>{currentUser.commanderReplyAt || "Active"}</span>
+                    </div>
+                    <p className="text-xs font-bold text-white leading-relaxed">
+                      "{currentUser.commanderReply}"
+                    </p>
+                  </div>
+                )}
 
                 {/* Sent Transmissions Feed */}
                 {sentSitReps.length > 0 && (

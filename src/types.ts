@@ -36,6 +36,8 @@ export interface Occupant {
   desk?: string;
   xCoord?: number;
   yCoord?: number;
+  commanderReply?: string;
+  commanderReplyAt?: string;
   geofenceValidation?: {
     isInsideBuilding: boolean;
     isAtAssemblyPoint: boolean;

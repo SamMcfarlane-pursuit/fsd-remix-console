@@ -302,7 +302,9 @@
     "notes": "Tapped 'I Need Help' via mobile SOS · Responder dispatched by name (SW Corridor)",
     "xCoord": 25,
     "yCoord": 27,
-    "likelyMia": false
+    "likelyMia": false,
+    "commanderReply": "Search & Rescue Squad dispatched to Sector NW. Proceed to Stairwell A.",
+    "commanderReplyAt": "10:46:08 AM"
   },
   {
     "id": "OCC-116",
