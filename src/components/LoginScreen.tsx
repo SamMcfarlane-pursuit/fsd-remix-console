@@ -93,11 +93,12 @@ export default function LoginScreen({
   const [loginQrDataUrl, setLoginQrDataUrl] = useState<string>("");
   const [activeNetworkOrigin, setActiveNetworkOrigin] = useState<string>(getMobileNetworkOrigin());
   const [lanIp, setLanIp] = useState<string>("192.168.1.167");
-  const [networkMode, setNetworkMode] = useState<"cellular" | "lan">("cellular");
+  const [networkMode, setNetworkMode] = useState<"mustercommand" | "cellular" | "lan">("mustercommand");
+  const [liveTunnelUrl, setLiveTunnelUrlState] = useState<string>("");
   const [isCopied, setIsCopied] = useState<boolean>(false);
   const [isRefreshingTunnel, setIsRefreshingTunnel] = useState<boolean>(false);
   const [isCustomUrlOpen, setIsCustomUrlOpen] = useState<boolean>(false);
-  const [customUrlInput, setCustomUrlInput] = useState<string>("");
+  const [customUrlInput, setCustomUrlInput] = useState<string>("https://mustercommand.coned.com");
   const [gatewayStatus, setGatewayStatus] = useState<{
     verified: boolean;
     latencyMs?: number;
@@ -173,8 +174,9 @@ export default function LoginScreen({
           const snapshot = JSON.parse(event.data);
           if (snapshot.effectiveOrigin) {
             setActiveNetworkOrigin(snapshot.effectiveOrigin);
-          } else if (snapshot.publicTunnelUrl) {
-            setActiveNetworkOrigin(snapshot.publicTunnelUrl);
+          }
+          if (snapshot.publicTunnelUrl) {
+            setLiveTunnelUrlState(snapshot.publicTunnelUrl);
           }
           if (snapshot.lanIps && snapshot.lanIps.length > 0) {
             setLanIp(snapshot.lanIps[0]);
@@ -185,9 +187,6 @@ export default function LoginScreen({
 
     discoverMobileOrigin().then((origin) => {
       setActiveNetworkOrigin(origin);
-      if (origin.includes(".trycloudflare.com")) {
-        setNetworkMode("cellular");
-      }
       handleVerifyGateway();
     });
 
@@ -195,10 +194,10 @@ export default function LoginScreen({
       .then((res) => res.json())
       .then((data) => {
         if (data.primaryIp) setLanIp(data.primaryIp);
+        if (data.publicTunnelUrl) setLiveTunnelUrlState(data.publicTunnelUrl);
         const originToUse = data.customServiceOrigin || data.effectiveOrigin || data.publicTunnelUrl;
         if (originToUse) {
           setActiveNetworkOrigin(originToUse);
-          setNetworkMode("cellular");
         }
       })
       .catch(() => {});
@@ -223,7 +222,11 @@ export default function LoginScreen({
   const activeBaseUrl =
     networkMode === "lan" && lanIp
       ? `http://${lanIp}:3000`
-      : activeNetworkOrigin || `http://${lanIp || "localhost"}:3000`;
+      : networkMode === "cellular"
+      ? (liveTunnelUrl || (activeNetworkOrigin.includes("trycloudflare.com") ? activeNetworkOrigin : "https://mustercommand.coned.com"))
+      : (activeNetworkOrigin && !activeNetworkOrigin.includes("trycloudflare.com")
+          ? activeNetworkOrigin
+          : "https://mustercommand.coned.com");
 
   const targetSignInUrl = `${activeBaseUrl}/?mode=signin&scan=1`;
 
@@ -708,15 +711,35 @@ export default function LoginScreen({
               <div className="flex-1 text-left space-y-3 max-w-sm sm:max-w-md w-full">
                 {/* Network Switcher: Cellular 5G vs Building Wi-Fi */}
                 <div className="space-y-1.5">
-                  <div className="flex items-center gap-1.5 bg-[#070D18] p-1 rounded-xl border border-[#1E3A60]">
+                  <div className="flex items-center gap-1 bg-[#070D18] p-1 rounded-xl border border-[#1E3A60]">
                     <button
                       type="button"
-                      onClick={() => setNetworkMode("cellular")}
-                      className={`flex-1 py-1.5 px-2 rounded-lg text-[10px] font-black uppercase tracking-wider transition cursor-pointer flex items-center justify-center gap-1 ${
+                      onClick={() => {
+                        setNetworkMode("mustercommand");
+                        handleSaveCustomOrigin("https://mustercommand.coned.com");
+                      }}
+                      className={`flex-1 py-1.5 px-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition cursor-pointer flex items-center justify-center gap-1 ${
+                        networkMode === "mustercommand"
+                          ? "bg-[#005DAA] text-white shadow-xs"
+                          : "text-slate-400 hover:text-white"
+                      }`}
+                      title="Branded MusterCommand Service Domain"
+                    >
+                      <span>🛡️</span>
+                      <span>MusterCommand</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setNetworkMode("cellular");
+                        handleResetToDynamicTunnel();
+                      }}
+                      className={`flex-1 py-1.5 px-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition cursor-pointer flex items-center justify-center gap-1 ${
                         networkMode === "cellular"
                           ? "bg-emerald-600 text-white shadow-xs"
                           : "text-slate-400 hover:text-white"
                       }`}
+                      title="Direct 5G Cloudflare Pathway (Camera Scanning)"
                     >
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
                       <span>5G Cellular</span>
@@ -724,14 +747,15 @@ export default function LoginScreen({
                     <button
                       type="button"
                       onClick={() => setNetworkMode("lan")}
-                      className={`flex-1 py-1.5 px-2 rounded-lg text-[10px] font-black uppercase tracking-wider transition cursor-pointer flex items-center justify-center gap-1 ${
+                      className={`flex-1 py-1.5 px-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition cursor-pointer flex items-center justify-center gap-1 ${
                         networkMode === "lan"
                           ? "bg-sky-600 text-white shadow-xs"
                           : "text-slate-400 hover:text-white"
                       }`}
+                      title="Local Facility Wi-Fi Network"
                     >
                       <span>🏢</span>
-                      <span>Wi-Fi ({lanIp})</span>
+                      <span>Wi-Fi</span>
                     </button>
                   </div>
                   <p className="text-[11px] text-slate-200 font-semibold leading-relaxed">
@@ -832,19 +856,47 @@ export default function LoginScreen({
                       <div className="grid grid-cols-2 gap-1.5">
                         <button
                           type="button"
-                          onClick={() => handleSaveCustomOrigin("https://fsd-signin.coned.com")}
-                          className="py-1.5 px-2 bg-[#0E1E38] hover:bg-[#1E3A60] border border-[#1E3A60] rounded-lg text-left text-[10px] text-sky-200 font-bold transition flex items-center gap-1"
-                        >
-                          <span>🏢</span>
-                          <span className="truncate">fsd-signin.coned.com</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleSaveCustomOrigin("https://safety.coned.com")}
+                          onClick={() => {
+                            setNetworkMode("mustercommand");
+                            handleSaveCustomOrigin("https://mustercommand.coned.com");
+                          }}
                           className="py-1.5 px-2 bg-[#0E1E38] hover:bg-[#1E3A60] border border-[#1E3A60] rounded-lg text-left text-[10px] text-sky-200 font-bold transition flex items-center gap-1"
                         >
                           <span>🛡️</span>
-                          <span className="truncate">safety.coned.com</span>
+                          <span className="truncate">mustercommand.coned.com</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setNetworkMode("mustercommand");
+                            handleSaveCustomOrigin("https://mustercommand.io");
+                          }}
+                          className="py-1.5 px-2 bg-[#0E1E38] hover:bg-[#1E3A60] border border-[#1E3A60] rounded-lg text-left text-[10px] text-sky-200 font-bold transition flex items-center gap-1"
+                        >
+                          <span>⚡</span>
+                          <span className="truncate">mustercommand.io</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setNetworkMode("mustercommand");
+                            handleSaveCustomOrigin("https://mustercommand.internal");
+                          }}
+                          className="py-1.5 px-2 bg-[#0E1E38] hover:bg-[#1E3A60] border border-[#1E3A60] rounded-lg text-left text-[10px] text-sky-200 font-bold transition flex items-center gap-1"
+                        >
+                          <span>🏢</span>
+                          <span className="truncate">mustercommand.internal</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setNetworkMode("cellular");
+                            handleResetToDynamicTunnel();
+                          }}
+                          className="py-1.5 px-2 bg-[#0E1E38] hover:bg-[#1E3A60] border border-[#1E3A60] rounded-lg text-left text-[10px] text-emerald-300 font-bold transition flex items-center gap-1"
+                        >
+                          <span>🌐</span>
+                          <span className="truncate">5G Live Gateway</span>
                         </button>
                       </div>
 

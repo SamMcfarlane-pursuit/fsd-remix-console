@@ -376,24 +376,24 @@ export const SignInQRPosterModal: React.FC<SignInQRPosterModalProps> = ({
                 <span className="text-slate-500 font-bold uppercase text-[9px]">Relatable Service Presets:</span>
                 <button
                   type="button"
-                  onClick={() => handleSaveCustomOrigin("https://coned-floor07-muster.service")}
-                  className="px-2 py-0.5 bg-sky-100 hover:bg-sky-200 text-sky-900 border border-sky-300 rounded font-mono font-bold cursor-pointer"
+                  onClick={() => handleSaveCustomOrigin("https://mustercommand.coned.com")}
+                  className="px-2 py-0.5 bg-blue-100 hover:bg-blue-200 text-blue-900 border border-blue-400 rounded font-mono font-bold cursor-pointer"
                 >
-                  coned-floor07-muster.service
+                  🛡️ mustercommand.coned.com
                 </button>
                 <button
                   type="button"
-                  onClick={() => handleSaveCustomOrigin("https://evac.conedison.com")}
+                  onClick={() => handleSaveCustomOrigin("https://mustercommand.io")}
                   className="px-2 py-0.5 bg-sky-100 hover:bg-sky-200 text-sky-900 border border-sky-300 rounded font-mono font-bold cursor-pointer"
                 >
-                  evac.conedison.com
+                  ⚡ mustercommand.io
                 </button>
                 <button
                   type="button"
-                  onClick={() => handleSaveCustomOrigin("https://4irving-floor07.net")}
-                  className="px-2 py-0.5 bg-sky-100 hover:bg-sky-200 text-sky-900 border border-sky-300 rounded font-mono font-bold cursor-pointer"
+                  onClick={() => handleSaveCustomOrigin("https://safety.coned.com")}
+                  className="px-2 py-0.5 bg-emerald-100 hover:bg-emerald-200 text-emerald-900 border border-emerald-300 rounded font-mono font-bold cursor-pointer"
                 >
-                  4irving-floor07.net
+                  🏢 safety.coned.com
                 </button>
               </div>
             </div>
