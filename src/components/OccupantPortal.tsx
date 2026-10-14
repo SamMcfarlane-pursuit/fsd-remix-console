@@ -2606,12 +2606,12 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
                     </div>
                   )}
 
-                  {/* Fast Action Emergency Buttons */}
-                  <div className="pt-2 border-t border-white/10 grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {/* Unified Direct Safety Status Dispatch */}
+                  <div className="pt-2.5 border-t border-white/10 grid grid-cols-1 sm:grid-cols-3 gap-2">
                     <button
                       type="button"
                       onClick={handleMarkSafeOutside}
-                      className="py-2.5 px-3 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs uppercase tracking-wider rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5 shadow-sm active:scale-95 col-span-1"
+                      className="py-2.5 px-3 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs uppercase tracking-wider rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5 shadow-sm active:scale-95"
                     >
                       <span>🟢</span>
                       <span>I Am Safe Outside</span>
@@ -2619,7 +2619,7 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
                     <button
                       type="button"
                       onClick={handleRequestEvacChair}
-                      className="py-2.5 px-3 bg-amber-600 hover:bg-amber-500 text-white font-black text-xs uppercase tracking-wider rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5 shadow-sm active:scale-95 col-span-1"
+                      className="py-2.5 px-3 bg-indigo-600 hover:bg-indigo-500 text-white font-black text-xs uppercase tracking-wider rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5 shadow-sm active:scale-95"
                     >
                       <span>🛞</span>
                       <span>Request Evac Chair</span>
@@ -2627,7 +2627,7 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
                     <button
                       type="button"
                       onClick={handleRequestHelp}
-                      className="py-2.5 px-3 bg-red-700 hover:bg-red-600 text-white font-black text-xs uppercase tracking-wider rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5 shadow-sm active:scale-95 col-span-2 sm:col-span-1"
+                      className="py-2.5 px-3 bg-rose-700 hover:bg-rose-600 text-white font-black text-xs uppercase tracking-wider rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5 shadow-sm active:scale-95"
                     >
                       <span>🆘</span>
                       <span>Send SOS Alert</span>
