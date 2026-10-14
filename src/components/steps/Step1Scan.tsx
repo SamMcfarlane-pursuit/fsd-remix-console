@@ -52,7 +52,7 @@ export const Step1Scan: React.FC<Step1ScanProps> = ({
   const [mobileOrigin, setMobileOrigin] = useState<string>(getMobileNetworkOrigin());
   const [isEditingOrigin, setIsEditingOrigin] = useState<boolean>(false);
   const [customOriginInput, setCustomOriginInput] = useState<string>("");
-  const [networkMode, setNetworkMode] = useState<"mustercommand" | "cellular" | "lan">("mustercommand");
+  const [networkMode, setNetworkMode] = useState<"cellular" | "lan">("cellular");
   const [isTunnelLoading, setIsTunnelLoading] = useState<boolean>(false);
 
   // Super-Size QR Display & Distance Scanning State
@@ -238,10 +238,8 @@ export const Step1Scan: React.FC<Step1ScanProps> = ({
     networkMode === "lan"
       ? (mobileOrigin.includes("http") && !mobileOrigin.includes("trycloudflare.com") && !mobileOrigin.includes("coned.com")
           ? mobileOrigin
-          : "http://127.0.0.1:3000")
-      : networkMode === "cellular"
-      ? (snapshot?.publicTunnelUrl || (mobileOrigin.includes("trycloudflare.com") ? mobileOrigin : "https://mustercommand.coned.com"))
-      : (snapshot?.customServiceOrigin || (mobileOrigin && !mobileOrigin.includes("trycloudflare.com") ? mobileOrigin : "https://mustercommand.coned.com"));
+          : "http://192.168.1.167:3000")
+      : (snapshot?.publicTunnelUrl || (mobileOrigin.includes("trycloudflare.com") ? mobileOrigin : "http://192.168.1.167:3000"));
 
   useEffect(() => {
     const scanUrl = `${activeBaseUrl}/?mode=signin&scan=1`;
@@ -457,53 +455,36 @@ export const Step1Scan: React.FC<Step1ScanProps> = ({
             </button>
           </div>
 
-          {/* Triple Network Pathway Selector */}
-          <div className="w-full bg-[#F0F6FC] p-1.5 rounded-xl border border-[#B8D8F8] grid grid-cols-3 gap-1.5 text-xs font-bold">
-            <button
-              type="button"
-              onClick={() => {
-                setNetworkMode("mustercommand");
-                setCustomMobileOrigin("https://mustercommand.coned.com");
-              }}
-              className={`py-1.5 px-2 rounded-lg transition cursor-pointer flex items-center justify-center gap-1 ${
-                networkMode === "mustercommand"
-                  ? "bg-[#005DAA] text-white shadow-xs font-black"
-                  : "text-slate-600 hover:text-slate-900 hover:bg-white"
-              }`}
-              title="Official MusterCommand Domain"
-            >
-              <span>🛡️</span>
-              <span>MusterCommand</span>
-            </button>
-
+          {/* Dual Network Pathway Selector */}
+          <div className="w-full bg-[#F0F6FC] p-1.5 rounded-xl border border-[#B8D8F8] grid grid-cols-2 gap-2 text-xs font-bold">
             <button
               type="button"
               onClick={handleActivateCellular}
               disabled={isTunnelLoading}
-              className={`py-1.5 px-2 rounded-lg transition cursor-pointer flex items-center justify-center gap-1 ${
+              className={`py-2 px-2.5 rounded-lg transition cursor-pointer flex items-center justify-center gap-1.5 ${
                 networkMode === "cellular"
                   ? "bg-emerald-600 text-white shadow-xs font-black"
                   : "text-slate-600 hover:text-slate-900 hover:bg-white"
               }`}
-              title="Cloudflare 5G Cellular Gateway"
+              title="Cellular 5G Ingress Relay: Cloudflare Relay (Routed to MusterCommand Core)"
             >
-              <span>🌐</span>
-              <span>{isTunnelLoading ? "Connecting..." : "5G Cloudflare"}</span>
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span>🌐 Cellular 5G Relay</span>
             </button>
 
             <button
               type="button"
               onClick={handleSwitchToLocalWifi}
               disabled={isTunnelLoading}
-              className={`py-1.5 px-2 rounded-lg transition cursor-pointer flex items-center justify-center gap-1 ${
+              className={`py-2 px-2.5 rounded-lg transition cursor-pointer flex items-center justify-center gap-1.5 ${
                 networkMode === "lan"
                   ? "bg-sky-700 text-white shadow-xs font-black"
                   : "text-slate-600 hover:text-slate-900 hover:bg-white"
               }`}
-              title="Building Local Wi-Fi"
+              title="Local Facility Ingress: Local Building Wi-Fi"
             >
               <span>🏢</span>
-              <span>Building Wi-Fi</span>
+              <span>Local Facility Ingress</span>
             </button>
           </div>
 
@@ -1296,21 +1277,21 @@ export const Step1Scan: React.FC<Step1ScanProps> = ({
                   <div className="inline-flex rounded-lg border border-slate-200 bg-white p-0.5 text-xs font-bold">
                     <button
                       type="button"
-                      onClick={handleSwitchToLocalWifi}
-                      className={`px-3 py-1 rounded-md transition cursor-pointer ${
-                        networkMode === "lan" ? "bg-[#005DAA] text-white" : "text-slate-600 hover:text-slate-900"
-                      }`}
-                    >
-                      🏢 Building Wi-Fi
-                    </button>
-                    <button
-                      type="button"
                       onClick={handleActivateCellular}
                       className={`px-3 py-1 rounded-md transition cursor-pointer ${
                         networkMode === "cellular" ? "bg-emerald-600 text-white" : "text-slate-600 hover:text-slate-900"
                       }`}
                     >
-                      🌐 Cellular 5G
+                      🌐 Cellular 5G Ingress Relay
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleSwitchToLocalWifi}
+                      className={`px-3 py-1 rounded-md transition cursor-pointer ${
+                        networkMode === "lan" ? "bg-[#005DAA] text-white" : "text-slate-600 hover:text-slate-900"
+                      }`}
+                    >
+                      🏢 Local Facility Ingress
                     </button>
                   </div>
                 </div>

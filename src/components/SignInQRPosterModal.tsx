@@ -28,7 +28,7 @@ export const SignInQRPosterModal: React.FC<SignInQRPosterModalProps> = ({
   const [mobileOrigin, setMobileOrigin] = useState<string>(getMobileNetworkOrigin());
   const [isEditingOrigin, setIsEditingOrigin] = useState<boolean>(false);
   const [customOriginInput, setCustomOriginInput] = useState<string>("");
-  const [networkMode, setNetworkMode] = useState<"mustercommand" | "cellular" | "lan">("mustercommand");
+  const [networkMode, setNetworkMode] = useState<"cellular" | "lan">("cellular");
   const [isTunnelLoading, setIsTunnelLoading] = useState<boolean>(false);
   const [tunnelError, setTunnelError] = useState<string | null>(null);
   const [qrScale, setQrScale] = useState<"standard" | "large" | "supersize" | "giant">("supersize");
@@ -36,7 +36,7 @@ export const SignInQRPosterModal: React.FC<SignInQRPosterModalProps> = ({
   useEffect(() => {
     if (isOpen) {
       discoverMobileOrigin().then((origin) => {
-        if (origin && !origin.includes("loca.lt")) {
+        if (origin && !origin.includes("loca.lt") && !origin.includes("mustercommand.coned.com")) {
           setMobileOrigin(origin);
         }
       });
@@ -44,7 +44,7 @@ export const SignInQRPosterModal: React.FC<SignInQRPosterModalProps> = ({
 
     const handleOriginChange = () => {
       const orig = getMobileNetworkOrigin();
-      if (!orig.includes("loca.lt")) {
+      if (!orig.includes("loca.lt") && !orig.includes("mustercommand.coned.com")) {
         setMobileOrigin(orig);
       }
     };
@@ -58,10 +58,10 @@ export const SignInQRPosterModal: React.FC<SignInQRPosterModalProps> = ({
     networkMode === "lan"
       ? (mobileOrigin.includes("http") && !mobileOrigin.includes("trycloudflare.com") && !mobileOrigin.includes("coned.com")
           ? mobileOrigin
-          : "http://127.0.0.1:3000")
-      : networkMode === "cellular"
-      ? (mobileOrigin.includes("trycloudflare.com") || mobileOrigin.includes("http") ? mobileOrigin : "https://mustercommand.coned.com")
-      : (mobileOrigin && !mobileOrigin.includes("trycloudflare.com") ? mobileOrigin : "https://mustercommand.coned.com");
+          : "http://192.168.1.167:3000")
+      : (mobileOrigin.includes("trycloudflare.com")
+          ? mobileOrigin
+          : (mobileOrigin && !mobileOrigin.includes("mustercommand.coned.com") ? mobileOrigin : "http://192.168.1.167:3000"));
 
   const signInUrl = `${activeBaseUrl}/?scan=1&mode=signin`;
 
@@ -208,53 +208,36 @@ export const SignInQRPosterModal: React.FC<SignInQRPosterModalProps> = ({
           </div>
         </div>
 
-        {/* Triple Network Pathway Selector */}
-        <div className="bg-[#F0F6FC] p-1.5 rounded-xl border border-[#B8D8F8] grid grid-cols-3 gap-1.5 text-xs font-bold">
-          <button
-            type="button"
-            onClick={() => {
-              setNetworkMode("mustercommand");
-              handleSaveCustomOrigin("https://mustercommand.coned.com");
-            }}
-            className={`py-2 px-2 rounded-lg transition cursor-pointer flex items-center justify-center gap-1 ${
-              networkMode === "mustercommand"
-                ? "bg-[#005DAA] text-white shadow-xs font-black"
-                : "text-slate-600 hover:text-slate-900 hover:bg-white"
-            }`}
-            title="Official MusterCommand Intranet Domain"
-          >
-            <span>🛡️</span>
-            <span>MusterCommand</span>
-          </button>
-
+        {/* Dual Network Pathway Selector */}
+        <div className="bg-[#F0F6FC] p-1.5 rounded-xl border border-[#B8D8F8] grid grid-cols-2 gap-2 text-xs font-bold">
           <button
             type="button"
             onClick={() => handleActivateCellularPathway(false)}
             disabled={isTunnelLoading}
-            className={`py-2 px-2 rounded-lg transition cursor-pointer flex items-center justify-center gap-1 ${
+            className={`py-2.5 px-3 rounded-lg transition cursor-pointer flex items-center justify-center gap-1.5 ${
               networkMode === "cellular"
                 ? "bg-emerald-600 text-white shadow-xs font-black"
                 : "text-slate-600 hover:text-slate-900 hover:bg-white"
             }`}
-            title="Encrypted Cloudflare 5G Cellular Gateway"
+            title="Cellular 5G Ingress Relay: Cloudflare Relay (Routed to MusterCommand Core)"
           >
-            <span>🌐</span>
-            <span>{isTunnelLoading ? "Connecting..." : "5G Cloudflare"}</span>
+            <span className="w-2 h-2 rounded-full bg-emerald-300 animate-pulse" />
+            <span>🌐 Cellular 5G Ingress Relay</span>
           </button>
 
           <button
             type="button"
             onClick={handleSwitchToLocalWifi}
             disabled={isTunnelLoading}
-            className={`py-2 px-2 rounded-lg transition cursor-pointer flex items-center justify-center gap-1 ${
+            className={`py-2.5 px-3 rounded-lg transition cursor-pointer flex items-center justify-center gap-1.5 ${
               networkMode === "lan"
                 ? "bg-sky-700 text-white shadow-xs font-black"
                 : "text-slate-600 hover:text-slate-900 hover:bg-white"
             }`}
-            title="Local Building Wi-Fi Network"
+            title="Local Facility Ingress: Local Building Wi-Fi"
           >
             <span>🏢</span>
-            <span>Building Wi-Fi</span>
+            <span>Local Facility Ingress</span>
           </button>
         </div>
 
@@ -342,13 +325,11 @@ export const SignInQRPosterModal: React.FC<SignInQRPosterModalProps> = ({
         <div className="bg-[#F0F6FC] p-3 rounded-xl border border-[#CBDCEE] text-xs space-y-2">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-1.5 font-bold text-[#005DAA] text-[11px]">
-              <span>{networkMode === "mustercommand" ? "🛡️" : networkMode === "cellular" ? "🌐" : "📡"}</span>
+              <span>{networkMode === "cellular" ? "🌐" : "🏢"}</span>
               <span>
-                {networkMode === "mustercommand"
-                  ? "MusterCommand Service Domain:"
-                  : networkMode === "cellular"
-                  ? "MusterCommand 5G Public Ingress URL (Cloudflare Relay):"
-                  : "Local LAN Wi-Fi URL:"}
+                {networkMode === "cellular"
+                  ? "Cellular 5G Ingress Relay: (Routed to MusterCommand Core)"
+                  : "Local Facility Ingress:"}
               </span>
             </div>
             <div className="flex items-center gap-2">
@@ -409,14 +390,7 @@ export const SignInQRPosterModal: React.FC<SignInQRPosterModalProps> = ({
 
               {/* Relatable Service Presets */}
               <div className="flex flex-wrap items-center gap-1.5 pt-1 text-[10px]">
-                <span className="text-slate-500 font-bold uppercase text-[9px]">Relatable Service Presets:</span>
-                <button
-                  type="button"
-                  onClick={() => handleSaveCustomOrigin("https://mustercommand.coned.com")}
-                  className="px-2 py-0.5 bg-blue-100 hover:bg-blue-200 text-blue-900 border border-blue-400 rounded font-mono font-bold cursor-pointer"
-                >
-                  🛡️ mustercommand.coned.com
-                </button>
+                <span className="text-slate-500 font-bold uppercase text-[9px]">Ingress Presets:</span>
                 <button
                   type="button"
                   onClick={() => handleSaveCustomOrigin("https://mustercommand.io")}
@@ -426,10 +400,10 @@ export const SignInQRPosterModal: React.FC<SignInQRPosterModalProps> = ({
                 </button>
                 <button
                   type="button"
-                  onClick={() => handleSaveCustomOrigin("https://safety.coned.com")}
-                  className="px-2 py-0.5 bg-emerald-100 hover:bg-emerald-200 text-emerald-900 border border-emerald-300 rounded font-mono font-bold cursor-pointer"
+                  onClick={() => handleSaveCustomOrigin("http://192.168.1.167:3000")}
+                  className="px-2 py-0.5 bg-blue-100 hover:bg-blue-200 text-blue-900 border border-blue-300 rounded font-mono font-bold cursor-pointer"
                 >
-                  🏢 safety.coned.com
+                  🏢 192.168.1.167:3000 (LAN)
                 </button>
               </div>
             </div>

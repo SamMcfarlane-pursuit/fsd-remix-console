@@ -41,8 +41,8 @@ export function setLiveTunnelUrl(url: string | null | undefined): void {
 export function getMobileNetworkOrigin(): string {
   if (typeof window !== "undefined") {
     let custom = localStorage.getItem("muster_custom_network_origin");
-    // Purge deprecated localtunnel URLs that caused interstitials
-    if (custom && custom.includes("loca.lt")) {
+    // Purge deprecated localtunnel URLs and fictitious unmapped domains
+    if (custom && (custom.includes("loca.lt") || custom.includes("mustercommand.coned.com"))) {
       localStorage.removeItem("muster_custom_network_origin");
       custom = null;
     }
@@ -50,7 +50,7 @@ export function getMobileNetworkOrigin(): string {
   }
 
   // 1. Prioritize active, verified tunnel or custom service URL pushed by the backend
-  if (cachedMobileOrigin && !cachedMobileOrigin.includes("loca.lt")) {
+  if (cachedMobileOrigin && !cachedMobileOrigin.includes("loca.lt") && !cachedMobileOrigin.includes("mustercommand.coned.com")) {
     return cachedMobileOrigin;
   }
 
@@ -61,13 +61,14 @@ export function getMobileNetworkOrigin(): string {
       !winOrigin.includes("localhost") &&
       !winOrigin.includes("127.0.0.1") &&
       !winOrigin.includes("loca.lt") &&
-      !winOrigin.includes("trycloudflare.com")
+      !winOrigin.includes("trycloudflare.com") &&
+      !winOrigin.includes("mustercommand.coned.com")
     ) {
       return winOrigin;
     }
 
     let stored = localStorage.getItem("muster_mobile_network_origin");
-    if (stored && stored.includes("loca.lt")) {
+    if (stored && (stored.includes("loca.lt") || stored.includes("mustercommand.coned.com"))) {
       localStorage.removeItem("muster_mobile_network_origin");
       stored = null;
     }

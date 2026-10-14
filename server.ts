@@ -288,7 +288,7 @@ const DATA_DIR = path.join(process.cwd(), "data");
 const ROSTER_FILE = path.join(DATA_DIR, "fsd_roster.json");
 const SERVICE_CONFIG_FILE = path.join(DATA_DIR, "service_config.json");
 
-let customServiceOrigin: string = process.env.SERVICE_URL || process.env.PUBLIC_SERVICE_URL || "https://mustercommand.coned.com";
+let customServiceOrigin: string = process.env.SERVICE_URL || process.env.PUBLIC_SERVICE_URL || "";
 let persistedCfToken: string = process.env.CLOUDFLARE_TUNNEL_TOKEN || "";
 let persistedCfDomain: string = process.env.CLOUDFLARE_TUNNEL_DOMAIN || "";
 
@@ -297,14 +297,14 @@ function loadPersistedServiceConfig(): void {
     if (fs.existsSync(SERVICE_CONFIG_FILE)) {
       const data = JSON.parse(fs.readFileSync(SERVICE_CONFIG_FILE, "utf-8"));
       if (data && data.customOrigin) {
-        if (!data.customOrigin.includes("trycloudflare.com")) {
+        if (!data.customOrigin.includes("trycloudflare.com") && !data.customOrigin.includes("mustercommand.coned.com")) {
           customServiceOrigin = data.customOrigin;
         } else {
-          customServiceOrigin = "https://mustercommand.coned.com";
-          savePersistedServiceConfig({ customOrigin: "https://mustercommand.coned.com" });
+          customServiceOrigin = "";
+          savePersistedServiceConfig({ customOrigin: "" });
         }
       } else {
-        customServiceOrigin = "https://mustercommand.coned.com";
+        customServiceOrigin = "";
       }
 
       if (data && data.cloudflareToken) {
@@ -314,9 +314,9 @@ function loadPersistedServiceConfig(): void {
         persistedCfDomain = data.cloudflareDomain;
       }
     } else {
-      customServiceOrigin = "https://mustercommand.coned.com";
+      customServiceOrigin = "";
       savePersistedServiceConfig({
-        customOrigin: "https://mustercommand.coned.com",
+        customOrigin: "",
         cloudflareToken: "",
         cloudflareDomain: "",
       });
@@ -873,7 +873,7 @@ function getDerivedSnapshot(): StatusSnapshot {
     quadrants,
     occupants: occupantsRoster,
     publicTunnelUrl: activeTunnelUrl || null,
-    customServiceOrigin: customServiceOrigin || "https://mustercommand.coned.com",
+    customServiceOrigin: customServiceOrigin || null,
     effectiveOrigin: customServiceOrigin || (activeTunnelChild && activeTunnelUrl ? activeTunnelUrl : null),
     lanIps: getLanIps(),
     ledgerEntries: ledgerChain.slice(-30),
@@ -1875,7 +1875,7 @@ app.get("/api/system/network-info", (req, res) => {
     isLocalhost,
     mobileOrigin,
     publicTunnelUrl: isHealthyCloudflare ? activeTunnelUrl : null,
-    customServiceOrigin: customServiceOrigin || "https://mustercommand.coned.com",
+    customServiceOrigin: customServiceOrigin || null,
     effectiveOrigin,
     isCustomNamedTunnel: !!persistedCfToken,
     cloudflareCustomDomain: persistedCfDomain || null,
@@ -1886,14 +1886,14 @@ app.get("/api/system/network-info", (req, res) => {
 app.post("/api/system/custom-origin", (req, res) => {
   const { origin, clear } = req.body || {};
   if (clear) {
-    customServiceOrigin = "https://mustercommand.coned.com";
-    savePersistedServiceConfig({ customOrigin: "https://mustercommand.coned.com" });
+    customServiceOrigin = "";
+    savePersistedServiceConfig({ customOrigin: "" });
     notifySseClients();
     return res.json({
       ok: true,
-      customOrigin: "https://mustercommand.coned.com",
-      effectiveOrigin: "https://mustercommand.coned.com",
-      message: "Custom service origin reset to default MusterCommand service domain (https://mustercommand.coned.com).",
+      customOrigin: null,
+      effectiveOrigin: activeTunnelUrl || mobileOrigin,
+      message: "Custom service origin cleared; reverted to live Cellular 5G Cloudflare gateway.",
     });
   }
 
@@ -1975,7 +1975,7 @@ async function launchPublicTunnel(forceFresh: boolean = false): Promise<string> 
           if (!resolved && (text.includes("Registered tunnel connection") || text.includes("Connection") || text.includes("Connected to") || text.includes("ready"))) {
             resolved = true;
             activeTunnelChild = child;
-            activeTunnelUrl = persistedCfDomain || customServiceOrigin || "https://mustercommand.coned.com";
+            activeTunnelUrl = persistedCfDomain || customServiceOrigin || "";
             console.log(`✅ Cloudflare Named Tunnel Live: ${activeTunnelUrl}`);
             notifySseClients();
             resolve(activeTunnelUrl);
@@ -2024,7 +2024,7 @@ async function launchPublicTunnel(forceFresh: boolean = false): Promise<string> 
           if (!child.killed && child.exitCode === null) {
             resolved = true;
             activeTunnelChild = child;
-            activeTunnelUrl = persistedCfDomain || customServiceOrigin || "https://mustercommand.coned.com";
+            activeTunnelUrl = persistedCfDomain || customServiceOrigin || "";
             console.log(`✅ Cloudflare Named Tunnel Connected: ${activeTunnelUrl}`);
             notifySseClients();
             resolve(activeTunnelUrl);
