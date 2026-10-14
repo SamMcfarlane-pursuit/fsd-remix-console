@@ -306,15 +306,11 @@ export const SignInQRPosterModal: React.FC<SignInQRPosterModalProps> = ({
               🎯 DISTANCE SCANNABLE UP TO 20 FEET
             </span>
             <span className={`text-[11px] font-mono font-bold px-3 py-1 rounded-md border ${
-              networkMode === "mustercommand"
-                ? "bg-[#EBF5FB] text-[#003B70] border-[#B8D8F8]"
-                : networkMode === "cellular"
+              networkMode === "cellular"
                 ? "bg-emerald-50 text-emerald-900 border-emerald-300"
                 : "bg-sky-50 text-sky-900 border-sky-300"
             }`}>
-              {networkMode === "mustercommand"
-                ? "🛡️ MUSTERCOMMAND PRIMARY INGRESS (CON EDISON)"
-                : networkMode === "cellular"
+              {networkMode === "cellular"
                 ? "🌐 CELLULAR 5G SCANNABLE (CLOUDFLARE ZERO-TRUST RELAY)"
                 : "🏢 SCAN ON BUILDING WI-FI"}
             </span>
