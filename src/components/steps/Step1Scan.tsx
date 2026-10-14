@@ -455,244 +455,68 @@ export const Step1Scan: React.FC<Step1ScanProps> = ({
             </button>
           </div>
 
-          {/* Dual Network Pathway Selector */}
-          <div className="w-full bg-[#F0F6FC] p-1.5 rounded-xl border border-[#B8D8F8] grid grid-cols-2 gap-2 text-xs font-bold">
-            <button
-              type="button"
-              onClick={handleActivateCellular}
-              disabled={isTunnelLoading}
-              className={`py-2 px-2.5 rounded-lg transition cursor-pointer flex items-center justify-center gap-1.5 ${
-                networkMode === "cellular"
-                  ? "bg-emerald-600 text-white shadow-xs font-black"
-                  : "text-slate-600 hover:text-slate-900 hover:bg-white"
-              }`}
-              title="Cellular 5G Ingress Relay: Cloudflare Relay (Routed to MusterCommand Core)"
-            >
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span>🌐 Cellular 5G Relay</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={handleSwitchToLocalWifi}
-              disabled={isTunnelLoading}
-              className={`py-2 px-2.5 rounded-lg transition cursor-pointer flex items-center justify-center gap-1.5 ${
-                networkMode === "lan"
-                  ? "bg-sky-700 text-white shadow-xs font-black"
-                  : "text-slate-600 hover:text-slate-900 hover:bg-white"
-              }`}
-              title="Local Facility Ingress: Local Building Wi-Fi"
-            >
-              <span>🏢</span>
-              <span>Local Facility Ingress</span>
-            </button>
-          </div>
-
-          {/* Super-Size QR Scale Controls */}
-          <div className="w-full flex items-center justify-between text-xs bg-[#F0F6FC] px-3 py-2 rounded-xl border border-[#CBDCEE]">
-            <span className="font-bold text-[#0F2537] flex items-center gap-1.5 text-[11px]">
-              <span className="text-amber-500">📐</span>
-              <span className="font-black">SCALE:</span>
-            </span>
-            <div className="flex items-center gap-1">
-              <button
-                type="button"
-                onClick={() => setQrDisplaySize("standard")}
-                className={`px-2 py-0.5 rounded-lg text-[10px] font-bold transition cursor-pointer ${
-                  qrDisplaySize === "standard"
-                    ? "bg-[#005DAA] text-white shadow-xs"
-                    : "text-slate-600 hover:text-slate-900 bg-white"
-                }`}
-              >
-                Standard
-              </button>
-              <button
-                type="button"
-                onClick={() => setQrDisplaySize("large")}
-                className={`px-2 py-0.5 rounded-lg text-[10px] font-bold transition cursor-pointer ${
-                  qrDisplaySize === "large"
-                    ? "bg-[#005DAA] text-white shadow-xs"
-                    : "text-slate-600 hover:text-slate-900 bg-white"
-                }`}
-              >
-                Large
-              </button>
-              <button
-                type="button"
-                onClick={() => setQrDisplaySize("supersize")}
-                className={`px-2.5 py-0.5 rounded-lg text-[10px] font-black transition cursor-pointer flex items-center gap-1 ${
-                  qrDisplaySize === "supersize"
-                    ? "bg-amber-600 text-white shadow-xs ring-1 ring-amber-400"
-                    : "text-amber-800 bg-amber-50 hover:bg-amber-100"
-                }`}
-              >
-                <span>⚡ Super-Size</span>
-              </button>
-            </div>
-          </div>
-
-          {/* QR Code Container with Distance Scan Reticles */}
-          <div className="relative p-4 sm:p-5 bg-white rounded-2xl border-2 border-dashed border-[#005DAA]/50 shadow-md flex flex-col items-center w-full transition-all">
-            {/* Targeting Reticle Corners for Distance Optical Alignment */}
-            <div className="absolute top-2 left-2 w-4 h-4 border-t-2 border-l-2 border-amber-500 rounded-tl-sm pointer-events-none" />
-            <div className="absolute top-2 right-2 w-4 h-4 border-t-2 border-r-2 border-amber-500 rounded-tr-sm pointer-events-none" />
-            <div className="absolute bottom-2 left-2 w-4 h-4 border-b-2 border-l-2 border-amber-500 rounded-bl-sm pointer-events-none" />
-            <div className="absolute bottom-2 right-2 w-4 h-4 border-b-2 border-r-2 border-amber-500 rounded-br-sm pointer-events-none" />
-
-            {/* Clickable QR Code with Zoom Hint */}
+          {/* High-Contrast Digital Sign-In QR */}
+          <div className="relative p-4 sm:p-5 bg-white rounded-2xl border-2 border-[#005DAA]/40 shadow-sm flex flex-col items-center w-full transition-all">
+            {/* Clickable QR Code */}
             <div
               onClick={() => setIsSuperSizeModalOpen(true)}
-              className="cursor-zoom-in group relative flex items-center justify-center p-2 bg-white rounded-xl hover:shadow-lg transition-all"
+              className="cursor-zoom-in group relative flex items-center justify-center p-2 bg-white rounded-xl hover:shadow-md transition-all"
               title="Click to open Fullscreen Distance Billboard"
             >
               {qrDataUrl ? (
                 <img
                   src={qrDataUrl}
                   alt="Floor 07 Sign-In QR"
-                  className={`object-contain transition-all duration-200 ${
-                    qrDisplaySize === "standard"
-                      ? "w-48 h-48 sm:w-52 sm:h-52"
-                      : qrDisplaySize === "large"
-                      ? "w-72 h-72 sm:w-80 sm:h-80"
-                      : "w-80 h-80 sm:w-96 sm:h-96 md:w-[380px] md:h-[380px]"
-                  }`}
+                  className="w-64 h-64 sm:w-72 sm:h-72 object-contain"
                   referrerPolicy="no-referrer"
                 />
               ) : (
-                <div className="w-52 h-52 flex items-center justify-center bg-slate-100 rounded-xl text-xs text-slate-500">
+                <div className="w-64 h-64 flex items-center justify-center bg-slate-100 rounded-xl text-xs text-slate-500">
                   Generating High-Res QR...
                 </div>
               )}
-              <div className="absolute inset-0 bg-[#005DAA]/10 opacity-0 group-hover:opacity-100 rounded-xl transition flex items-center justify-center">
-                <span className="bg-black/80 text-white text-[11px] font-bold px-3 py-1.5 rounded-full shadow-lg flex items-center gap-1.5">
-                  <span>🔎</span>
-                  <span>Click for Fullscreen Billboard</span>
-                </span>
-              </div>
             </div>
 
-            {/* High-Visibility Distance Scan Badge */}
-            <div className="mt-3 flex flex-wrap items-center justify-center gap-1.5 w-full">
-              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[10px] font-mono font-black bg-amber-50 text-amber-900 border border-amber-300 shadow-2xs">
-                <span>🎯</span>
-                <span>DISTANCE SCAN READY (15–20 FT)</span>
+            {/* Live Scan Status Pill */}
+            <div className="mt-2 flex items-center justify-center gap-2">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono font-bold bg-emerald-50 text-emerald-800 border border-emerald-300">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                <span>ONLINE · SCAN READY</span>
               </span>
-              <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-mono font-bold border ${
-                networkMode === "cellular"
-                  ? "bg-emerald-50 text-emerald-900 border-emerald-300"
-                  : "bg-sky-50 text-sky-900 border-sky-300"
-              }`}>
-                <span>{networkMode === "cellular" ? "🌐 5G CELLULAR" : "🏢 BUILDING WI-FI"}</span>
-              </span>
+              <button
+                type="button"
+                onClick={() => setIsSuperSizeModalOpen(true)}
+                className="px-2.5 py-1 text-xs font-bold text-[#005DAA] bg-sky-50 hover:bg-sky-100 border border-sky-200 rounded-lg cursor-pointer"
+              >
+                🖥️ Expand
+              </button>
             </div>
-
-            {/* Launch Fullscreen Super-Size Billboard Button */}
-            <button
-              type="button"
-              onClick={() => setIsSuperSizeModalOpen(true)}
-              className="mt-3 w-full py-2 px-3 rounded-xl bg-gradient-to-r from-[#005DAA] to-[#003B70] hover:from-[#004A88] hover:to-[#002B49] text-white text-[11px] font-black uppercase tracking-wider transition shadow-sm flex items-center justify-center gap-2 cursor-pointer"
-            >
-              <span>🖥️</span>
-              <span>Super-Size Fullscreen Billboard</span>
-              <span>↗</span>
-            </button>
           </div>
 
-            {/* Mobile Reachable Network Address Strip */}
-            <div className="mt-3 w-full bg-[#F0F6FC] p-2.5 rounded-xl border border-[#CBDCEE] text-left">
-              <div className="flex items-center justify-between text-[10px] font-mono font-bold text-[#475569]">
-                <span className="flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                  <span>MOBILE WI-FI / NETWORK URL</span>
-                </span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsEditingOrigin(!isEditingOrigin);
-                    setCustomOriginInput(mobileOrigin);
-                  }}
-                  className="text-[#005DAA] hover:underline cursor-pointer"
-                >
-                  {isEditingOrigin ? "Cancel" : "Edit IP"}
-                </button>
-              </div>
-
-              {!isEditingOrigin ? (
-                <div className="mt-1 flex items-center justify-between gap-1">
-                  <span className="font-mono text-xs font-bold text-[#0F2537] truncate select-all">
-                    {activeBaseUrl}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (navigator.clipboard) {
-                        navigator.clipboard.writeText(`${activeBaseUrl}/?mode=signin&scan=1`);
-                        alert("Copied mobile sign-in URL to clipboard!");
-                      }
-                    }}
-                    className="text-[10px] bg-white border border-[#CBDCEE] px-2 py-0.5 rounded text-[#005DAA] font-bold hover:bg-[#EBF3FB] transition cursor-pointer"
-                  >
-                    Copy URL
-                  </button>
-                </div>
-              ) : (
-                <div className="mt-1.5 space-y-1.5">
-                  <div className="flex gap-1.5">
-                    <input
-                      type="text"
-                      value={customOriginInput}
-                      onChange={(e) => setCustomOriginInput(e.target.value)}
-                      placeholder="e.g. https://coned-floor07-muster.service"
-                      className="flex-1 px-2 py-1 bg-white border border-[#005DAA] rounded text-xs font-mono"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => {
-                        let clean = customOriginInput.trim();
-                        if (clean && !clean.startsWith("http://") && !clean.startsWith("https://")) {
-                          clean = `https://${clean}`;
-                        }
-                        clean = clean.replace(/\/+$/, "");
-                        setCustomMobileOrigin(clean);
-                        setMobileOrigin(clean || getMobileNetworkOrigin());
-                        setIsEditingOrigin(false);
-                      }}
-                      className="px-2.5 py-1 bg-[#005DAA] text-white rounded text-xs font-bold hover:bg-[#004884] cursor-pointer"
-                    >
-                      Save
-                    </button>
-                  </div>
-                  {/* Quick Relatable Service Presets */}
-                  <div className="flex flex-wrap items-center gap-1 text-[10px]">
-                    <span className="text-slate-500 font-bold uppercase text-[9px]">Presets:</span>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const url = "https://coned-floor07-muster.service";
-                        setCustomMobileOrigin(url);
-                        setMobileOrigin(url);
-                        setIsEditingOrigin(false);
-                      }}
-                      className="px-1.5 py-0.5 bg-sky-100 hover:bg-sky-200 text-sky-900 border border-sky-300 rounded font-mono font-bold cursor-pointer"
-                    >
-                      coned-floor07-muster.service
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const url = "https://evac.conedison.com";
-                        setCustomMobileOrigin(url);
-                        setMobileOrigin(url);
-                        setIsEditingOrigin(false);
-                      }}
-                      className="px-1.5 py-0.5 bg-sky-100 hover:bg-sky-200 text-sky-900 border border-sky-300 rounded font-mono font-bold cursor-pointer"
-                    >
-                      evac.conedison.com
-                    </button>
-                  </div>
-                </div>
-              )}
+          {/* Direct Mobile Sign-In Link */}
+          <div className="w-full bg-[#F0F6FC] p-3 rounded-xl border border-[#CBDCEE] text-left">
+            <div className="flex items-center justify-between text-[11px] font-mono font-bold text-[#475569]">
+              <span className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                <span>LIVE INGRESS URL</span>
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  if (navigator.clipboard) {
+                    navigator.clipboard.writeText(`${activeBaseUrl}/?mode=signin&scan=1`);
+                    setScanMessage({ type: "success", text: "Copied live mobile sign-in URL to clipboard!" });
+                  }
+                }}
+                className="text-xs bg-white border border-[#CBDCEE] px-2 py-0.5 rounded text-[#005DAA] font-bold hover:bg-[#EBF3FB] transition cursor-pointer"
+              >
+                Copy Link
+              </button>
             </div>
+            <div className="mt-1 font-mono text-xs font-bold text-[#005DAA] truncate select-all">
+              {activeBaseUrl}/?mode=signin&amp;scan=1
+            </div>
+          </div>
 
           <div className="w-full space-y-2 text-xs">
             <div className="flex flex-col sm:flex-row gap-2">

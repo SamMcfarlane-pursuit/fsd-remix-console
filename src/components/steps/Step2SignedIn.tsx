@@ -351,53 +351,25 @@ export const Step2SignedIn: React.FC<Step2SignedInProps> = ({
         </div>
       </div>
 
-      {/* Roster & Mock Name Management Toolbar */}
+      {/* Compact Baseline Metrics & Roster Controls */}
       <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-[#B8D8F8] shadow-xs flex flex-wrap items-center justify-between gap-3 text-xs">
-        <div className="flex items-center gap-2">
-          <span className="text-slate-500 font-bold uppercase text-[10px] font-mono">ROSTER CONTROLS:</span>
-          <span className="text-[#005DAA] font-black">
-            {occupants.length} Enrolled
-          </span>
-          <span className="text-slate-300">·</span>
-          <span className="text-emerald-700 font-bold">
-            {inBuilding.length} Active in Building
-          </span>
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="text-[#0F2537] font-bold">In-Building Denominator:</span>
+            <span className="font-mono font-black text-[#005DAA] text-sm">{inBuilding.length}</span>
+            <span className="text-slate-400">/</span>
+            <span className="font-mono text-slate-600">{occupants.length} Enrolled</span>
+          </div>
+          <span className="text-slate-300 hidden sm:inline">|</span>
+          <div className="text-slate-600 font-medium">
+            <span className="font-bold text-slate-800">{offSite.length}</span> Off-Site Today
+            <span className="text-slate-400 mx-1">·</span>
+            <span className="font-bold text-slate-800">{visitors.length}</span> Badged Visitors
+          </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            onClick={handleClearMockNames}
-            disabled={isActionPending}
-            className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300 font-bold rounded-xl transition cursor-pointer flex items-center gap-1.5"
-            title="Removes mock names and resets database to clean standby ready for real personnel intake"
-          >
-            <span>🧹</span>
-            <span>Clear Mock Names</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => handleRestoreRoster(195)}
-            disabled={isActionPending}
-            className="px-3 py-1.5 bg-sky-50 hover:bg-sky-100 text-sky-700 border border-sky-300 font-bold rounded-xl transition cursor-pointer flex items-center gap-1.5"
-            title="Restores standard Con Edison 195 Floor 07 baseline roster"
-          >
-            <span>🔄</span>
-            <span>Standard 195 Roster</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={handleAccountTo200}
-            disabled={isActionPending}
-            className="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 font-bold rounded-xl transition cursor-pointer flex items-center gap-1.5 shadow-xs"
-            title="Expands roster up to 200 occupants and verifies all 200 accounted safe"
-          >
-            <span>⚡</span>
-            <span>Account Up to 200</span>
-          </button>
-
           <button
             type="button"
             onClick={() => setShowAddModal(true)}
@@ -405,83 +377,45 @@ export const Step2SignedIn: React.FC<Step2SignedInProps> = ({
             title="Register and save a new personnel name to the live roster"
           >
             <span>➕</span>
-            <span>Save New Name</span>
+            <span>Add Personnel</span>
           </button>
-        </div>
-      </div>
-
-      {/* OPERATIONS PIPELINE BANNER: TRI-PURPOSE SINGLE INTAKE (SLIDE 5) */}
-      <div className="bg-gradient-to-r from-[#003B70] via-[#005DAA] to-[#0A2540] text-white rounded-2xl p-4 sm:p-5 border-2 border-sky-400/40 shadow-md space-y-3">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/15 pb-3">
-          <div className="space-y-0.5">
-            <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full bg-sky-400/20 border border-sky-300/30 text-sky-200 font-mono text-[10px] font-black uppercase tracking-wider">
-              <span>⚡</span>
-              <span>OPERATIONS PIPELINE · UNIFIED TRI-PURPOSE INTAKE</span>
-            </div>
-            <h3 className="text-base sm:text-lg font-black text-white tracking-tight">
-              "One sign-in covers attendance, visitors, and drills — so the data stays current between drills."
-            </h3>
-            <p className="text-xs text-sky-100 max-w-3xl leading-relaxed">
-              The 8:00 AM turnstile/QR scan eliminates separate rosters. Daily attendance, front-desk visitor logs, and emergency drill readiness share a single live data pipeline with zero stale names.
-            </p>
-          </div>
 
           <button
             type="button"
-            onClick={() => setActiveTab("ledger")}
-            className="px-3.5 py-2 bg-white/10 hover:bg-white/20 text-sky-200 border border-sky-300/40 font-mono text-xs rounded-xl transition cursor-pointer flex items-center gap-1.5 shrink-0 self-start sm:self-center"
-            title="Inspect the real-time self-writing audit ledger"
+            onClick={() => handleRestoreRoster(195)}
+            disabled={isActionPending}
+            className="px-3 py-1.5 bg-sky-50 hover:bg-sky-100 text-[#005DAA] border border-sky-200 font-bold rounded-xl transition cursor-pointer flex items-center gap-1.5"
+            title="Restores standard Con Edison 195 Floor 07 baseline roster"
           >
-            <span>📜</span>
-            <span>Self-Writing Ledger: {snapshot?.ledgerEntries?.length || 25} Blocks</span>
+            <span>🔄</span>
+            <span>Standard 195</span>
           </button>
-        </div>
 
-        {/* 3 Unified Pipeline Metrics */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-          <div className="bg-black/25 border border-white/10 rounded-xl p-3 space-y-1">
-            <div className="text-[10px] font-mono text-sky-300 uppercase font-bold flex items-center justify-between">
-              <span>1. REGULAR ATTENDANCE</span>
-              <span>STAFF</span>
-            </div>
-            <div className="text-xl font-mono font-black text-white">
-              {inBuilding.filter(o => o.role !== "Visitor").length} <span className="text-xs font-sans font-normal text-slate-300">/ {totalOccupants - visitors.length} Employees</span>
-            </div>
-            <div className="text-[11px] text-slate-300">
-              Covers daily facility presence &amp; payroll badge swipes.
-            </div>
-          </div>
+          <button
+            type="button"
+            onClick={handleAccountTo200}
+            disabled={isActionPending}
+            className="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 font-bold rounded-xl transition cursor-pointer flex items-center gap-1.5 shadow-xs"
+            title="Scales roster to 200 occupants"
+          >
+            <span>⚡</span>
+            <span>200 Max Capacity</span>
+          </button>
 
-          <div className="bg-black/25 border border-white/10 rounded-xl p-3 space-y-1">
-            <div className="text-[10px] font-mono text-emerald-300 uppercase font-bold flex items-center justify-between">
-              <span>2. VISITOR &amp; CONTRACTOR INTAKE</span>
-              <span>BADGED</span>
-            </div>
-            <div className="text-xl font-mono font-black text-emerald-300">
-              {visitors.length} <span className="text-xs font-sans font-normal text-slate-300">Active Badges</span>
-            </div>
-            <div className="text-[11px] text-slate-300">
-              Direct digital ingress · No separate front-desk paper binder.
-            </div>
-          </div>
-
-          <div className="bg-black/25 border border-white/10 rounded-xl p-3 space-y-1">
-            <div className="text-[10px] font-mono text-amber-300 uppercase font-bold flex items-center justify-between">
-              <span>3. DRILL READINESS</span>
-              <span>100% CURRENT</span>
-            </div>
-            <div className="text-xl font-mono font-black text-amber-300">
-              {inBuilding.length} <span className="text-xs font-sans font-normal text-slate-300">Live Denominator</span>
-            </div>
-            <div className="text-[11px] text-slate-300">
-              Zero stale roster lag · Verified headcount locked before alarm.
-            </div>
-          </div>
+          <button
+            type="button"
+            onClick={handleClearMockNames}
+            disabled={isActionPending}
+            className="px-2.5 py-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition cursor-pointer text-[11px]"
+            title="Resets database to clean standby ready for intake"
+          >
+            Reset
+          </button>
         </div>
       </div>
 
-      {/* Urgent Distress & Rescue Alert Banner if occupants flagged help */}
-      {distressedOccupants.length > 0 && (
+      {/* Urgent Distress & Rescue Alert Banner (Active during alarm/incident if occupants need help) */}
+      {snapshot?.incidentActive && distressedOccupants.length > 0 && (
         <div className="bg-red-50 border-2 border-red-500 rounded-2xl p-4 sm:p-5 shadow-md flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-fadeIn">
           <div className="flex items-center gap-3">
             <span className="text-3xl animate-bounce">🚨</span>
