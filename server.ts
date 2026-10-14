@@ -1907,6 +1907,18 @@ app.post("/api/system/custom-origin", (req, res) => {
   }
   cleanOrigin = cleanOrigin.replace(/\/+$/, "");
 
+  if (cleanOrigin.includes("mustercommand.coned.com")) {
+    customServiceOrigin = "";
+    savePersistedServiceConfig({ customOrigin: "" });
+    notifySseClients();
+    return res.json({
+      ok: true,
+      customOrigin: null,
+      effectiveOrigin: activeTunnelUrl || mobileOrigin,
+      message: "mustercommand.coned.com removed; reverted to active Cellular 5G relay.",
+    });
+  }
+
   customServiceOrigin = cleanOrigin;
   savePersistedServiceConfig({ customOrigin: cleanOrigin });
   console.log(`🏢 Custom Relatable Service Domain Applied: ${cleanOrigin}`);
