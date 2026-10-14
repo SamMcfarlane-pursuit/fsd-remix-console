@@ -32,7 +32,6 @@ COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/db ./db
 COPY --from=builder --chown=node:node /app/data ./data
-COPY --from=builder /app/index.html ./dist/index.html
 
 # Run as non-root user for enterprise container security
 USER node
