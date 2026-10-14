@@ -140,6 +140,11 @@ export const ActualBuildingFloorMap: React.FC<ActualBuildingFloorMapProps> = ({
 }) => {
   const isStairA = !targetStairwell || targetStairwell.toLowerCase().includes("stairwell a") || targetStairwell.toLowerCase().includes("stair a");
 
+  const isTargetNW = targetQuadrant?.toUpperCase() === "NW";
+  const isTargetNE = targetQuadrant?.toUpperCase() === "NE";
+  const isTargetSW = targetQuadrant?.toUpperCase() === "SW";
+  const isTargetSE = targetQuadrant?.toUpperCase() === "SE";
+
   // High-accuracy architectural pin calculation
   const pin = computeArchitecturalPin(targetQuadrant, targetDesk, targetX, targetY);
   const accuracyMeters = accuracyRadiusMeters ?? pin.accuracyMeters;

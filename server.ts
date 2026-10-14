@@ -1885,6 +1885,10 @@ app.get("/api/system/network-info", (req, res) => {
 // Configure Custom Service Domain / Relatable URL Override
 app.post("/api/system/custom-origin", (req, res) => {
   const { origin, clear } = req.body || {};
+  const hostHeader = req.headers.host || `localhost:${PORT}`;
+  const protocol = req.headers["x-forwarded-proto"] || req.protocol || "http";
+  const fallbackOrigin = `${protocol}://${hostHeader}`;
+
   if (clear) {
     customServiceOrigin = "";
     savePersistedServiceConfig({ customOrigin: "" });
@@ -1892,7 +1896,7 @@ app.post("/api/system/custom-origin", (req, res) => {
     return res.json({
       ok: true,
       customOrigin: null,
-      effectiveOrigin: activeTunnelUrl || mobileOrigin,
+      effectiveOrigin: activeTunnelUrl || fallbackOrigin,
       message: "Custom service origin cleared; reverted to live Cellular 5G Cloudflare gateway.",
     });
   }
@@ -1914,7 +1918,7 @@ app.post("/api/system/custom-origin", (req, res) => {
     return res.json({
       ok: true,
       customOrigin: null,
-      effectiveOrigin: activeTunnelUrl || mobileOrigin,
+      effectiveOrigin: activeTunnelUrl || fallbackOrigin,
       message: "mustercommand.coned.com removed; reverted to active Cellular 5G relay.",
     });
   }
