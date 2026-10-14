@@ -29,7 +29,7 @@ import {
 const app = express();
 app.use(express.json({ limit: "10mb" })); // Support digital signature canvas payloads
 
-const PORT = 3000;
+const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 
 // Lazy initialization of Google GenAI client to prevent crash at server boot
 let aiClient: GoogleGenAI | null = null;
@@ -288,7 +288,7 @@ const DATA_DIR = path.join(process.cwd(), "data");
 const ROSTER_FILE = path.join(DATA_DIR, "fsd_roster.json");
 const SERVICE_CONFIG_FILE = path.join(DATA_DIR, "service_config.json");
 
-let customServiceOrigin: string = process.env.SERVICE_URL || process.env.PUBLIC_SERVICE_URL || "";
+let customServiceOrigin: string = process.env.RENDER_EXTERNAL_URL || process.env.SERVICE_URL || process.env.PUBLIC_SERVICE_URL || "";
 let persistedCfToken: string = process.env.CLOUDFLARE_TUNNEL_TOKEN || "";
 let persistedCfDomain: string = process.env.CLOUDFLARE_TUNNEL_DOMAIN || "";
 
@@ -4529,10 +4529,14 @@ async function startServer() {
 
   app.listen(PORT, "0.0.0.0", () => {
     console.log(`MusterCommand server running on http://0.0.0.0:${PORT}`);
-    // Auto-launch Cloudflare quick tunnel for universal phone camera scanning
-    launchPublicTunnel().catch((err) => {
-      console.warn("Public tunnel auto-launch deferred to manual toggle:", err.message);
-    });
+    if (process.env.RENDER || process.env.RENDER_EXTERNAL_URL) {
+      console.log(`🚀 Render Cloud Deployment Active: ${process.env.RENDER_EXTERNAL_URL || `port ${PORT}`}`);
+    } else {
+      // Auto-launch Cloudflare quick tunnel for universal phone camera scanning in local development
+      launchPublicTunnel().catch((err) => {
+        console.warn("Public tunnel auto-launch deferred to manual toggle:", err.message);
+      });
+    }
   });
 }
 
