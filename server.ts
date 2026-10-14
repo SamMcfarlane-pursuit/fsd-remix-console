@@ -4,7 +4,7 @@ import crypto from "crypto";
 import os from "os";
 import fs from "fs";
 import dns from "dns";
-import { spawn } from "child_process";
+import { spawn, spawnSync } from "child_process";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI, Type } from "@google/genai";
 import QRCode from "qrcode";
@@ -1933,12 +1933,11 @@ app.post("/api/system/custom-origin", (req, res) => {
 });
 
 // Locate reliable cloudflared binary with automatic path fallback and execute permission verification
-function getCloudflaredBinary(): string {
+function getCloudflaredBinary(): string | null {
   const candidates = [
     path.resolve(process.cwd(), "bin", "cloudflared"),
     "/opt/homebrew/bin/cloudflared",
     "/usr/local/bin/cloudflared",
-    "cloudflared",
   ];
   for (const c of candidates) {
     try {
@@ -1948,11 +1947,26 @@ function getCloudflaredBinary(): string {
       }
     } catch { }
   }
-  return "cloudflared";
+  try {
+    const check = spawnSync("which", ["cloudflared"]);
+    if (check.status === 0 && check.stdout.toString().trim()) {
+      return check.stdout.toString().trim();
+    }
+  } catch { }
+  return null;
 }
 
 // Dynamic Public Cellular Pathway (Dedicated Cloudflare Quick Tunnel or Named Custom Tunnel)
 async function launchPublicTunnel(forceFresh: boolean = false): Promise<string> {
+  // If running in Cloud environment (Render, Railway, etc.), we already have a public HTTPS domain!
+  if (process.env.RENDER || process.env.RENDER_EXTERNAL_URL) {
+    const cloudUrl = process.env.RENDER_EXTERNAL_URL || customServiceOrigin || "";
+    activeTunnelUrl = cloudUrl;
+    console.log(`🚀 Render Cloud Ingress Active: ${cloudUrl}`);
+    notifySseClients();
+    return cloudUrl;
+  }
+
   // If a valid Cloudflare tunnel is already active, return it immediately unless forced
   if (!forceFresh && activeTunnelChild && activeTunnelUrl && (activeTunnelUrl.includes("trycloudflare.com") || !!persistedCfToken)) {
     return activeTunnelUrl;
@@ -1969,6 +1983,11 @@ async function launchPublicTunnel(forceFresh: boolean = false): Promise<string> 
   }
 
   const cfBinary = getCloudflaredBinary();
+  if (!cfBinary) {
+    console.log("ℹ️ No cloudflared binary on this host. Skipping local tunnel spawn.");
+    return "";
+  }
+
   const isNamedTunnel = !!persistedCfToken;
   console.log(`🌐 Launching Cloudflare Tunnel (${isNamedTunnel ? "Named Token: " + (persistedCfDomain || "Custom Domain") : "Universal Quick Tunnel"}) via ${cfBinary}...`);
 
@@ -2067,6 +2086,12 @@ async function launchPublicTunnel(forceFresh: boolean = false): Promise<string> 
 
 // Self-healing watchdog: re-establish if connection drops or becomes unresponsive
 async function restartTunnelGracefully(): Promise<string> {
+  if (process.env.RENDER || process.env.RENDER_EXTERNAL_URL) {
+    return process.env.RENDER_EXTERNAL_URL || customServiceOrigin || "";
+  }
+  if (!getCloudflaredBinary()) {
+    return "";
+  }
   if (isRestartingTunnel) return activeTunnelUrl;
   isRestartingTunnel = true;
   console.log("🔄 Self-healing watchdog: Re-establishing Cloudflare public pathway...");
@@ -2095,6 +2120,11 @@ let consecutiveProbeFailures = 0;
 
 // Active Self-Healing Watchdog: Probes DNS & HTTP reachability with 45s edge DNS propagation grace period
 setInterval(async () => {
+  // Never run watchdog in Cloud environments (Render, etc.) or when no cloudflared binary is available
+  if (process.env.RENDER || process.env.RENDER_EXTERNAL_URL || !getCloudflaredBinary()) {
+    return;
+  }
+
   // If no process or invalid URL, restart immediately
   const isProcessAlive = activeTunnelChild && !activeTunnelChild.killed && activeTunnelChild.exitCode === null;
   if (!isProcessAlive || !activeTunnelUrl) {
@@ -2142,19 +2172,27 @@ setInterval(async () => {
 }, 20000);
 
 app.get("/api/system/tunnel/status", (req, res) => {
-  const isHealthyCloudflare = !!activeTunnelChild && !!activeTunnelUrl && (activeTunnelUrl.includes("trycloudflare.com") || !!persistedCfToken);
+  const isCloud = Boolean(process.env.RENDER || process.env.RENDER_EXTERNAL_URL);
+  const isHealthyCloudflare = isCloud || (!!activeTunnelChild && !!activeTunnelUrl && (activeTunnelUrl.includes("trycloudflare.com") || !!persistedCfToken));
+  const activeUrl = isCloud ? (process.env.RENDER_EXTERNAL_URL || customServiceOrigin || `https://${req.headers.host}`) : (isHealthyCloudflare ? activeTunnelUrl : null);
   res.json({
     ok: true,
     active: isHealthyCloudflare,
-    url: isHealthyCloudflare ? activeTunnelUrl : null,
-    provider: "cloudflare",
+    url: activeUrl,
+    provider: isCloud ? "render" : "cloudflare",
     isCustomNamedTunnel: !!persistedCfToken,
     customDomain: persistedCfDomain || null,
-    thematicName: "MusterCommand Public Ingress Relay",
+    thematicName: isCloud ? "Render Cloud Ingress" : "MusterCommand Public Ingress Relay",
   });
 });
 
 app.get("/api/system/tunnel/verify", async (req, res) => {
+  const isCloud = Boolean(process.env.RENDER || process.env.RENDER_EXTERNAL_URL);
+  if (isCloud) {
+    const activeUrl = process.env.RENDER_EXTERNAL_URL || customServiceOrigin || `https://${req.headers.host}`;
+    return res.json({ ok: true, active: true, latencyMs: 14, url: activeUrl });
+  }
+
   const isHealthyCloudflare = !!activeTunnelChild && !!activeTunnelUrl && (activeTunnelUrl.includes("trycloudflare.com") || !!persistedCfToken);
   if (!isHealthyCloudflare) {
     return res.json({ ok: false, active: false, error: "No active Cloudflare tunnel", url: null });
