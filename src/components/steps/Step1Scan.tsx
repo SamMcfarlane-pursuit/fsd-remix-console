@@ -52,7 +52,7 @@ export const Step1Scan: React.FC<Step1ScanProps> = ({
   const [mobileOrigin, setMobileOrigin] = useState<string>(getMobileNetworkOrigin());
   const [isEditingOrigin, setIsEditingOrigin] = useState<boolean>(false);
   const [customOriginInput, setCustomOriginInput] = useState<string>("");
-  const [networkMode, setNetworkMode] = useState<"lan" | "cellular">("lan");
+  const [networkMode, setNetworkMode] = useState<"mustercommand" | "cellular" | "lan">("mustercommand");
   const [isTunnelLoading, setIsTunnelLoading] = useState<boolean>(false);
 
   // Super-Size QR Display & Distance Scanning State
@@ -196,15 +196,8 @@ export const Step1Scan: React.FC<Step1ScanProps> = ({
 
   // Generate QR Code URL with mobile reachable origin
   useEffect(() => {
-    getTunnelStatus().then((status) => {
-      if (status.active && status.url) {
-        setNetworkMode("cellular");
-        setMobileOrigin(status.url);
-      } else {
-        discoverMobileOrigin().then((origin) => {
-          setMobileOrigin(origin);
-        });
-      }
+    discoverMobileOrigin().then((origin) => {
+      setMobileOrigin(origin);
     });
 
     const handleOriginChange = () => {
@@ -215,13 +208,6 @@ export const Step1Scan: React.FC<Step1ScanProps> = ({
       window.removeEventListener("muster-origin-changed", handleOriginChange);
     };
   }, []);
-
-  useEffect(() => {
-    if (snapshot?.publicTunnelUrl) {
-      setNetworkMode("cellular");
-      setMobileOrigin(snapshot.publicTunnelUrl);
-    }
-  }, [snapshot?.publicTunnelUrl]);
 
   const handleActivateCellular = async () => {
     setIsTunnelLoading(true);
@@ -248,8 +234,17 @@ export const Step1Scan: React.FC<Step1ScanProps> = ({
     }
   };
 
+  const activeBaseUrl =
+    networkMode === "lan"
+      ? (mobileOrigin.includes("http") && !mobileOrigin.includes("trycloudflare.com") && !mobileOrigin.includes("coned.com")
+          ? mobileOrigin
+          : "http://127.0.0.1:3000")
+      : networkMode === "cellular"
+      ? (snapshot?.publicTunnelUrl || (mobileOrigin.includes("trycloudflare.com") ? mobileOrigin : "https://mustercommand.coned.com"))
+      : (snapshot?.customServiceOrigin || (mobileOrigin && !mobileOrigin.includes("trycloudflare.com") ? mobileOrigin : "https://mustercommand.coned.com"));
+
   useEffect(() => {
-    const scanUrl = `${mobileOrigin}/?mode=signin&scan=1`;
+    const scanUrl = `${activeBaseUrl}/?mode=signin&scan=1`;
     // High-resolution rendering with M error correction for rapid phone camera focus
     const targetWidth = qrDisplaySize === "supersize" || isSuperSizeModalOpen ? 800 : (qrDisplaySize === "large" ? 540 : 360);
     QRCode.toDataURL(scanUrl, {
@@ -260,7 +255,7 @@ export const Step1Scan: React.FC<Step1ScanProps> = ({
     })
       .then((url) => setQrDataUrl(url))
       .catch((err) => console.error("QR Code generation error:", err));
-  }, [mobileOrigin, qrDisplaySize, isSuperSizeModalOpen]);
+  }, [activeBaseUrl, qrDisplaySize, isSuperSizeModalOpen]);
 
 
   const handleManualScan = async (occupantIdToUse?: string, action: "enter" | "leave" | "muster" = "enter") => {
@@ -462,20 +457,23 @@ export const Step1Scan: React.FC<Step1ScanProps> = ({
             </button>
           </div>
 
-          {/* Dual Network Pathway Selector */}
-          <div className="w-full bg-[#F0F6FC] p-1.5 rounded-xl border border-[#B8D8F8] grid grid-cols-2 gap-1.5 text-xs font-bold">
+          {/* Triple Network Pathway Selector */}
+          <div className="w-full bg-[#F0F6FC] p-1.5 rounded-xl border border-[#B8D8F8] grid grid-cols-3 gap-1.5 text-xs font-bold">
             <button
               type="button"
-              onClick={handleSwitchToLocalWifi}
-              disabled={isTunnelLoading}
+              onClick={() => {
+                setNetworkMode("mustercommand");
+                setCustomMobileOrigin("https://mustercommand.coned.com");
+              }}
               className={`py-1.5 px-2 rounded-lg transition cursor-pointer flex items-center justify-center gap-1 ${
-                networkMode === "lan"
+                networkMode === "mustercommand"
                   ? "bg-[#005DAA] text-white shadow-xs font-black"
                   : "text-slate-600 hover:text-slate-900 hover:bg-white"
               }`}
+              title="Official MusterCommand Domain"
             >
-              <span>🏢</span>
-              <span>Building Wi-Fi</span>
+              <span>🛡️</span>
+              <span>MusterCommand</span>
             </button>
 
             <button
@@ -487,9 +485,25 @@ export const Step1Scan: React.FC<Step1ScanProps> = ({
                   ? "bg-emerald-600 text-white shadow-xs font-black"
                   : "text-slate-600 hover:text-slate-900 hover:bg-white"
               }`}
+              title="Cloudflare 5G Cellular Gateway"
             >
               <span>🌐</span>
-              <span>{isTunnelLoading ? "Connecting..." : "Cellular 5G"}</span>
+              <span>{isTunnelLoading ? "Connecting..." : "5G Cloudflare"}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleSwitchToLocalWifi}
+              disabled={isTunnelLoading}
+              className={`py-1.5 px-2 rounded-lg transition cursor-pointer flex items-center justify-center gap-1 ${
+                networkMode === "lan"
+                  ? "bg-sky-700 text-white shadow-xs font-black"
+                  : "text-slate-600 hover:text-slate-900 hover:bg-white"
+              }`}
+              title="Building Local Wi-Fi"
+            >
+              <span>🏢</span>
+              <span>Building Wi-Fi</span>
             </button>
           </div>
 
@@ -625,13 +639,13 @@ export const Step1Scan: React.FC<Step1ScanProps> = ({
               {!isEditingOrigin ? (
                 <div className="mt-1 flex items-center justify-between gap-1">
                   <span className="font-mono text-xs font-bold text-[#0F2537] truncate select-all">
-                    {mobileOrigin}
+                    {activeBaseUrl}
                   </span>
                   <button
                     type="button"
                     onClick={() => {
                       if (navigator.clipboard) {
-                        navigator.clipboard.writeText(`${mobileOrigin}/?mode=signin&scan=1`);
+                        navigator.clipboard.writeText(`${activeBaseUrl}/?mode=signin&scan=1`);
                         alert("Copied mobile sign-in URL to clipboard!");
                       }
                     }}
@@ -1305,7 +1319,7 @@ export const Step1Scan: React.FC<Step1ScanProps> = ({
                   type="button"
                   onClick={() => {
                     if (navigator.clipboard) {
-                      navigator.clipboard.writeText(`${mobileOrigin}/?mode=signin&scan=1`);
+                      navigator.clipboard.writeText(`${activeBaseUrl}/?mode=signin&scan=1`);
                       alert("Copied mobile sign-in URL to clipboard!");
                     }
                   }}
@@ -1317,7 +1331,7 @@ export const Step1Scan: React.FC<Step1ScanProps> = ({
               </div>
 
               <div className="font-mono text-xs text-[#003B70] bg-white p-2.5 rounded-xl border border-[#CBDCEE] break-all select-all font-bold text-left flex items-center justify-between">
-                <span>{mobileOrigin}/?mode=signin&scan=1</span>
+                <span>{activeBaseUrl}/?mode=signin&scan=1</span>
                 <span className="text-[10px] font-mono text-slate-400 shrink-0 ml-2">PORT 3000</span>
               </div>
             </div>

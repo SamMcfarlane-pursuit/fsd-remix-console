@@ -288,7 +288,9 @@ const DATA_DIR = path.join(process.cwd(), "data");
 const ROSTER_FILE = path.join(DATA_DIR, "fsd_roster.json");
 const SERVICE_CONFIG_FILE = path.join(DATA_DIR, "service_config.json");
 
-let customServiceOrigin: string = process.env.SERVICE_URL || process.env.PUBLIC_SERVICE_URL || "";
+let customServiceOrigin: string = process.env.SERVICE_URL || process.env.PUBLIC_SERVICE_URL || "https://mustercommand.coned.com";
+let persistedCfToken: string = process.env.CLOUDFLARE_TUNNEL_TOKEN || "";
+let persistedCfDomain: string = process.env.CLOUDFLARE_TUNNEL_DOMAIN || "";
 
 function loadPersistedServiceConfig(): void {
   try {
@@ -298,17 +300,33 @@ function loadPersistedServiceConfig(): void {
         if (!data.customOrigin.includes("trycloudflare.com")) {
           customServiceOrigin = data.customOrigin;
         } else {
-          // Clean up legacy ephemeral trycloudflare URL from persistent config
-          savePersistedServiceConfig({ customOrigin: "" });
+          customServiceOrigin = "https://mustercommand.coned.com";
+          savePersistedServiceConfig({ customOrigin: "https://mustercommand.coned.com" });
         }
+      } else {
+        customServiceOrigin = "https://mustercommand.coned.com";
       }
+
+      if (data && data.cloudflareToken) {
+        persistedCfToken = data.cloudflareToken;
+      }
+      if (data && data.cloudflareDomain) {
+        persistedCfDomain = data.cloudflareDomain;
+      }
+    } else {
+      customServiceOrigin = "https://mustercommand.coned.com";
+      savePersistedServiceConfig({
+        customOrigin: "https://mustercommand.coned.com",
+        cloudflareToken: "",
+        cloudflareDomain: "",
+      });
     }
   } catch (err) {
     console.warn("Could not load service config:", err);
   }
 }
 
-function savePersistedServiceConfig(config: { customOrigin?: string }): void {
+function savePersistedServiceConfig(config: { customOrigin?: string; cloudflareToken?: string; cloudflareDomain?: string }): void {
   try {
     if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
     let existing: any = {};
@@ -855,7 +873,7 @@ function getDerivedSnapshot(): StatusSnapshot {
     quadrants,
     occupants: occupantsRoster,
     publicTunnelUrl: activeTunnelUrl || null,
-    customServiceOrigin: customServiceOrigin || null,
+    customServiceOrigin: customServiceOrigin || "https://mustercommand.coned.com",
     effectiveOrigin: customServiceOrigin || (activeTunnelChild && activeTunnelUrl ? activeTunnelUrl : null),
     lanIps: getLanIps(),
     ledgerEntries: ledgerChain.slice(-30),
@@ -1845,7 +1863,7 @@ app.get("/api/system/network-info", (req, res) => {
   const hostHeader = req.headers.host || `localhost:${PORT}`;
   const isLocalhost = hostHeader.includes("localhost") || hostHeader.includes("127.0.0.1");
   const mobileOrigin = isLocalhost && lanIps.length > 0 ? `${protocol}://${primaryIp}:${PORT}` : `${protocol}://${hostHeader}`;
-  const isHealthyCloudflare = !!activeTunnelChild && !!activeTunnelUrl && activeTunnelUrl.includes("trycloudflare.com");
+  const isHealthyCloudflare = !!activeTunnelChild && !!activeTunnelUrl && (activeTunnelUrl.includes("trycloudflare.com") || !!persistedCfToken);
   const effectiveOrigin = customServiceOrigin || (isHealthyCloudflare ? activeTunnelUrl : mobileOrigin);
 
   res.json({
@@ -1857,8 +1875,10 @@ app.get("/api/system/network-info", (req, res) => {
     isLocalhost,
     mobileOrigin,
     publicTunnelUrl: isHealthyCloudflare ? activeTunnelUrl : null,
-    customServiceOrigin: customServiceOrigin || null,
+    customServiceOrigin: customServiceOrigin || "https://mustercommand.coned.com",
     effectiveOrigin,
+    isCustomNamedTunnel: !!persistedCfToken,
+    cloudflareCustomDomain: persistedCfDomain || null,
   });
 });
 
@@ -1866,14 +1886,14 @@ app.get("/api/system/network-info", (req, res) => {
 app.post("/api/system/custom-origin", (req, res) => {
   const { origin, clear } = req.body || {};
   if (clear) {
-    customServiceOrigin = "";
-    savePersistedServiceConfig({ customOrigin: "" });
+    customServiceOrigin = "https://mustercommand.coned.com";
+    savePersistedServiceConfig({ customOrigin: "https://mustercommand.coned.com" });
     notifySseClients();
     return res.json({
       ok: true,
-      customOrigin: null,
-      effectiveOrigin: activeTunnelUrl || null,
-      message: "Custom service origin cleared; reverted to dynamic network gateway.",
+      customOrigin: "https://mustercommand.coned.com",
+      effectiveOrigin: "https://mustercommand.coned.com",
+      message: "Custom service origin reset to default MusterCommand service domain (https://mustercommand.coned.com).",
     });
   }
 
@@ -1919,10 +1939,10 @@ function getCloudflaredBinary(): string {
   return "cloudflared";
 }
 
-// Dynamic Public Cellular Pathway (Dedicated Cloudflare Quick Tunnel - Zero Interstitials / No loca.lt)
+// Dynamic Public Cellular Pathway (Dedicated Cloudflare Quick Tunnel or Named Custom Tunnel)
 async function launchPublicTunnel(forceFresh: boolean = false): Promise<string> {
   // If a valid Cloudflare tunnel is already active, return it immediately unless forced
-  if (!forceFresh && activeTunnelChild && activeTunnelUrl && activeTunnelUrl.includes("trycloudflare.com")) {
+  if (!forceFresh && activeTunnelChild && activeTunnelUrl && (activeTunnelUrl.includes("trycloudflare.com") || !!persistedCfToken)) {
     return activeTunnelUrl;
   }
 
@@ -1937,23 +1957,44 @@ async function launchPublicTunnel(forceFresh: boolean = false): Promise<string> 
   }
 
   const cfBinary = getCloudflaredBinary();
-  console.log(`🌐 Launching Cloudflare Quick Tunnel via ${cfBinary} (Universal 5G Scanning, 0 Interstitials)...`);
+  const isNamedTunnel = !!persistedCfToken;
+  console.log(`🌐 Launching Cloudflare Tunnel (${isNamedTunnel ? "Named Token: " + (persistedCfDomain || "Custom Domain") : "Universal Quick Tunnel"}) via ${cfBinary}...`);
 
   const attemptLaunch = (): Promise<string> => {
     return new Promise<string>((resolve, reject) => {
-      const child = spawn(cfBinary, ["tunnel", "--url", `http://127.0.0.1:${PORT}`, "--no-autoupdate"]);
+      const args = isNamedTunnel
+        ? ["tunnel", "run", "--token", persistedCfToken, "--no-autoupdate"]
+        : ["tunnel", "--url", `http://127.0.0.1:${PORT}`, "--no-autoupdate"];
+
+      const child = spawn(cfBinary, args);
       let resolved = false;
 
       const handleOutput = (data: Buffer | string) => {
         const text = data.toString();
-        const match = text.match(/https:\/\/[a-zA-Z0-9-]+\.trycloudflare\.com/);
-        if (match && !resolved) {
-          resolved = true;
-          activeTunnelChild = child;
-          activeTunnelUrl = match[0];
-          console.log(`✅ Cloudflare Public Cellular Pathway Live: ${activeTunnelUrl}`);
-          notifySseClients();
-          resolve(match[0]);
+        if (isNamedTunnel) {
+          if (!resolved && (text.includes("Registered tunnel connection") || text.includes("Connection") || text.includes("Connected to") || text.includes("ready"))) {
+            resolved = true;
+            activeTunnelChild = child;
+            activeTunnelUrl = persistedCfDomain || customServiceOrigin || "https://mustercommand.coned.com";
+            console.log(`✅ Cloudflare Named Tunnel Live: ${activeTunnelUrl}`);
+            notifySseClients();
+            resolve(activeTunnelUrl);
+          }
+        } else {
+          const matches = text.match(/https:\/\/[a-zA-Z0-9-]+\.trycloudflare\.com/g);
+          if (matches && !resolved) {
+            const valid = matches.find((m) => !m.includes("api.trycloudflare.com") && !m.includes("update.trycloudflare.com"));
+            if (valid) {
+              resolved = true;
+              activeTunnelChild = child;
+              activeTunnelUrl = valid;
+              tunnelStartedAt = Date.now();
+              consecutiveProbeFailures = 0;
+              console.log(`✅ Cloudflare Public Cellular Pathway Live: ${activeTunnelUrl}`);
+              notifySseClients();
+              resolve(valid);
+            }
+          }
         }
       };
 
@@ -1979,11 +2020,22 @@ async function launchPublicTunnel(forceFresh: boolean = false): Promise<string> 
       });
 
       setTimeout(() => {
+        if (isNamedTunnel && !resolved) {
+          if (!child.killed && child.exitCode === null) {
+            resolved = true;
+            activeTunnelChild = child;
+            activeTunnelUrl = persistedCfDomain || customServiceOrigin || "https://mustercommand.coned.com";
+            console.log(`✅ Cloudflare Named Tunnel Connected: ${activeTunnelUrl}`);
+            notifySseClients();
+            resolve(activeTunnelUrl);
+            return;
+          }
+        }
         if (!resolved) {
           try { child.kill(); } catch { }
           reject(new Error("Cloudflare tunnel handshake timed out after 30s"));
         }
-      }, 30000);
+      }, isNamedTunnel ? 6000 : 30000);
     });
   };
 
@@ -2026,13 +2078,22 @@ async function restartTunnelGracefully(): Promise<string> {
   }
 }
 
-// Active Self-Healing Watchdog: Probes DNS & HTTP reachability to guarantee scannable live gateway
+let tunnelStartedAt = Date.now();
+let consecutiveProbeFailures = 0;
+
+// Active Self-Healing Watchdog: Probes DNS & HTTP reachability with 45s edge DNS propagation grace period
 setInterval(async () => {
   // If no process or invalid URL, restart immediately
   const isProcessAlive = activeTunnelChild && !activeTunnelChild.killed && activeTunnelChild.exitCode === null;
-  if (!isProcessAlive || !activeTunnelUrl || !activeTunnelUrl.includes("trycloudflare.com")) {
+  if (!isProcessAlive || !activeTunnelUrl) {
     console.log("Watchdog detected inactive tunnel process. Re-establishing public pathway...");
+    consecutiveProbeFailures = 0;
     restartTunnelGracefully().catch(() => { });
+    return;
+  }
+
+  // Grace period: allow 45s for Cloudflare edge global DNS propagation
+  if (Date.now() - tunnelStartedAt < 45000) {
     return;
   }
 
@@ -2055,25 +2116,34 @@ setInterval(async () => {
     if (!probeRes.ok) {
       throw new Error(`Probe returned HTTP ${probeRes.status}`);
     }
+    // Probe succeeded
+    consecutiveProbeFailures = 0;
   } catch (probeErr: any) {
-    console.warn(`⚠️ Cloudflare tunnel unreachable (${activeTunnelUrl}): ${probeErr.message}`);
-    console.log("🔄 Self-healing watchdog: Automatically repairing public pathway with fresh gateway...");
-    restartTunnelGracefully().catch(() => { });
+    consecutiveProbeFailures++;
+    console.warn(`⚠️ Cloudflare probe attempt ${consecutiveProbeFailures}/3 failed (${activeTunnelUrl}): ${probeErr.message}`);
+    if (consecutiveProbeFailures >= 3) {
+      console.log("🔄 Self-healing watchdog: 3 consecutive probe failures. Repairing public pathway with fresh gateway...");
+      consecutiveProbeFailures = 0;
+      restartTunnelGracefully().catch(() => { });
+    }
   }
 }, 20000);
 
 app.get("/api/system/tunnel/status", (req, res) => {
-  const isHealthyCloudflare = !!activeTunnelChild && !!activeTunnelUrl && activeTunnelUrl.includes("trycloudflare.com");
+  const isHealthyCloudflare = !!activeTunnelChild && !!activeTunnelUrl && (activeTunnelUrl.includes("trycloudflare.com") || !!persistedCfToken);
   res.json({
     ok: true,
     active: isHealthyCloudflare,
     url: isHealthyCloudflare ? activeTunnelUrl : null,
     provider: "cloudflare",
+    isCustomNamedTunnel: !!persistedCfToken,
+    customDomain: persistedCfDomain || null,
+    thematicName: "MusterCommand Public Ingress Relay",
   });
 });
 
 app.get("/api/system/tunnel/verify", async (req, res) => {
-  const isHealthyCloudflare = !!activeTunnelChild && !!activeTunnelUrl && activeTunnelUrl.includes("trycloudflare.com");
+  const isHealthyCloudflare = !!activeTunnelChild && !!activeTunnelUrl && (activeTunnelUrl.includes("trycloudflare.com") || !!persistedCfToken);
   if (!isHealthyCloudflare) {
     return res.json({ ok: false, active: false, error: "No active Cloudflare tunnel", url: null });
   }
@@ -2108,7 +2178,7 @@ app.get("/api/system/tunnel/verify", async (req, res) => {
 app.post("/api/system/tunnel/start", async (req, res) => {
   try {
     const force = req.query.force === "true" || req.body?.force === true;
-    if (activeTunnelChild && activeTunnelUrl && !force && activeTunnelUrl.includes("trycloudflare.com")) {
+    if (activeTunnelChild && activeTunnelUrl && !force && (activeTunnelUrl.includes("trycloudflare.com") || !!persistedCfToken)) {
       return res.json({ ok: true, active: true, url: activeTunnelUrl, provider: "cloudflare", message: "Tunnel already active" });
     }
     const url = await launchPublicTunnel(true);
@@ -2132,6 +2202,53 @@ app.post("/api/system/tunnel/stop", (req, res) => {
     res.json({ ok: true, active: false });
   } catch (err: any) {
     res.status(500).json({ ok: false, error: err.message || "Failed to stop tunnel" });
+  }
+});
+
+// Save or clear Custom Cloudflare Named Tunnel Token & Hostname
+app.post("/api/system/tunnel/token", async (req, res) => {
+  try {
+    const { token, domain, clear } = req.body || {};
+    if (clear || !token) {
+      persistedCfToken = "";
+      persistedCfDomain = "";
+      savePersistedServiceConfig({ cloudflareToken: "", cloudflareDomain: "" });
+      await restartTunnelGracefully();
+      return res.json({
+        ok: true,
+        message: "Cloudflare custom token cleared; reverted to standard MusterCommand gateway.",
+        isCustomNamedTunnel: false,
+      });
+    }
+
+    persistedCfToken = String(token).trim();
+    let cleanDomain = domain ? String(domain).trim() : "";
+    if (cleanDomain && !cleanDomain.startsWith("http://") && !cleanDomain.startsWith("https://")) {
+      cleanDomain = `https://${cleanDomain}`;
+    }
+    cleanDomain = cleanDomain.replace(/\/+$/, "");
+    persistedCfDomain = cleanDomain;
+
+    savePersistedServiceConfig({
+      cloudflareToken: persistedCfToken,
+      cloudflareDomain: persistedCfDomain,
+    });
+
+    if (cleanDomain) {
+      customServiceOrigin = cleanDomain;
+      savePersistedServiceConfig({ customOrigin: cleanDomain });
+    }
+
+    await restartTunnelGracefully();
+    res.json({
+      ok: true,
+      message: `Cloudflare Named Tunnel active for ${cleanDomain || "configured domain"}.`,
+      isCustomNamedTunnel: true,
+      domain: cleanDomain,
+    });
+  } catch (err: any) {
+    console.error("Failed to update Cloudflare token:", err);
+    res.status(500).json({ ok: false, error: err.message || "Failed to update Cloudflare token" });
   }
 });
 

@@ -1,3 +1,5 @@
 {
-  "customOrigin": "https://mustercommand.coned.com"
+  "customOrigin": "https://mustercommand.coned.com",
+  "cloudflareToken": "",
+  "cloudflareDomain": ""
 }

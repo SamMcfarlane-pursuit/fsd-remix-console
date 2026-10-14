@@ -28,24 +28,16 @@ export const SignInQRPosterModal: React.FC<SignInQRPosterModalProps> = ({
   const [mobileOrigin, setMobileOrigin] = useState<string>(getMobileNetworkOrigin());
   const [isEditingOrigin, setIsEditingOrigin] = useState<boolean>(false);
   const [customOriginInput, setCustomOriginInput] = useState<string>("");
-  const [networkMode, setNetworkMode] = useState<"lan" | "cellular">("lan");
+  const [networkMode, setNetworkMode] = useState<"mustercommand" | "cellular" | "lan">("mustercommand");
   const [isTunnelLoading, setIsTunnelLoading] = useState<boolean>(false);
   const [tunnelError, setTunnelError] = useState<string | null>(null);
   const [qrScale, setQrScale] = useState<"standard" | "large" | "supersize" | "giant">("supersize");
 
   useEffect(() => {
     if (isOpen) {
-      // Check existing tunnel status, rejecting any deprecated loca.lt domains
-      getTunnelStatus().then((status) => {
-        if (status.active && status.url && status.url.includes("trycloudflare.com")) {
-          setNetworkMode("cellular");
-          setMobileOrigin(status.url);
-        } else {
-          discoverMobileOrigin().then((origin) => {
-            if (origin && !origin.includes("loca.lt")) {
-              setMobileOrigin(origin);
-            }
-          });
+      discoverMobileOrigin().then((origin) => {
+        if (origin && !origin.includes("loca.lt")) {
+          setMobileOrigin(origin);
         }
       });
     }
@@ -62,7 +54,16 @@ export const SignInQRPosterModal: React.FC<SignInQRPosterModalProps> = ({
     };
   }, [isOpen]);
 
-  const signInUrl = `${mobileOrigin}/?scan=1&mode=signin`;
+  const activeBaseUrl =
+    networkMode === "lan"
+      ? (mobileOrigin.includes("http") && !mobileOrigin.includes("trycloudflare.com") && !mobileOrigin.includes("coned.com")
+          ? mobileOrigin
+          : "http://127.0.0.1:3000")
+      : networkMode === "cellular"
+      ? (mobileOrigin.includes("trycloudflare.com") || mobileOrigin.includes("http") ? mobileOrigin : "https://mustercommand.coned.com")
+      : (mobileOrigin && !mobileOrigin.includes("trycloudflare.com") ? mobileOrigin : "https://mustercommand.coned.com");
+
+  const signInUrl = `${activeBaseUrl}/?scan=1&mode=signin`;
 
   useEffect(() => {
     if (isOpen) {
@@ -207,52 +208,78 @@ export const SignInQRPosterModal: React.FC<SignInQRPosterModalProps> = ({
           </div>
         </div>
 
-        {/* Dual Network Pathway Selector */}
-        <div className="bg-[#F0F6FC] p-1.5 rounded-xl border border-[#B8D8F8] grid grid-cols-2 gap-1.5 text-xs font-bold">
+        {/* Triple Network Pathway Selector */}
+        <div className="bg-[#F0F6FC] p-1.5 rounded-xl border border-[#B8D8F8] grid grid-cols-3 gap-1.5 text-xs font-bold">
           <button
             type="button"
-            onClick={handleSwitchToLocalWifi}
-            disabled={isTunnelLoading}
-            className={`py-2 px-2.5 rounded-lg transition cursor-pointer flex items-center justify-center gap-1.5 ${networkMode === "lan"
+            onClick={() => {
+              setNetworkMode("mustercommand");
+              handleSaveCustomOrigin("https://mustercommand.coned.com");
+            }}
+            className={`py-2 px-2 rounded-lg transition cursor-pointer flex items-center justify-center gap-1 ${
+              networkMode === "mustercommand"
                 ? "bg-[#005DAA] text-white shadow-xs font-black"
                 : "text-slate-600 hover:text-slate-900 hover:bg-white"
-              }`}
+            }`}
+            title="Official MusterCommand Intranet Domain"
           >
-            <span>🏢</span>
-            <span>Local Building Wi-Fi</span>
+            <span>🛡️</span>
+            <span>MusterCommand</span>
           </button>
 
           <button
             type="button"
             onClick={() => handleActivateCellularPathway(false)}
             disabled={isTunnelLoading}
-            className={`py-2 px-2.5 rounded-lg transition cursor-pointer flex items-center justify-center gap-1.5 ${networkMode === "cellular"
+            className={`py-2 px-2 rounded-lg transition cursor-pointer flex items-center justify-center gap-1 ${
+              networkMode === "cellular"
                 ? "bg-emerald-600 text-white shadow-xs font-black"
                 : "text-slate-600 hover:text-slate-900 hover:bg-white"
-              }`}
+            }`}
+            title="Encrypted Cloudflare 5G Cellular Gateway"
           >
             <span>🌐</span>
-            <span>{isTunnelLoading ? "Connecting Cloudflare..." : "Cellular 5G Pathway"}</span>
+            <span>{isTunnelLoading ? "Connecting..." : "5G Cloudflare"}</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={handleSwitchToLocalWifi}
+            disabled={isTunnelLoading}
+            className={`py-2 px-2 rounded-lg transition cursor-pointer flex items-center justify-center gap-1 ${
+              networkMode === "lan"
+                ? "bg-sky-700 text-white shadow-xs font-black"
+                : "text-slate-600 hover:text-slate-900 hover:bg-white"
+            }`}
+            title="Local Building Wi-Fi Network"
+          >
+            <span>🏢</span>
+            <span>Building Wi-Fi</span>
           </button>
         </div>
 
         {networkMode === "cellular" && (
-          <div className="bg-emerald-50 border border-emerald-300 rounded-xl p-2.5 text-xs text-emerald-950 flex flex-col sm:flex-row items-center justify-between gap-2">
+          <div className="bg-emerald-50 border border-emerald-300 rounded-xl p-2.5 text-xs text-emerald-950 flex flex-col sm:flex-row items-center justify-between gap-2 text-left">
             <div className="flex items-center gap-2">
-              <span className="text-emerald-600 text-sm">✅</span>
-              <span className="font-bold text-[11px]">
-                Zero-Interstitial Cloudflare Gateway Active (Universal 5G Scan Verified)
-              </span>
+              <span className="text-emerald-600 text-base">🛡️</span>
+              <div>
+                <span className="font-bold text-[11px] block text-emerald-950">
+                  MusterCommand Public Ingress · Cloudflare Zero-Trust Relay Active
+                </span>
+                <span className="text-[10px] text-emerald-800 block">
+                  Encrypted tunnel pipe securely connecting public 5G smartphones to MusterCommand Core.
+                </span>
+              </div>
             </div>
             <button
               type="button"
               onClick={() => handleActivateCellularPathway(true)}
               disabled={isTunnelLoading}
               className="px-2.5 py-1 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg text-[10px] font-black uppercase tracking-wider transition cursor-pointer flex items-center gap-1 shrink-0"
-              title="Force rotate to a fresh trycloudflare.com URL"
+              title="Rotate Cloudflare quick tunnel gateway"
             >
               <span>🔄</span>
-              <span>{isTunnelLoading ? "Rotating..." : "Rotate 5G URL"}</span>
+              <span>{isTunnelLoading ? "Rotating..." : "Rotate Gateway"}</span>
             </button>
           </div>
         )}
@@ -295,12 +322,17 @@ export const SignInQRPosterModal: React.FC<SignInQRPosterModalProps> = ({
             <span className="px-3 py-1 rounded-md text-[11px] font-mono font-black bg-amber-50 text-amber-900 border border-amber-300">
               🎯 DISTANCE SCANNABLE UP TO 20 FEET
             </span>
-            <span className={`text-[11px] font-mono font-bold px-3 py-1 rounded-md border ${networkMode === "cellular"
+            <span className={`text-[11px] font-mono font-bold px-3 py-1 rounded-md border ${
+              networkMode === "mustercommand"
+                ? "bg-[#EBF5FB] text-[#003B70] border-[#B8D8F8]"
+                : networkMode === "cellular"
                 ? "bg-emerald-50 text-emerald-900 border-emerald-300"
-                : "bg-[#EBF5FB] text-[#003B70] border-[#B8D8F8]"
-              }`}>
-              {networkMode === "cellular"
-                ? "🌐 CELLULAR 5G SCANNABLE (ANY NETWORK · NO WARNINGS)"
+                : "bg-sky-50 text-sky-900 border-sky-300"
+            }`}>
+              {networkMode === "mustercommand"
+                ? "🛡️ MUSTERCOMMAND PRIMARY INGRESS (CON EDISON)"
+                : networkMode === "cellular"
+                ? "🌐 CELLULAR 5G SCANNABLE (CLOUDFLARE ZERO-TRUST RELAY)"
                 : "🏢 SCAN ON BUILDING WI-FI"}
             </span>
           </div>
@@ -310,9 +342,13 @@ export const SignInQRPosterModal: React.FC<SignInQRPosterModalProps> = ({
         <div className="bg-[#F0F6FC] p-3 rounded-xl border border-[#CBDCEE] text-xs space-y-2">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-1.5 font-bold text-[#005DAA] text-[11px]">
-              <span>{networkMode === "cellular" ? "🌐" : "📡"}</span>
+              <span>{networkMode === "mustercommand" ? "🛡️" : networkMode === "cellular" ? "🌐" : "📡"}</span>
               <span>
-                {networkMode === "cellular" ? "Public 5G Pathway URL:" : "Local LAN Wi-Fi URL:"}
+                {networkMode === "mustercommand"
+                  ? "MusterCommand Service Domain:"
+                  : networkMode === "cellular"
+                  ? "MusterCommand 5G Public Ingress URL (Cloudflare Relay):"
+                  : "Local LAN Wi-Fi URL:"}
               </span>
             </div>
             <div className="flex items-center gap-2">

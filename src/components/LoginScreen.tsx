@@ -923,6 +923,57 @@ export default function LoginScreen({
                         </div>
                       </div>
 
+                      {/* Connect Custom Cloudflare Token & Domain */}
+                      <div className="pt-2 border-t border-[#1E3A60]/80 space-y-1 text-left">
+                        <label className="text-[10px] font-mono text-emerald-400 font-bold uppercase tracking-wider block">
+                          ⚡ Cloudflare Named Tunnel Token (Exact Domain Match):
+                        </label>
+                        <p className="text-[10px] text-slate-400 leading-tight">
+                          Bind your tunnel to <code className="text-sky-300">mustercommand.yourdomain.com</code> using your Cloudflare Zero Trust connector token.
+                        </p>
+                        <div className="space-y-1">
+                          <input
+                            type="password"
+                            placeholder="Paste Cloudflare Tunnel Token (eyJhIjoi...)"
+                            className="w-full bg-[#030712] border border-[#1E3A60] rounded-lg px-2.5 py-1 text-[11px] text-white font-mono placeholder:text-slate-600 focus:outline-hidden focus:border-emerald-500"
+                            id="cf-token-input"
+                          />
+                          <div className="flex gap-1">
+                            <input
+                              type="text"
+                              placeholder="e.g. https://mustercommand.yourdomain.com"
+                              className="flex-1 bg-[#030712] border border-[#1E3A60] rounded-lg px-2.5 py-1 text-[11px] text-white font-mono placeholder:text-slate-600 focus:outline-hidden focus:border-emerald-500"
+                              id="cf-domain-input"
+                            />
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                const tokenEl = document.getElementById("cf-token-input") as HTMLInputElement;
+                                const domainEl = document.getElementById("cf-domain-input") as HTMLInputElement;
+                                if (tokenEl?.value) {
+                                  try {
+                                    await fetch("/api/system/tunnel/token", {
+                                      method: "POST",
+                                      headers: { "Content-Type": "application/json" },
+                                      body: JSON.stringify({ token: tokenEl.value.trim(), domain: domainEl?.value?.trim() }),
+                                    });
+                                    if (domainEl?.value) {
+                                      handleSaveCustomOrigin(domainEl.value.trim());
+                                    }
+                                    setIsCustomUrlOpen(false);
+                                  } catch (err) {
+                                    console.error(err);
+                                  }
+                                }
+                              }}
+                              className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold transition cursor-pointer"
+                            >
+                              Save Token
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+
                       {/* Reset to Dynamic Tunnel */}
                       <div className="pt-1 flex items-center justify-between text-[10px]">
                         <span className="text-slate-400">Revert to auto-generated:</span>
@@ -937,6 +988,20 @@ export default function LoginScreen({
                       </div>
                     </div>
                   )}
+
+                  {/* Thematic Muster Ingress Header Bar */}
+                  <div className="flex items-center justify-between text-[10px] font-bold px-0.5">
+                    <span className={networkMode === "cellular" ? "text-emerald-400" : "text-sky-300"}>
+                      {networkMode === "mustercommand"
+                        ? "🛡️ MusterCommand Service Ingress:"
+                        : networkMode === "cellular"
+                        ? "🌐 MusterCommand 5G Public Ingress · Cloudflare Relay:"
+                        : "🏢 Local LAN Wi-Fi Pathway:"}
+                    </span>
+                    <span className="text-[9px] font-mono text-slate-400">
+                      {networkMode === "cellular" ? "⚡ Cloudflare Zero-Trust" : networkMode === "mustercommand" ? "Official Domain" : "Port 3000"}
+                    </span>
+                  </div>
 
                   <div className="flex items-center gap-1.5 bg-[#070D18] p-2 rounded-xl border border-[#1E3A60]">
                     <span className="text-[10px] font-mono text-sky-400 truncate flex-1 select-all" title={targetSignInUrl}>

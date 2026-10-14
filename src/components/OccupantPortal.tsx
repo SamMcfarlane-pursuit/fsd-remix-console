@@ -1123,21 +1123,24 @@ export default function OccupantPortal({ snapshot, occupants, onCheckIn, onSwitc
         />
       )}
 
-      {/* Official Con Edison Life-Safety Service Header Banner */}
-      <div className="bg-[#EBF5FB] border border-[#B8D8F8] p-3.5 rounded-2xl flex items-center justify-between gap-3 text-xs shadow-xs">
+      {/* Official MusterCommand · Con Edison Floor 07 Service Header Banner */}
+      <div className="bg-[#EBF5FB] border-2 border-[#005DAA] p-3.5 rounded-2xl flex items-center justify-between gap-3 text-xs shadow-sm">
         <div className="flex items-center gap-2.5">
-          <span className="text-2xl">⚡</span>
+          <span className="text-2xl">🛡️</span>
           <div>
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1.5 flex-wrap">
               <span className="font-black text-[#003B70] text-sm uppercase tracking-wide">
-                Con Edison Life-Safety Service
+                MusterCommand · Floor 07
               </span>
-              <span className="bg-emerald-100 text-emerald-800 text-[9px] font-mono font-bold px-1.5 py-0.2 rounded border border-emerald-300">
+              <span className="bg-emerald-100 text-emerald-800 text-[9px] font-mono font-bold px-1.5 py-0.5 rounded border border-emerald-300">
                 ACTIVE
+              </span>
+              <span className="bg-[#005DAA] text-white text-[9px] font-mono font-bold px-1.5 py-0.5 rounded">
+                NYC §401-06
               </span>
             </div>
             <p className="text-[11px] text-[#475569] font-medium">
-              4 Irving Place · Floor 07 Emergency Evacuation &amp; Sign-In Gateway
+              Con Edison · 4 Irving Place · Digital Sign-In &amp; Life-Safety Muster Portal
             </p>
           </div>
         </div>
