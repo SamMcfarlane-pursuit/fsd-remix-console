@@ -206,43 +206,35 @@ function generateInitialRoster(targetCount: number = 195): Occupant[] {
         if (i % 19 === 0) role = "VIP";
       }
 
-      // Pre-seed status variations
+      // Pre-seed status variations (Clean Peacetime Baseline)
       let status: Occupant["status"] = "safe";
       let badgedOut = false;
       let offSiteToday = false;
       let unaccountedMinutes = 0;
       let notes = "";
       let araAssigned = false;
+      let needEvacChair = false;
       let locationCategory: Occupant["locationCategory"] = "inside-building";
       let assemblyPoint: string | undefined = undefined;
 
-      if (id === "OCC-105") {
-        status = "awaiting-evac-chair";
-        araAssigned = true;
-        notes = "Stair A landing, Floor 07 ARA chair required (mobility assistance partner assigned)";
-      } else if (id === "OCC-109") {
-        status = "awaiting-evac-chair";
-        araAssigned = true;
-        notes = "Stair A landing, Floor 07 knee brace evacuation partner assigned";
-      } else if (id === "OCC-115") {
-        status = "need-help";
-        unaccountedMinutes = 4;
-        notes = "Tapped 'I Need Help' via mobile SOS · Responder dispatched by name (SW Corridor)";
-      } else if (id === "OCC-141") {
-        status = "safe";
-        badgedOut = false;
+      // 5 personnel offsite today (e.g. Remote work / vacation)
+      if (i >= count - 5) {
         offSiteToday = true;
         locationCategory = "offsite";
-        notes = "Never badged in at turnstile today · Verified Off-Site (Not in building)";
-      }
-
-      if (badgedOut || offSiteToday) {
-        locationCategory = "offsite";
-      } else if (status === "safe" && i % 2 === 0) {
-        locationCategory = "outside-assembly";
-        assemblyPoint = i % 4 === 0 ? "Assembly Point A (Park Plaza · East 14th)" : "Assembly Point B (Courtyard · East 15th)";
+        notes = "Approved remote work / scheduled leave today · Verified off-site";
       } else {
         locationCategory = "inside-building";
+      }
+
+      // Pre-designated mobility assistance partner assignments (peacetime ready)
+      if (id === "OCC-105") {
+        araAssigned = true;
+        needEvacChair = true;
+        notes = "Stryker Evac Chair pre-assigned at Stairwell A landing (mobility partner assigned)";
+      } else if (id === "OCC-109") {
+        araAssigned = true;
+        needEvacChair = true;
+        notes = "Stair A landing ARA priority (knee brace mobility assistance partner assigned)";
       }
 
       // Compute coordinate percentages on Floor 07 blueprint
@@ -267,12 +259,13 @@ function generateInitialRoster(targetCount: number = 195): Occupant[] {
         role,
         desk,
         araAssigned,
+        needEvacChair,
         locationCategory,
         assemblyPoint,
         badgedOut,
         offSiteToday,
         unaccountedMinutes,
-        lastLocation: locationCategory === "outside-assembly" ? (assemblyPoint || "Outside Assembly") : `${desk} (${quad} Sector)`,
+        lastLocation: offSiteToday ? "Off-Site / Remote" : `${desk} (${quad} Sector)`,
         lastBadgeTime: new Date(Date.now() - (i * 120000 + 300000)).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         notes,
         xCoord,

@@ -925,12 +925,27 @@ export default function App() {
 
             <div className="h-6 w-[1px] bg-white/20 hidden sm:block" />
 
-            {/* Accounted Counter */}
+            {/* Context-Aware Headcount Counter */}
             <div className="text-right hidden sm:block">
-              <div className="text-[9px] uppercase text-[#829AB8] font-bold tracking-widest">Accounted</div>
-              <div className="text-sm sm:text-base font-mono font-bold leading-none text-[#38BDF8]">
-                {snapshot?.accounted || 0}
-                <span className="text-[10px] text-[#829AB8]">/{snapshot?.expectedOnFloor ?? snapshot?.occupants?.length ?? 0}</span>
+              <div className="text-[9px] uppercase font-bold tracking-widest text-[#829AB8]">
+                {snapshot?.incidentActive ? "SAFE OUTSIDE" : "IN BUILDING"}
+              </div>
+              <div className="text-sm sm:text-base font-mono font-bold leading-none">
+                {snapshot?.incidentActive ? (
+                  <>
+                    <span className={snapshot?.accounted === snapshot?.expectedOnFloor ? "text-emerald-400" : "text-[#38BDF8]"}>
+                      {snapshot?.accounted || 0}
+                    </span>
+                    <span className="text-[10px] text-[#829AB8]">/{snapshot?.expectedOnFloor ?? snapshot?.occupants?.length ?? 195}</span>
+                  </>
+                ) : (
+                  <>
+                    <span className="text-emerald-400">
+                      {(snapshot?.occupants || []).filter((o: any) => !o.badgedOut && !o.offSiteToday).length || snapshot?.expectedOnFloor || 195}
+                    </span>
+                    <span className="text-[10px] text-[#829AB8]">/{snapshot?.occupants?.length || 200}</span>
+                  </>
+                )}
               </div>
             </div>
 
@@ -1042,6 +1057,7 @@ export default function App() {
                 stairwell={stairwell}
                 assemblyPoint={assemblyPoint}
                 onCheckIn={handleCheckIn}
+                onRefreshState={refreshState}
               />
             )}
 

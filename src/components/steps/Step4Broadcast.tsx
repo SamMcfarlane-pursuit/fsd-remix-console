@@ -33,6 +33,7 @@ interface Step4BroadcastProps {
     assemblyPoint?: string
   ) => Promise<void>;
   onDeclareIncident?: (mode: "drill" | "incident", type: string) => Promise<void>;
+  onRefreshState?: () => void;
 }
 
 export const Step4Broadcast: React.FC<Step4BroadcastProps> = ({
@@ -45,6 +46,7 @@ export const Step4Broadcast: React.FC<Step4BroadcastProps> = ({
   assemblyPoint: routeAssembly,
   onCheckIn,
   onDeclareIncident,
+  onRefreshState,
 }) => {
   const isIncident = snapshot?.mode === "incident";
   const isAlarmActive = snapshot?.incidentActive || false;
@@ -545,6 +547,85 @@ export const Step4Broadcast: React.FC<Step4BroadcastProps> = ({
 
         {/* Right Column: Channels, Notification Audience, & Receipts (4 cols) */}
         <div className="lg:col-span-4 space-y-6">
+          {/* Live Outdoor Muster Tracking & Egress Actions */}
+          <div className="bg-white rounded-2xl p-5 border border-[#B8D8F8] shadow-xs space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
+              <h3 className="text-sm font-black text-[#0F2537] flex items-center gap-1.5">
+                <span>📍</span>
+                <span>Outdoor Muster Stations</span>
+              </h3>
+              <span className="text-[10px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-emerald-100 text-emerald-800">
+                {snapshot?.accounted || 0} / {totalRecipients || 195} Safe
+              </span>
+            </div>
+
+            <div className="space-y-2">
+              <div className="p-3 bg-[#F8FAFC] rounded-xl border border-slate-200 flex items-center justify-between text-xs">
+                <div>
+                  <div className="font-bold text-[#0F2537]">Point A · Park Plaza (East 14th)</div>
+                  <div className="text-[10px] text-slate-500 font-mono">Assigned: Sectors NW &amp; NE</div>
+                </div>
+                <span className="font-mono font-black text-sm text-[#005DAA]">
+                  {snapshot?.outdoorMusterPoints?.[0]?.headcountVerified || 0} Safe
+                </span>
+              </div>
+
+              <div className="p-3 bg-[#F8FAFC] rounded-xl border border-slate-200 flex items-center justify-between text-xs">
+                <div>
+                  <div className="font-bold text-[#0F2537]">Point B · Courtyard Garden (East 15th)</div>
+                  <div className="text-[10px] text-slate-500 font-mono">Assigned: Sectors SW &amp; SE</div>
+                </div>
+                <span className="font-mono font-black text-sm text-[#005DAA]">
+                  {snapshot?.outdoorMusterPoints?.[1]?.headcountVerified || 0} Safe
+                </span>
+              </div>
+
+              {((snapshot?.awaitingEvacChair || 0) > 0 || (snapshot?.needHelp || 0) > 0) && (
+                <div className="p-2.5 bg-amber-50 rounded-xl border border-amber-300 text-xs flex items-center justify-between text-amber-900 font-bold">
+                  <span>🚨 Mobility / Hallway Pinpoint:</span>
+                  <span className="font-mono text-xs">
+                    {(snapshot?.awaitingEvacChair || 0)} Evac Chair · {(snapshot?.needHelp || 0)} SOS
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* Quick Demonstration Helpers */}
+            <div className="space-y-2 pt-1 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={async () => {
+                  await fetch("/api/drill/demo-preset-8min", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json", "x-fsd-pin": "7007" },
+                  });
+                  onRefreshState?.();
+                }}
+                className="w-full py-2.5 px-3 bg-[#005DAA] hover:bg-[#004884] text-white font-bold text-xs rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5 shadow-xs"
+              >
+                <span>⚡ Advance 8-Min Egress (191 Safe)</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={async () => {
+                  await fetch("/api/drill/resolve-evac", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json", "x-fsd-pin": "7007" },
+                  });
+                  await fetch("/api/drill/resolve-sos", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json", "x-fsd-pin": "7007" },
+                  });
+                  onRefreshState?.();
+                }}
+                className="w-full py-2.5 px-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5 shadow-xs"
+              >
+                <span>🚑 Resolve Evac Chair &amp; SOS (100% Safe)</span>
+              </button>
+            </div>
+          </div>
+
           {/* Channels Selector */}
           <div className="bg-white rounded-2xl p-5 border border-[#B8D8F8] shadow-xs space-y-3">
             <h3 className="text-sm font-black text-[#0F2537]">Active Delivery Channels</h3>

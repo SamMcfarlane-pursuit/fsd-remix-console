@@ -42,6 +42,8 @@ export const UserFlowStepper: React.FC<UserFlowStepperProps> = ({
       title: "Scan",
       desc: "QR at the floor entrance. Badge ID or visitor pass.",
       actionLabel: "Display / Scan QR",
+      metricBadge: `${expected || 195} Present`,
+      metricSub: `${Math.max(0, (snapshot?.occupants?.length || 200) - (expected || 195))} Off-Site`,
       onClick: () => {
         if (onSelectStep) onSelectStep(1);
         if (onOpenScan) onOpenScan();
@@ -52,6 +54,8 @@ export const UserFlowStepper: React.FC<UserFlowStepperProps> = ({
       title: "Signed in",
       desc: "Everyone on the floor is a known, live roster entry.",
       actionLabel: "View Roster",
+      metricBadge: `${expected || 195} on Floor 07`,
+      metricSub: "4 Quadrants",
       onClick: () => {
         if (onSelectStep) onSelectStep(2);
         if (onOpenRoster) onOpenRoster();
@@ -61,7 +65,9 @@ export const UserFlowStepper: React.FC<UserFlowStepperProps> = ({
       num: "03",
       title: "Alarm",
       desc: "Staff lead declares. Drill or incident, hazard set.",
-      actionLabel: "Declare Drill / Alarm",
+      actionLabel: isIncidentActive ? "Alarm Active" : "Declare Alarm",
+      metricBadge: isIncidentActive ? "ALARM ACTIVE" : "STANDBY",
+      metricSub: isIncidentActive ? "Phase 1 Recall On" : "Ready to Sound",
       onClick: () => {
         if (onSelectStep) onSelectStep(3);
         if (onOpenAlarm) onOpenAlarm();
@@ -71,7 +77,9 @@ export const UserFlowStepper: React.FC<UserFlowStepperProps> = ({
       num: "04",
       title: "Broadcast",
       desc: "Commander pushes to every device, all zones or one.",
-      actionLabel: "Broadcast Emergency",
+      actionLabel: "Broadcast Directive",
+      metricBadge: isIncidentActive ? `${accounted} / ${expected || 195} Safe` : "Directives Armed",
+      metricSub: isIncidentActive ? "Muster A & B" : "Push · SMS · PA",
       onClick: () => {
         if (onSelectStep) onSelectStep(4);
         if (onOpenBroadcast) onOpenBroadcast();
@@ -81,7 +89,9 @@ export const UserFlowStepper: React.FC<UserFlowStepperProps> = ({
       num: "05",
       title: "All safe",
       desc: "People self-report. Counts close. Ledger seals it.",
-      actionLabel: "Self-Report & Seal",
+      actionLabel: isAllSafeActive ? "Ledger Sealed" : "Close & Seal",
+      metricBadge: isAllSafeActive ? "100% ALL SAFE" : `${accounted} / ${expected || 195}`,
+      metricSub: isAllSafeActive ? "NYC §401-06 Sealed" : "Pending Clearance",
       onClick: () => {
         if (onSelectStep) onSelectStep(5);
         if (onOpenAllSafe) onOpenAllSafe();
@@ -126,26 +136,40 @@ export const UserFlowStepper: React.FC<UserFlowStepperProps> = ({
                 )}
 
                 <div>
-                  <div
-                    className={`text-2xl sm:text-3xl font-black mb-1.5 tracking-tight ${
-                      isActive ? "text-[#005DAA]" : "text-[#1E4268]"
-                    }`}
-                  >
-                    {step.num}
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span
+                      className={`text-2xl sm:text-3xl font-black tracking-tight ${
+                        isActive ? "text-[#005DAA]" : "text-[#1E4268]"
+                      }`}
+                    >
+                      {step.num}
+                    </span>
+                    <span
+                      className={`text-[9px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${
+                        isActive
+                          ? "bg-[#005DAA] text-white"
+                          : "bg-[#005DAA]/10 text-[#005DAA]"
+                      }`}
+                    >
+                      {step.metricBadge}
+                    </span>
                   </div>
                   <h3
-                    className={`text-base sm:text-lg font-black tracking-tight mb-2 ${
+                    className={`text-base sm:text-lg font-black tracking-tight mb-1 ${
                       isActive ? "text-[#003B70]" : "text-[#0F2537]"
                     }`}
                   >
                     {step.title}
                   </h3>
-                  <p className="text-xs text-[#475569] font-medium leading-relaxed">
+                  <p className="text-xs text-[#475569] font-medium leading-relaxed mb-2">
                     {step.desc}
                   </p>
+                  <div className="text-[10px] font-mono text-[#005DAA] font-bold">
+                    {step.metricSub}
+                  </div>
                 </div>
 
-                <div className="mt-4 pt-2.5 border-t border-[#D0E2F4] flex items-center justify-between text-[11px] font-bold text-[#005DAA]">
+                <div className="mt-3 pt-2.5 border-t border-[#D0E2F4] flex items-center justify-between text-[11px] font-bold text-[#005DAA]">
                   <span className="group-hover:underline">{step.actionLabel}</span>
                   <span className="text-xs transition-transform group-hover:translate-x-0.5">
                     →
