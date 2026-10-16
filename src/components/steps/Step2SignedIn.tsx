@@ -460,8 +460,8 @@ export const Step2SignedIn: React.FC<Step2SignedInProps> = ({
               key={qid}
               onClick={() => setSelectedQuadrant(isSelected ? "ALL" : qid)}
               className={`p-4 rounded-2xl border text-left transition cursor-pointer flex flex-col justify-between ${isSelected
-                  ? "bg-[#005DAA] text-white border-[#005DAA] shadow-md ring-2 ring-[#005DAA]/30"
-                  : "bg-white hover:bg-[#F0F6FC] text-[#0F2537] border-[#B8D8F8]"
+                ? "bg-[#005DAA] text-white border-[#005DAA] shadow-md ring-2 ring-[#005DAA]/30"
+                : "bg-white hover:bg-[#F0F6FC] text-[#0F2537] border-[#B8D8F8]"
                 }`}
             >
               <div className="flex items-center justify-between">
@@ -630,8 +630,8 @@ export const Step2SignedIn: React.FC<Step2SignedInProps> = ({
               type="button"
               onClick={() => setActiveTab("roster")}
               className={`px-3 py-1.5 rounded-xl font-bold text-xs transition cursor-pointer flex items-center gap-1.5 ${activeTab === "roster"
-                  ? "bg-[#005DAA] text-white shadow-xs"
-                  : "bg-white text-slate-600 border border-[#CBDCEE] hover:bg-[#F0F6FC]"
+                ? "bg-[#005DAA] text-white shadow-xs"
+                : "bg-white text-slate-600 border border-[#CBDCEE] hover:bg-[#F0F6FC]"
                 }`}
             >
               <span>👥</span>
@@ -642,8 +642,8 @@ export const Step2SignedIn: React.FC<Step2SignedInProps> = ({
               type="button"
               onClick={() => setActiveTab("ledger")}
               className={`px-3 py-1.5 rounded-xl font-bold text-xs transition cursor-pointer flex items-center gap-1.5 ${activeTab === "ledger"
-                  ? "bg-[#003B70] text-white shadow-xs"
-                  : "bg-white text-slate-600 border border-[#CBDCEE] hover:bg-[#F0F6FC]"
+                ? "bg-[#003B70] text-white shadow-xs"
+                : "bg-white text-slate-600 border border-[#CBDCEE] hover:bg-[#F0F6FC]"
                 }`}
             >
               <span>⛓️</span>
@@ -655,8 +655,8 @@ export const Step2SignedIn: React.FC<Step2SignedInProps> = ({
               type="button"
               onClick={() => setActiveTab("map")}
               className={`px-3 py-1.5 rounded-xl font-bold text-xs transition cursor-pointer flex items-center gap-1.5 ${activeTab === "map"
-                  ? "bg-[#0284C7] text-white shadow-xs"
-                  : "bg-white text-slate-600 border border-[#CBDCEE] hover:bg-[#F0F6FC]"
+                ? "bg-[#0284C7] text-white shadow-xs"
+                : "bg-white text-slate-600 border border-[#CBDCEE] hover:bg-[#F0F6FC]"
                 }`}
             >
               <span>🗺️</span>
@@ -722,15 +722,14 @@ export const Step2SignedIn: React.FC<Step2SignedInProps> = ({
                   return (
                     <tr
                       key={occ.id}
-                      className={`hover:bg-[#F8FAFC] transition ${
-                        isDistressed
+                      className={`hover:bg-[#F8FAFC] transition ${isDistressed
                           ? "bg-red-50/90 border-l-4 border-l-red-600"
                           : isSelected
                             ? "bg-[#EBF3FB]"
                             : isPresent
                               ? "bg-white"
                               : "bg-slate-50/70 opacity-75"
-                      }`}
+                        }`}
                     >
                       <td className="p-3.5">
                         <input
@@ -932,56 +931,56 @@ export const Step2SignedIn: React.FC<Step2SignedInProps> = ({
 
             <div className="overflow-x-auto max-h-[460px] overflow-y-auto bg-white rounded-xl border border-slate-200">
               <table className="w-full text-left text-xs font-mono">
-              <thead className="sticky top-0 bg-[#F0F6FC] text-[#475569] font-bold uppercase tracking-wider border-b border-[#CBDCEE] z-10">
-                <tr>
-                  <th className="p-3.5 w-24">Block #</th>
-                  <th className="p-3.5 w-24">Time</th>
-                  <th className="p-3.5">Occupant / Action</th>
-                  <th className="p-3.5">Sector &amp; Location</th>
-                  <th className="p-3.5">SHA-256 Hash Seal</th>
-                  <th className="p-3.5 text-right">Audit Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {(snapshot?.ledgerEntries || []).slice().reverse().map((entry: any, idx: number) => {
-                  const name = entry.payload?.name || entry.payload?.occupantName || entry.type;
-                  const id = entry.payload?.occupantId || entry.payload?.userId || "";
-                  const action = entry.payload?.presence || entry.payload?.newStatus || entry.type;
-                  const quad = entry.payload?.quadrant || "Floor 07";
+                <thead className="sticky top-0 bg-[#F0F6FC] text-[#475569] font-bold uppercase tracking-wider border-b border-[#CBDCEE] z-10">
+                  <tr>
+                    <th className="p-3.5 w-24">Block #</th>
+                    <th className="p-3.5 w-24">Time</th>
+                    <th className="p-3.5">Occupant / Action</th>
+                    <th className="p-3.5">Sector &amp; Location</th>
+                    <th className="p-3.5">SHA-256 Hash Seal</th>
+                    <th className="p-3.5 text-right">Audit Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {(snapshot?.ledgerEntries || []).slice().reverse().map((entry: any, idx: number) => {
+                    const name = entry.payload?.name || entry.payload?.occupantName || entry.type;
+                    const id = entry.payload?.occupantId || entry.payload?.userId || "";
+                    const action = entry.payload?.presence || entry.payload?.newStatus || entry.type;
+                    const quad = entry.payload?.quadrant || "Floor 07";
 
-                  return (
-                    <tr key={entry.id || idx} className="hover:bg-[#F8FAFC] transition">
-                      <td className="p-3.5 font-bold text-[#005DAA]">
-                        {entry.id || `L-${String(idx + 1).padStart(4, "0")}`}
-                      </td>
-                      <td className="p-3.5 text-slate-500">
-                        {entry.timestamp ? new Date(entry.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }) : "Recorded"}
-                      </td>
-                      <td className="p-3.5 font-sans font-bold text-[#0F2537]">
-                        {name} {id && <span className="text-slate-500 font-mono text-[11px]">({id})</span>}
-                        <div className="text-[10px] text-slate-500 font-mono capitalize">
-                          {entry.type.replace(/-/g, " ")}
-                        </div>
-                      </td>
-                      <td className="p-3.5 font-bold text-slate-700">
-                        Sector {quad}
-                      </td>
-                      <td className="p-3.5 text-slate-500 truncate max-w-[200px]" title={entry.hash}>
-                        {entry.hash ? entry.hash.substring(0, 14) + "..." + entry.hash.substring(entry.hash.length - 4) : "6c79d9cd..."}
-                      </td>
-                      <td className="p-3.5 text-right">
-                        <span className="inline-flex items-center gap-1 bg-emerald-100 text-emerald-950 border border-emerald-300 px-2 py-0.5 rounded-full text-[10px] font-bold">
-                          ✓ SEALED
-                        </span>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                    return (
+                      <tr key={entry.id || idx} className="hover:bg-[#F8FAFC] transition">
+                        <td className="p-3.5 font-bold text-[#005DAA]">
+                          {entry.id || `L-${String(idx + 1).padStart(4, "0")}`}
+                        </td>
+                        <td className="p-3.5 text-slate-500">
+                          {entry.timestamp ? new Date(entry.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }) : "Recorded"}
+                        </td>
+                        <td className="p-3.5 font-sans font-bold text-[#0F2537]">
+                          {name} {id && <span className="text-slate-500 font-mono text-[11px]">({id})</span>}
+                          <div className="text-[10px] text-slate-500 font-mono capitalize">
+                            {entry.type.replace(/-/g, " ")}
+                          </div>
+                        </td>
+                        <td className="p-3.5 font-bold text-slate-700">
+                          Sector {quad}
+                        </td>
+                        <td className="p-3.5 text-slate-500 truncate max-w-[200px]" title={entry.hash}>
+                          {entry.hash ? entry.hash.substring(0, 14) + "..." + entry.hash.substring(entry.hash.length - 4) : "6c79d9cd..."}
+                        </td>
+                        <td className="p-3.5 text-right">
+                          <span className="inline-flex items-center gap-1 bg-emerald-100 text-emerald-950 border border-emerald-300 px-2 py-0.5 rounded-full text-[10px] font-bold">
+                            ✓ SEALED
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
         {/* Tab 3: Floor 07 Architectural CAD Map View */}
         {activeTab === "map" && (
@@ -1004,7 +1003,7 @@ export const Step2SignedIn: React.FC<Step2SignedInProps> = ({
           </div>
         )}
       </div>
-            {/* Unified Occupant Safety Action & Building Location Modal */}
+      {/* Unified Occupant Safety Action & Building Location Modal */}
       <OccupantSafetyActionModal
         occupant={
           selectedOccupantForAction
